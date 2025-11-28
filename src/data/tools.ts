@@ -34,6 +34,16 @@ export const categoryColors: Record<ToolCategory, { bg: string; text: string; bo
 
 export const tools: Tool[] = [
   {
+    id: "wp-script-library",
+    name: "WP Script Library",
+    description: "Bibliothèque de scripts PHP/Shell pour WordPress avec catégorisation, tags et export.",
+    category: "scripts",
+    icon: "Code2",
+    url: "#",
+    tags: ["wordpress", "php", "shell", "scripts"],
+    color: "primary",
+  },
+  {
     id: "licence-key-hub",
     name: "Licence Key Hub",
     description: "Gestionnaire centralisé de clés de licence pour tous vos projets et applications SaaS.",
