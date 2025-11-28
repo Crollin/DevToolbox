@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Heart, Layers, Grid3X3 } from "lucide-react";
+import { Plus, Search, Heart, Layers, Grid3X3, RotateCcw } from "lucide-react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { useSVGIcons } from "@/hooks/useSVGIcons";
@@ -39,6 +39,7 @@ const SVGIconLibrary = () => {
     deleteIcon,
     toggleFavorite,
     addCategory,
+    resetToDefaults,
   } = useSVGIcons();
 
   const { toast } = useToast();
@@ -87,6 +88,14 @@ const SVGIconLibrary = () => {
     }
   };
 
+  const handleReset = () => {
+    resetToDefaults();
+    toast({
+      title: "Bibliothèque réinitialisée",
+      description: "Toutes les icônes par défaut ont été restaurées",
+    });
+  };
+
   return (
     <ToolLayout tool={tool}>
       <div className="flex gap-6 h-[calc(100vh-120px)]">
@@ -103,11 +112,16 @@ const SVGIconLibrary = () => {
             />
           </div>
 
-          {/* Add Button */}
-          <Button onClick={handleAdd} className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            Ajouter une icône
-          </Button>
+          {/* Buttons */}
+          <div className="flex gap-2">
+            <Button onClick={handleAdd} className="flex-1">
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter
+            </Button>
+            <Button onClick={handleReset} variant="outline" size="icon" title="Réinitialiser">
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          </div>
 
           {/* Filters */}
           <div className="space-y-1">

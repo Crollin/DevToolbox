@@ -85,6 +85,14 @@ export const useSVGIcons = () => {
     }
   };
 
+  // Reset to defaults
+  const resetToDefaults = () => {
+    setIcons(defaultIcons);
+    setCategories(defaultCategories);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultIcons));
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
+  };
+
   // Filter icons
   const filteredIcons = useMemo(() => {
     return icons.filter((icon) => {
@@ -138,5 +146,6 @@ export const useSVGIcons = () => {
     deleteIcon,
     toggleFavorite,
     addCategory,
+    resetToDefaults,
   };
 };
