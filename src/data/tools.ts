@@ -74,6 +74,16 @@ export const tools: Tool[] = [
     color: "emerald",
   },
   {
+    id: "wpcli-glossary",
+    name: "WP-CLI Glossary",
+    description: "Glossaire de commandes WP-CLI avec catégories, favoris et recherche rapide.",
+    category: "commandes",
+    icon: "Terminal",
+    url: "#",
+    tags: ["wordpress", "wp-cli", "commandes", "cli"],
+    color: "emerald",
+  },
+  {
     id: "git-commander",
     name: "Git Commander",
     description: "Collection de commandes Git avancées avec explications et exemples d'utilisation.",

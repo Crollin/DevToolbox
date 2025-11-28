@@ -10,6 +10,7 @@ import CsvPreviewPro from "./pages/tools/CsvPreviewPro";
 import MonCalculEnergie from "./pages/tools/MonCalculEnergie";
 import WPScriptLibrary from "./pages/tools/WPScriptLibrary";
 import ColorPaletteGen from "./pages/tools/ColorPaletteGen";
+import WPCLIGlossary from "./pages/tools/WPCLIGlossary";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/tools/mon-calcul-energie" element={<MonCalculEnergie />} />
           <Route path="/tools/wp-script-library" element={<WPScriptLibrary />} />
           <Route path="/tools/color-palette-gen" element={<ColorPaletteGen />} />
+          <Route path="/tools/wpcli-glossary" element={<WPCLIGlossary />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
