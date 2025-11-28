@@ -38,20 +38,20 @@ const DockerCommandCard = ({
   };
 
   return (
-    <div className="group bg-card border border-border rounded-xl p-4 hover:border-sky-500/50 transition-all duration-200">
+    <div className="group bg-card border border-border rounded-xl p-3 sm:p-4 hover:border-sky-500/50 transition-all duration-200">
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           <span
             className={cn(
-              "text-[10px] px-2 py-0.5 rounded-full font-medium",
+              "text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-medium",
               difficultyColor.bg,
               difficultyColor.text
             )}
           >
             {command.difficulty}
           </span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 font-medium">
+          <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 font-medium">
             {command.category}
           </span>
         </div>
@@ -65,7 +65,7 @@ const DockerCommandCard = ({
           )}
         >
           <Heart
-            className="w-4 h-4"
+            className="w-3.5 h-3.5 sm:w-4 sm:h-4"
             fill={command.isFavorite ? "currentColor" : "none"}
           />
         </button>
@@ -73,26 +73,26 @@ const DockerCommandCard = ({
 
       {/* Command */}
       <div
-        className="group/cmd flex items-center gap-2 bg-muted/50 rounded-lg p-3 mb-3 cursor-pointer hover:bg-muted transition-colors"
+        className="group/cmd flex items-center gap-2 bg-muted/50 rounded-lg p-2 sm:p-3 mb-2 sm:mb-3 cursor-pointer hover:bg-muted transition-colors"
         onClick={handleCopy}
       >
-        <Container className="w-4 h-4 text-sky-400 shrink-0" />
-        <code className="text-sm font-mono text-foreground flex-1 break-all">
+        <Container className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400 shrink-0" />
+        <code className="text-xs sm:text-sm font-mono text-foreground flex-1 break-all">
           {command.command}
         </code>
         {copied ? (
-          <Check className="w-4 h-4 text-sky-400 shrink-0" />
+          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400 shrink-0" />
         ) : (
-          <Copy className="w-4 h-4 text-muted-foreground opacity-0 group-hover/cmd:opacity-100 transition-opacity shrink-0" />
+          <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground opacity-0 group-hover/cmd:opacity-100 transition-opacity shrink-0" />
         )}
       </div>
 
       {/* Description */}
-      <p className="text-sm text-muted-foreground mb-3">{command.description}</p>
+      <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3 line-clamp-2">{command.description}</p>
 
-      {/* Example */}
+      {/* Example - Hidden on mobile */}
       {command.example && (
-        <div className="mb-3">
+        <div className="mb-2 sm:mb-3 hidden sm:block">
           <span className="text-xs text-muted-foreground font-medium">
             Exemple:
           </span>
@@ -102,9 +102,9 @@ const DockerCommandCard = ({
         </div>
       )}
 
-      {/* Options */}
+      {/* Options - Hidden on mobile */}
       {command.options && (
-        <div className="mb-3">
+        <div className="mb-2 sm:mb-3 hidden sm:block">
           <span className="text-xs text-muted-foreground font-medium">
             Options:
           </span>
@@ -112,20 +112,20 @@ const DockerCommandCard = ({
         </div>
       )}
 
-      {/* Notes */}
+      {/* Notes - Hidden on mobile */}
       {command.notes && (
-        <div className="mb-3 p-2 bg-sky-500/5 border border-sky-500/20 rounded-lg">
+        <div className="mb-2 sm:mb-3 p-2 bg-sky-500/5 border border-sky-500/20 rounded-lg hidden sm:block">
           <p className="text-xs text-sky-400/90">{command.notes}</p>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-1 pt-3 border-t border-border">
+      <div className="flex items-center gap-1 pt-2 sm:pt-3 border-t border-border">
         <Button
           variant="ghost"
           size="sm"
           onClick={handleCopy}
-          className="flex-1 h-8 text-xs"
+          className="flex-1 h-7 sm:h-8 text-[10px] sm:text-xs"
         >
           {copied ? (
             <Check className="w-3 h-3 mr-1" />
@@ -141,7 +141,7 @@ const DockerCommandCard = ({
               variant="ghost"
               size="icon"
               onClick={() => onEdit(command)}
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
             >
               <Pencil className="w-3 h-3" />
             </Button>
@@ -155,7 +155,7 @@ const DockerCommandCard = ({
               variant="ghost"
               size="icon"
               onClick={() => onDelete(command.id)}
-              className="h-8 w-8 text-destructive hover:text-destructive"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
             >
               <Trash2 className="w-3 h-3" />
             </Button>
