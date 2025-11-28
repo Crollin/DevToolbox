@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
-import { Calculator, Zap, Clock, FileText, Car } from "lucide-react";
-import { Tarif, Appareil, Calculation } from "@/types/electricalc";
+import { useState, useMemo, useEffect } from "react";
+import { Calculator, Zap, Clock, FileText, Car, Radio } from "lucide-react";
+import { Tarif, Appareil, Calculation, isInHeuresCreuses } from "@/types/electricalc";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
@@ -17,8 +17,9 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
   const [puissance, setPuissance] = useState<number>(100);
   const [duree, setDuree] = useState<number>(1);
   const [dureeUnit, setDureeUnit] = useState<"minutes" | "heures">("heures");
-  const [tarifType, setTarifType] = useState<"hp" | "hc" | "mixte">("hp");
+  const [tarifType, setTarifType] = useState<"hp" | "hc" | "mixte" | "auto">("hp");
   const [mixteRatio, setMixteRatio] = useState<number>(50);
+  const [currentTarifMode, setCurrentTarifMode] = useState<"hp" | "hc">("hp");
 
   // EV specific
   const [chargeStart, setChargeStart] = useState<number>(20);
@@ -26,6 +27,18 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
   const [efficiency, setEfficiency] = useState<number>(90);
 
   const isEV = selectedAppareil?.isEV || false;
+
+  // Update auto detection every minute
+  useEffect(() => {
+    const updateAutoMode = () => {
+      const isHC = isInHeuresCreuses(activeTarif);
+      setCurrentTarifMode(isHC ? "hc" : "hp");
+    };
+
+    updateAutoMode();
+    const interval = setInterval(updateAutoMode, 60000);
+    return () => clearInterval(interval);
+  }, [activeTarif]);
 
   const calculation = useMemo(() => {
     let consommationKwh: number;
@@ -41,9 +54,11 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
     }
 
     let cout: number;
-    if (tarifType === "hp") {
+    const effectiveTarifType = tarifType === "auto" ? currentTarifMode : tarifType;
+
+    if (effectiveTarifType === "hp") {
       cout = consommationKwh * activeTarif.heuresPleines;
-    } else if (tarifType === "hc") {
+    } else if (effectiveTarifType === "hc") {
       cout = consommationKwh * activeTarif.heuresCreuses;
     } else {
       const hpPart = consommationKwh * (mixteRatio / 100) * activeTarif.heuresPleines;
@@ -52,7 +67,7 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
     }
 
     return { consommationKwh, cout, dureeHeures };
-  }, [puissance, duree, dureeUnit, tarifType, mixteRatio, activeTarif, isEV, selectedAppareil, chargeStart, chargeTarget, efficiency]);
+  }, [puissance, duree, dureeUnit, tarifType, mixteRatio, activeTarif, isEV, selectedAppareil, chargeStart, chargeTarget, efficiency, currentTarifMode]);
 
   const handleSelectAppareil = (appareil: Appareil) => {
     setSelectedAppareil(appareil);
@@ -65,7 +80,7 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
       puissance,
       duree: isEV ? Math.round(calculation.dureeHeures * 60) : duree,
       dureeUnit: isEV ? "minutes" : dureeUnit,
-      tarifType,
+      tarifType: tarifType === "auto" ? currentTarifMode : tarifType,
       tarifName: activeTarif.name,
       consommationKwh: calculation.consommationKwh,
       cout: calculation.cout,
@@ -108,7 +123,9 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
       doc.text(`Durée : ${duree} ${dureeUnit}`, 14, y);
     }
     y += 10;
-    doc.text(`Tarif : ${activeTarif.name} (${tarifType.toUpperCase()})`, 14, y);
+
+    const effectiveType = tarifType === "auto" ? `AUTO (${currentTarifMode.toUpperCase()})` : tarifType.toUpperCase();
+    doc.text(`Tarif : ${activeTarif.name} (${effectiveType})`, 14, y);
     y += 15;
 
     doc.setFontSize(16);
@@ -120,6 +137,9 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
     doc.save(`electricalc-${new Date().toISOString().split("T")[0]}.pdf`);
     toast({ title: "PDF exporté" });
   };
+
+  // Format plages for display
+  const plagesDisplay = activeTarif.plagesHC?.map(p => `${p.start}-${p.end}`).join(", ") || "";
 
   return (
     <div className="space-y-6">
@@ -247,21 +267,42 @@ const CalculatorTab = ({ tarifs, activeTarif, appareils, onAddCalculation }: Cal
           Type de tarif
         </label>
         <div className="flex gap-2 flex-wrap">
-          {(["hp", "hc", "mixte"] as const).map((type) => (
+          {(["auto", "hp", "hc", "mixte"] as const).map((type) => (
             <button
               key={type}
               onClick={() => setTarifType(type)}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                "px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5",
                 tarifType === type
-                  ? "bg-primary text-primary-foreground"
+                  ? type === "auto" 
+                    ? "bg-accent text-accent-foreground" 
+                    : "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:text-foreground"
               )}
             >
-              {type === "hp" ? "Heures Pleines" : type === "hc" ? "Heures Creuses" : "Mixte"}
+              {type === "auto" && <Radio className="w-3 h-3" />}
+              {type === "auto" ? "Auto" : type === "hp" ? "Heures Pleines" : type === "hc" ? "Heures Creuses" : "Mixte"}
             </button>
           ))}
         </div>
+
+        {tarifType === "auto" && (
+          <div className="mt-3 p-3 rounded-lg bg-accent/10 border border-accent/30 text-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn(
+                "w-2 h-2 rounded-full",
+                currentTarifMode === "hc" ? "bg-emerald-400" : "bg-amber-400"
+              )} />
+              <span className="font-medium text-foreground">
+                Actuellement : {currentTarifMode === "hc" ? "Heures Creuses" : "Heures Pleines"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Plages HC : {plagesDisplay || "Non définies"}
+            </p>
+          </div>
+        )}
+
         {tarifType === "mixte" && (
           <div className="mt-3">
             <label className="block text-xs text-muted-foreground mb-1">

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Plus, Trash2, Check, X, Car, Euro, Lightbulb } from "lucide-react";
-import { Tarif, Appareil } from "@/types/electricalc";
+import { Plus, Trash2, Check, X, Car, Euro, Lightbulb, Clock } from "lucide-react";
+import { Tarif, Appareil, TimeSlot, calculateHCHoursPerDay } from "@/types/electricalc";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -45,6 +45,7 @@ const SettingsTab = ({
       name: newTarif.name,
       heuresPleines: parseFloat(newTarif.hp),
       heuresCreuses: parseFloat(newTarif.hc),
+      plagesHC: [{ start: "22:00", end: "06:00" }],
     });
     setNewTarif({ name: "", hp: "", hc: "" });
     setShowAddTarif(false);
@@ -84,6 +85,31 @@ const SettingsTab = ({
       }
     }
   };
+
+  const handleUpdatePlageHC = (index: number, field: "start" | "end", value: string) => {
+    if (activeTarif) {
+      const newPlages = [...(activeTarif.plagesHC || [])];
+      newPlages[index] = { ...newPlages[index], [field]: value };
+      onUpdateTarif(activeTarif.id, { plagesHC: newPlages });
+    }
+  };
+
+  const handleAddPlageHC = () => {
+    if (activeTarif) {
+      const newPlages = [...(activeTarif.plagesHC || []), { start: "22:00", end: "06:00" }];
+      onUpdateTarif(activeTarif.id, { plagesHC: newPlages });
+    }
+  };
+
+  const handleRemovePlageHC = (index: number) => {
+    if (activeTarif && activeTarif.plagesHC.length > 1) {
+      const newPlages = activeTarif.plagesHC.filter((_, i) => i !== index);
+      onUpdateTarif(activeTarif.id, { plagesHC: newPlages });
+    }
+  };
+
+  const hcHoursPerDay = activeTarif ? calculateHCHoursPerDay(activeTarif.plagesHC || []) : 0;
+  const hpHoursPerDay = 24 - hcHoursPerDay;
 
   return (
     <div className="space-y-8">
@@ -127,9 +153,60 @@ const SettingsTab = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-            <Lightbulb className="w-4 h-4 text-amber-400" />
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground mb-4">
+            <Lightbulb className="w-4 h-4 text-amber-400 shrink-0" />
             Ces tarifs seront automatiquement utilisés dans le calculateur
+          </div>
+
+          {/* Plages HC */}
+          <div className="pt-4 border-t border-border/50">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                <h4 className="font-medium text-foreground">Plages Heures Creuses</h4>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {hcHoursPerDay.toFixed(0)}h HC / {hpHoursPerDay.toFixed(0)}h HP par jour
+              </span>
+            </div>
+
+            <div className="space-y-2 mb-3">
+              {(activeTarif.plagesHC || []).map((plage, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                    <input
+                      type="time"
+                      value={plage.start}
+                      onChange={(e) => handleUpdatePlageHC(index, "start", e.target.value)}
+                      className="px-2 py-1.5 rounded bg-input border border-border text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <span className="text-muted-foreground">→</span>
+                    <input
+                      type="time"
+                      value={plage.end}
+                      onChange={(e) => handleUpdatePlageHC(index, "end", e.target.value)}
+                      className="px-2 py-1.5 rounded bg-input border border-border text-foreground text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  {activeTarif.plagesHC.length > 1 && (
+                    <button
+                      onClick={() => handleRemovePlageHC(index)}
+                      className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={handleAddPlageHC}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-sm hover:bg-secondary/80 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter une plage
+            </button>
           </div>
         </section>
       )}
@@ -207,7 +284,7 @@ const SettingsTab = ({
                   {activeTarifId === tarif.id && <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary">Actif</span>}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  HP: {tarif.heuresPleines.toFixed(4)} € • HC: {tarif.heuresCreuses.toFixed(4)} €
+                  HP: {tarif.heuresPleines.toFixed(4)} € • HC: {tarif.heuresCreuses.toFixed(4)} € • {tarif.plagesHC?.length || 0} plage(s)
                 </p>
               </div>
               <div className="flex items-center gap-1">
