@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Check, X, Car, Pencil } from "lucide-react";
+import { Plus, Trash2, Check, X, Car, Euro, Lightbulb } from "lucide-react";
 import { Tarif, Appareil } from "@/types/electricalc";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -34,6 +34,8 @@ const SettingsTab = ({
   const [showAddTarif, setShowAddTarif] = useState(false);
   const [showAddAppareil, setShowAddAppareil] = useState(false);
 
+  const activeTarif = tarifs.find((t) => t.id === activeTarifId);
+
   const handleAddTarif = () => {
     if (!newTarif.name || !newTarif.hp || !newTarif.hc) {
       toast({ title: "Erreur", description: "Remplissez tous les champs", variant: "destructive" });
@@ -65,12 +67,77 @@ const SettingsTab = ({
     toast({ title: "Appareil ajouté" });
   };
 
+  const handleUpdateActiveTarifHP = (value: string) => {
+    if (activeTarif) {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        onUpdateTarif(activeTarif.id, { heuresPleines: numValue });
+      }
+    }
+  };
+
+  const handleUpdateActiveTarifHC = (value: string) => {
+    if (activeTarif) {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        onUpdateTarif(activeTarif.id, { heuresCreuses: numValue });
+      }
+    }
+  };
+
   return (
     <div className="space-y-8">
+      {/* Active Tarif Quick Edit */}
+      {activeTarif && (
+        <section className="p-5 rounded-xl bg-card border border-border/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
+              <Euro className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Tarifs par défaut</h3>
+              <p className="text-xs text-muted-foreground">{activeTarif.name}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Tarif Heures Pleines (€/kWh)
+              </label>
+              <input
+                type="number"
+                step="0.0001"
+                value={activeTarif.heuresPleines}
+                onChange={(e) => handleUpdateActiveTarifHP(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-input border border-border text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Tarif Heures Creuses (€/kWh)
+              </label>
+              <input
+                type="number"
+                step="0.0001"
+                value={activeTarif.heuresCreuses}
+                onChange={(e) => handleUpdateActiveTarifHC(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-input border border-border text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+            <Lightbulb className="w-4 h-4 text-amber-400" />
+            Ces tarifs seront automatiquement utilisés dans le calculateur
+          </div>
+        </section>
+      )}
+
       {/* Tarifs Section */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">Tarifs électriques</h3>
+          <h3 className="text-lg font-semibold text-foreground">Tous les tarifs</h3>
           <button
             onClick={() => setShowAddTarif(!showAddTarif)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
@@ -137,6 +204,7 @@ const SettingsTab = ({
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">{tarif.name}</span>
                   {tarif.isDefault && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Défaut</span>}
+                  {activeTarifId === tarif.id && <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary">Actif</span>}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   HP: {tarif.heuresPleines.toFixed(4)} € • HC: {tarif.heuresCreuses.toFixed(4)} €
