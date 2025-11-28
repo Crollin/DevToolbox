@@ -79,6 +79,10 @@ export const defaultAppareils: Appareil[] = [
 export function isInHeuresCreuses(tarif: Tarif, date: Date = new Date()): boolean {
   const currentMinutes = date.getHours() * 60 + date.getMinutes();
   
+  if (!tarif.plagesHC || !Array.isArray(tarif.plagesHC)) {
+    return false;
+  }
+  
   for (const plage of tarif.plagesHC) {
     const [startH, startM] = plage.start.split(":").map(Number);
     const [endH, endM] = plage.end.split(":").map(Number);
