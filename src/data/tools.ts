@@ -94,6 +94,16 @@ export const tools: Tool[] = [
     color: "emerald",
   },
   {
+    id: "docker-commander",
+    name: "Docker Commander",
+    description: "Glossaire complet des commandes Docker avec exemples et bonnes pratiques.",
+    category: "commandes",
+    icon: "Container",
+    url: "#",
+    tags: ["docker", "containers", "devops", "cli"],
+    color: "emerald",
+  },
+  {
     id: "color-palette-gen",
     name: "Color Palette Gen",
     description: "Générateur de palettes de couleurs harmonieuses pour vos projets web et design.",
