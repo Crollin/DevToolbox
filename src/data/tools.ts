@@ -74,16 +74,6 @@ export const tools: Tool[] = [
     color: "emerald",
   },
   {
-    id: "json-formatter",
-    name: "JSON Formatter",
-    description: "Formatage et validation de JSON avec coloration syntaxique et détection d'erreurs.",
-    category: "convertisseurs",
-    icon: "Braces",
-    url: "#",
-    tags: ["json", "format", "validation"],
-    color: "primary",
-  },
-  {
     id: "git-commander",
     name: "Git Commander",
     description: "Collection de commandes Git avancées avec explications et exemples d'utilisation.",
@@ -102,16 +92,6 @@ export const tools: Tool[] = [
     url: "#",
     tags: ["couleurs", "design", "palette"],
     color: "rose",
-  },
-  {
-    id: "regex-tester",
-    name: "Regex Tester",
-    description: "Testeur d'expressions régulières avec visualisation des correspondances en temps réel.",
-    category: "scripts",
-    icon: "Code2",
-    url: "#",
-    tags: ["regex", "test", "pattern"],
-    color: "primary",
   },
   {
     id: "api-mock-server",
