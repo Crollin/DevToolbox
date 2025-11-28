@@ -104,6 +104,16 @@ export const tools: Tool[] = [
     color: "rose",
   },
   {
+    id: "svg-icon-library",
+    name: "SVG Icon Library",
+    description: "Bibliothèque d'icônes SVG avec prévisualisation, édition et export en SVG/JSX.",
+    category: "utilitaires",
+    icon: "Shapes",
+    url: "#",
+    tags: ["svg", "icônes", "design", "jsx"],
+    color: "amber",
+  },
+  {
     id: "api-mock-server",
     name: "API Mock Server",
     description: "Serveur de mock API pour le développement et les tests frontend.",
