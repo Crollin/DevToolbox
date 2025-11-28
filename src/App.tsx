@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import LicenceKeyHub from "./pages/tools/LicenceKeyHub";
+import CsvPreviewPro from "./pages/tools/CsvPreviewPro";
+import MonCalculEnergie from "./pages/tools/MonCalculEnergie";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +19,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/tools/licence-key-hub" element={<LicenceKeyHub />} />
+          <Route path="/tools/csv-preview-pro" element={<CsvPreviewPro />} />
+          <Route path="/tools/mon-calcul-energie" element={<MonCalculEnergie />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
