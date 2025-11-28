@@ -12,6 +12,7 @@ import WPScriptLibrary from "./pages/tools/WPScriptLibrary";
 import ColorPaletteGen from "./pages/tools/ColorPaletteGen";
 import WPCLIGlossary from "./pages/tools/WPCLIGlossary";
 import SVGIconLibrary from "./pages/tools/SVGIconLibrary";
+import GitCommander from "./pages/tools/GitCommander";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/tools/color-palette-gen" element={<ColorPaletteGen />} />
           <Route path="/tools/wpcli-glossary" element={<WPCLIGlossary />} />
           <Route path="/tools/svg-icon-library" element={<SVGIconLibrary />} />
+          <Route path="/tools/git-commander" element={<GitCommander />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

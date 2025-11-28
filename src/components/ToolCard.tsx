@@ -17,7 +17,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 // Tools that have internal pages
-const internalTools = ["licence-key-hub", "csv-preview-pro", "mon-calcul-energie", "wp-script-library", "color-palette-gen", "wpcli-glossary", "svg-icon-library"];
+const internalTools = ["licence-key-hub", "csv-preview-pro", "mon-calcul-energie", "wp-script-library", "color-palette-gen", "wpcli-glossary", "svg-icon-library", "git-commander"];
 
 interface ToolCardProps {
   tool: Tool;
