@@ -55,9 +55,9 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
   };
 
   return (
-    <div className="group relative bg-card border border-border rounded-xl p-4 hover:border-primary/50 transition-all duration-200">
+    <div className="group relative bg-card border border-border rounded-xl p-3 sm:p-4 hover:border-primary/50 transition-all duration-200">
       {/* Preview */}
-      <div className="flex items-center justify-center h-24 mb-4 bg-muted/30 rounded-lg">
+      <div className="flex items-center justify-center h-16 sm:h-24 mb-3 sm:mb-4 bg-muted/30 rounded-lg">
         <div
           dangerouslySetInnerHTML={{ __html: getStyledSvg() }}
           className="text-foreground"
@@ -67,12 +67,12 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
 
       {/* Info */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-foreground truncate">{icon.name}</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-medium text-foreground text-sm sm:text-base truncate flex-1">{icon.name}</h3>
           <button
             onClick={() => onToggleFavorite(icon.id)}
             className={cn(
-              "p-1 rounded transition-colors",
+              "p-1 rounded transition-colors shrink-0",
               icon.isFavorite
                 ? "text-rose-500"
                 : "text-muted-foreground hover:text-rose-500"
@@ -85,15 +85,15 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
             {icon.category}
           </span>
-          <span className="text-xs text-muted-foreground">{icon.size}px</span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground">{icon.size}px</span>
         </div>
 
         {icon.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="hidden sm:flex flex-wrap gap-1">
             {icon.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
@@ -107,21 +107,21 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 mt-4 pt-3 border-t border-border">
+      <div className="flex items-center gap-0.5 sm:gap-1 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-border">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleCopy("svg")}
-              className="flex-1 h-8 text-xs"
+              className="flex-1 h-7 sm:h-8 text-[10px] sm:text-xs px-1 sm:px-2"
             >
               {copiedType === "svg" ? (
-                <Check className="w-3 h-3 mr-1" />
+                <Check className="w-3 h-3 sm:mr-1" />
               ) : (
-                <Copy className="w-3 h-3 mr-1" />
+                <Copy className="w-3 h-3 sm:mr-1" />
               )}
-              SVG
+              <span className="hidden sm:inline">SVG</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>Copier le code SVG</TooltipContent>
@@ -133,14 +133,14 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
               variant="ghost"
               size="sm"
               onClick={() => handleCopy("jsx")}
-              className="flex-1 h-8 text-xs"
+              className="flex-1 h-7 sm:h-8 text-[10px] sm:text-xs px-1 sm:px-2"
             >
               {copiedType === "jsx" ? (
-                <Check className="w-3 h-3 mr-1" />
+                <Check className="w-3 h-3 sm:mr-1" />
               ) : (
-                <Code className="w-3 h-3 mr-1" />
+                <Code className="w-3 h-3 sm:mr-1" />
               )}
-              JSX
+              <span className="hidden sm:inline">JSX</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>Copier le code JSX</TooltipContent>
@@ -152,7 +152,7 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
               variant="ghost"
               size="icon"
               onClick={() => onEdit(icon)}
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
             >
               <Pencil className="w-3 h-3" />
             </Button>
@@ -166,7 +166,7 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
               variant="ghost"
               size="icon"
               onClick={() => onDelete(icon.id)}
-              className="h-8 w-8 text-destructive hover:text-destructive"
+              className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
             >
               <Trash2 className="w-3 h-3" />
             </Button>
