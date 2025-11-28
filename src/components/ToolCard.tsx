@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ExternalLink, Key, FileSpreadsheet, Zap, Braces, GitBranch, Palette, Code2, Server, Terminal } from "lucide-react";
+import { ExternalLink, Key, FileSpreadsheet, Zap, Braces, GitBranch, Palette, Code2, Server, Terminal, Shapes } from "lucide-react";
 import { Tool, categoryLabels, categoryColors } from "@/data/tools";
 import { cn } from "@/lib/utils";
 
@@ -13,10 +13,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Code2,
   Server,
   Terminal,
+  Shapes,
 };
 
 // Tools that have internal pages
-const internalTools = ["licence-key-hub", "csv-preview-pro", "mon-calcul-energie", "wp-script-library", "color-palette-gen", "wpcli-glossary"];
+const internalTools = ["licence-key-hub", "csv-preview-pro", "mon-calcul-energie", "wp-script-library", "color-palette-gen", "wpcli-glossary", "svg-icon-library"];
 
 interface ToolCardProps {
   tool: Tool;
