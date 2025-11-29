@@ -60,14 +60,84 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+## Comment déployer ce projet sur Netlify ?
 
-Simply open [Lovable](https://lovable.dev/projects/49a2ec20-d4bd-4db1-bbac-4e2543391366) and click on Share -> Publish.
+Ce projet est configuré pour être déployé facilement sur [Netlify](https://www.netlify.com/), une plateforme d'hébergement gratuite et performante.
 
-## Can I connect a custom domain to my Lovable project?
+### Prérequis
 
-Yes, you can!
+- Un compte GitHub avec le dépôt du projet
+- Un compte Netlify (gratuit)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Déploiement automatique depuis GitHub
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+1. **Connecter votre dépôt à Netlify**
+   - Connectez-vous à [Netlify](https://app.netlify.com/)
+   - Cliquez sur "Add new site" → "Import an existing project"
+   - Sélectionnez "GitHub" et autorisez Netlify à accéder à vos dépôts
+   - Choisissez votre dépôt `DevToolbox`
+
+2. **Configuration du build**
+   - Netlify détectera automatiquement les paramètres depuis `netlify.toml` :
+     - **Build command** : `npm run build`
+     - **Publish directory** : `dist`
+   - Si nécessaire, vérifiez que ces paramètres sont corrects dans les paramètres du site
+
+3. **Déploiement**
+   - Cliquez sur "Deploy site"
+   - Netlify va automatiquement :
+     - Installer les dépendances (`npm install`)
+     - Construire le projet (`npm run build`)
+     - Déployer les fichiers statiques
+   - Votre site sera disponible sur une URL Netlify (ex: `votre-site.netlify.app`)
+
+4. **Déploiements automatiques**
+   - Chaque push sur la branche `main` déclenchera automatiquement un nouveau déploiement
+   - Les pull requests génèrent des "Deploy previews" pour tester les changements
+
+### Configuration d'un domaine personnalisé
+
+1. **Dans Netlify**
+   - Allez dans **Site settings** → **Domain management**
+   - Cliquez sur **Add custom domain**
+   - Entrez votre nom de domaine (ex: `devtoolbox.example.com`)
+
+2. **Configuration DNS**
+   - Netlify vous fournira les enregistrements DNS à configurer
+   - Ajoutez-les dans votre gestionnaire de DNS (chez votre registrar ou votre hébergeur DNS)
+   - Types d'enregistrements courants :
+     - **A record** : Point vers l'IP Netlify
+     - **CNAME** : Point vers `votre-site.netlify.app`
+
+3. **SSL automatique**
+   - Netlify génère automatiquement un certificat SSL (HTTPS) via Let's Encrypt
+   - Le certificat est renouvelé automatiquement
+   - Votre site sera accessible en HTTPS après la configuration DNS
+
+### Commandes utiles
+
+```sh
+# Build local pour tester
+npm run build
+
+# Prévisualiser le build localement
+npm run preview
+
+# Vérifier la configuration Netlify
+# Le fichier netlify.toml contient toute la configuration nécessaire
+```
+
+### Fichiers de configuration
+
+- `netlify.toml` : Configuration principale (build, redirections)
+- `public/_redirects` : Redirections pour le routing React (SPA)
+
+### Support du routing React
+
+Le projet utilise React Router avec `BrowserRouter`. Les fichiers de configuration Netlify sont déjà configurés pour rediriger toutes les routes vers `index.html`, permettant au routing côté client de fonctionner correctement.
+
+### Alternatives de déploiement
+
+Si vous préférez utiliser une autre plateforme :
+- **Vercel** : Similaire à Netlify, excellent pour les projets React
+- **GitHub Pages** : Gratuit mais nécessite une configuration supplémentaire pour le routing SPA
