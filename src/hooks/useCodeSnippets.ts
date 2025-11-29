@@ -1,0 +1,346 @@
+import { useState, useEffect, useCallback } from "react";
+import { 
+  CodeSnippet, 
+  WPCodeBoxSnippet, 
+  WPCodeBoxExport, 
+  defaultSnippets, 
+  defaultSnippetCategories, 
+  defaultSnippetTags,
+  SnippetLanguage,
+  SnippetScope,
+  SnippetPriority
+} from "@/types/codesnippet";
+
+const STORAGE_KEY = "code-snippet-library";
+
+interface CodeSnippetState {
+  snippets: CodeSnippet[];
+  folders: string[];
+  customTags: string[];
+}
+
+// Convert WPCodeBox language type to our format
+function convertLanguage(type?: string): SnippetLanguage {
+  const mapping: Record<string, SnippetLanguage> = {
+    php: "php",
+    css: "css",
+    js: "javascript",
+    javascript: "javascript",
+    html: "html",
+    sql: "sql",
+    bash: "bash",
+    shell: "bash",
+    python: "python",
+    json: "json",
+  };
+  return mapping[type?.toLowerCase() || "php"] || "php";
+}
+
+// Convert our language to WPCodeBox format
+function toWPCodeBoxType(language: SnippetLanguage): string {
+  const mapping: Record<SnippetLanguage, string> = {
+    php: "php",
+    javascript: "js",
+    css: "css",
+    html: "html",
+    sql: "sql",
+    bash: "bash",
+    python: "python",
+    json: "json",
+  };
+  return mapping[language];
+}
+
+// Convert WPCodeBox scope to our format
+function convertScope(scope?: string): SnippetScope {
+  const mapping: Record<string, SnippetScope> = {
+    global: "global",
+    admin: "admin",
+    frontend: "frontend",
+    "admin-only": "admin",
+    "front-end": "frontend",
+    "single-use": "single-use",
+    "run-once": "single-use",
+  };
+  return mapping[scope?.toLowerCase() || "global"] || "global";
+}
+
+export function useCodeSnippets() {
+  const [state, setState] = useState<CodeSnippetState>({
+    snippets: [],
+    folders: defaultSnippetCategories,
+    customTags: [],
+  });
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setState({
+          snippets: parsed.snippets || defaultSnippets,
+          folders: parsed.folders || defaultSnippetCategories,
+          customTags: parsed.customTags || [],
+        });
+      } catch {
+        setState({
+          snippets: defaultSnippets,
+          folders: defaultSnippetCategories,
+          customTags: [],
+        });
+      }
+    } else {
+      setState({
+        snippets: defaultSnippets,
+        folders: defaultSnippetCategories,
+        customTags: [],
+      });
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+  }, [state, isLoaded]);
+
+  // Get all folders
+  const getAllFolders = useCallback(() => {
+    const snippetFolders = state.snippets.map(s => s.folder).filter(Boolean) as string[];
+    return [...new Set([...state.folders, ...snippetFolders])];
+  }, [state.folders, state.snippets]);
+
+  // Get all tags
+  const getAllTags = useCallback(() => {
+    const snippetTags = state.snippets.flatMap((s) => s.tags);
+    return [...new Set([...defaultSnippetTags, ...state.customTags, ...snippetTags])];
+  }, [state.customTags, state.snippets]);
+
+  // Add snippet
+  const addSnippet = useCallback((snippet: Omit<CodeSnippet, "id" | "createdAt" | "updatedAt">) => {
+    const newSnippet: CodeSnippet = {
+      ...snippet,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setState((prev) => ({
+      ...prev,
+      snippets: [newSnippet, ...prev.snippets],
+    }));
+    return newSnippet;
+  }, []);
+
+  // Update snippet
+  const updateSnippet = useCallback((id: string, updates: Partial<Omit<CodeSnippet, "id" | "createdAt">>) => {
+    setState((prev) => ({
+      ...prev,
+      snippets: prev.snippets.map((s) =>
+        s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
+      ),
+    }));
+  }, []);
+
+  // Delete snippet
+  const deleteSnippet = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      snippets: prev.snippets.filter((s) => s.id !== id),
+    }));
+  }, []);
+
+  // Toggle snippet active state
+  const toggleSnippetActive = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      snippets: prev.snippets.map((s) =>
+        s.id === id ? { ...s, active: !s.active, updatedAt: new Date().toISOString() } : s
+      ),
+    }));
+  }, []);
+
+  // Import from WPCodeBox format
+  const importFromWPCodeBox = useCallback((data: WPCodeBoxExport | WPCodeBoxSnippet[]): number => {
+    let snippetsToImport: WPCodeBoxSnippet[] = [];
+    
+    if (Array.isArray(data)) {
+      snippetsToImport = data;
+    } else if (data.snippets) {
+      snippetsToImport = data.snippets;
+    }
+
+    if (!Array.isArray(snippetsToImport) || snippetsToImport.length === 0) {
+      throw new Error("Format JSON invalide ou aucun snippet trouvé");
+    }
+
+    const newSnippets: CodeSnippet[] = snippetsToImport.map((s) => ({
+      id: crypto.randomUUID(),
+      title: s.title || "Sans titre",
+      description: s.description || "",
+      code: s.code || "",
+      language: convertLanguage(s.type),
+      scope: convertScope(s.scope),
+      priority: (Math.min(Math.max(s.priority || 10, 1), 10)) as SnippetPriority,
+      tags: s.tags || [],
+      folder: s.folder,
+      active: s.active === true || s.active === 1,
+      runOnce: s.run_once === true || s.run_once === 1,
+      createdAt: s.created || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      wpCodeBoxId: s.id,
+      cloudId: s.cloud_id,
+    }));
+
+    setState((prev) => ({
+      ...prev,
+      snippets: [...newSnippets, ...prev.snippets],
+    }));
+
+    return newSnippets.length;
+  }, []);
+
+  // Import from native format
+  const importNative = useCallback((data: { snippets: CodeSnippet[] } | CodeSnippet[]): number => {
+    const snippetsToImport = Array.isArray(data) ? data : data.snippets;
+    
+    if (!Array.isArray(snippetsToImport)) {
+      throw new Error("Format JSON invalide");
+    }
+
+    const newSnippets = snippetsToImport.map((s) => ({
+      ...s,
+      id: crypto.randomUUID(),
+      createdAt: s.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
+    setState((prev) => ({
+      ...prev,
+      snippets: [...newSnippets, ...prev.snippets],
+    }));
+
+    return newSnippets.length;
+  }, []);
+
+  // Smart import - detect format automatically
+  const importSnippets = useCallback((data: unknown): number => {
+    // Detect WPCodeBox format
+    if (typeof data === "object" && data !== null) {
+      const obj = data as Record<string, unknown>;
+      
+      // Check for WPCodeBox structure
+      if (obj.snippets && Array.isArray(obj.snippets)) {
+        const firstSnippet = obj.snippets[0];
+        if (firstSnippet && (firstSnippet.type !== undefined || firstSnippet.cloud_id !== undefined || firstSnippet.run_once !== undefined)) {
+          return importFromWPCodeBox(data as WPCodeBoxExport);
+        }
+      }
+      
+      // Check if it's a direct array of WPCodeBox snippets
+      if (Array.isArray(data)) {
+        const firstSnippet = data[0];
+        if (firstSnippet && (firstSnippet.type !== undefined || firstSnippet.cloud_id !== undefined)) {
+          return importFromWPCodeBox(data as WPCodeBoxSnippet[]);
+        }
+      }
+    }
+    
+    // Default to native format
+    return importNative(data as { snippets: CodeSnippet[] } | CodeSnippet[]);
+  }, [importFromWPCodeBox, importNative]);
+
+  // Export to WPCodeBox format
+  const exportToWPCodeBox = useCallback((snippetIds?: string[]) => {
+    const toExport = snippetIds
+      ? state.snippets.filter((s) => snippetIds.includes(s.id))
+      : state.snippets;
+
+    const wpCodeBoxSnippets: WPCodeBoxSnippet[] = toExport.map((s, index) => ({
+      id: s.wpCodeBoxId || index + 1,
+      title: s.title,
+      code: s.code,
+      description: s.description,
+      type: toWPCodeBoxType(s.language),
+      scope: s.scope,
+      priority: s.priority,
+      active: s.active ? 1 : 0,
+      tags: s.tags,
+      folder: s.folder,
+      cloud_id: s.cloudId,
+      run_once: s.runOnce ? 1 : 0,
+      modified: s.updatedAt,
+      created: s.createdAt,
+    }));
+
+    const exportData: WPCodeBoxExport = {
+      snippets: wpCodeBoxSnippets,
+      folders: getAllFolders().map((name, index) => ({ id: index + 1, name })),
+      version: "2.0",
+      exported_at: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `wpcodebox-export-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state.snippets, getAllFolders]);
+
+  // Export to native format
+  const exportNative = useCallback((snippetIds?: string[]) => {
+    const toExport = snippetIds
+      ? state.snippets.filter((s) => snippetIds.includes(s.id))
+      : state.snippets;
+
+    const blob = new Blob([JSON.stringify({ snippets: toExport, folders: state.folders }, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `code-snippets-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state.snippets, state.folders]);
+
+  // Add folder
+  const addFolder = useCallback((folder: string) => {
+    setState((prev) => ({
+      ...prev,
+      folders: [...new Set([...prev.folders, folder])],
+    }));
+  }, []);
+
+  // Add tag
+  const addTag = useCallback((tag: string) => {
+    setState((prev) => ({
+      ...prev,
+      customTags: [...new Set([...prev.customTags, tag])],
+    }));
+  }, []);
+
+  return {
+    snippets: state.snippets,
+    isLoaded,
+    getAllFolders,
+    getAllTags,
+    addSnippet,
+    updateSnippet,
+    deleteSnippet,
+    toggleSnippetActive,
+    importSnippets,
+    importFromWPCodeBox,
+    exportToWPCodeBox,
+    exportNative,
+    addFolder,
+    addTag,
+  };
+}

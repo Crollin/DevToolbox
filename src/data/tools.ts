@@ -124,6 +124,16 @@ export const tools: Tool[] = [
     color: "amber",
   },
   {
+    id: "code-snippet-library",
+    name: "Code Snippet Library",
+    description: "Bibliothèque de snippets de code avec import/export WPCodeBox compatible.",
+    category: "scripts",
+    icon: "Code2",
+    url: "#",
+    tags: ["snippets", "wpcodebox", "php", "javascript", "code"],
+    color: "primary",
+  },
+  {
     id: "api-mock-server",
     name: "API Mock Server",
     description: "Serveur de mock API pour le développement et les tests frontend.",
