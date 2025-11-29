@@ -14,6 +14,7 @@ import WPCLIGlossary from "./pages/tools/WPCLIGlossary";
 import SVGIconLibrary from "./pages/tools/SVGIconLibrary";
 import GitCommander from "./pages/tools/GitCommander";
 import DockerCommander from "./pages/tools/DockerCommander";
+import CodeSnippetLibrary from "./pages/tools/CodeSnippetLibrary";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/tools/svg-icon-library" element={<SVGIconLibrary />} />
           <Route path="/tools/git-commander" element={<GitCommander />} />
           <Route path="/tools/docker-commander" element={<DockerCommander />} />
+          <Route path="/tools/code-snippet-library" element={<CodeSnippetLibrary />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
