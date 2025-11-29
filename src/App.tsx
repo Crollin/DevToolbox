@@ -15,6 +15,7 @@ import SVGIconLibrary from "./pages/tools/SVGIconLibrary";
 import GitCommander from "./pages/tools/GitCommander";
 import DockerCommander from "./pages/tools/DockerCommander";
 import CodeSnippetLibrary from "./pages/tools/CodeSnippetLibrary";
+import MarkdownEditor from "./pages/tools/MarkdownEditor";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/tools/git-commander" element={<GitCommander />} />
           <Route path="/tools/docker-commander" element={<DockerCommander />} />
           <Route path="/tools/code-snippet-library" element={<CodeSnippetLibrary />} />
+          <Route path="/tools/markdown-editor" element={<MarkdownEditor />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -143,4 +143,14 @@ export const tools: Tool[] = [
     tags: ["api", "mock", "dev"],
     color: "primary",
   },
+  {
+    id: "markdown-editor",
+    name: "Markdown Editor",
+    description: "Éditeur Markdown WYSIWYG avec prévisualisation temps réel et export.",
+    category: "utilitaires",
+    icon: "FileText",
+    url: "#",
+    tags: ["markdown", "éditeur", "texte", "preview"],
+    color: "amber",
+  },
 ];
