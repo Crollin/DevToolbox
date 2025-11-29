@@ -277,7 +277,7 @@ function change_table_prefix($old_prefix = 'wp_', $new_prefix = 'wp_new_') {
         $old_table = $table[0];
         $new_table = str_replace($old_prefix, $new_prefix, $old_table);
         
-        $wpdb->query("RENAME TABLE `{$old_table}` TO `{$new_table}`");
+        $wpdb->query("RENAME TABLE \`{$old_table}\` TO \`{$new_table}\`");
         $renamed++;
     }
     
@@ -478,7 +478,7 @@ function optimize_wp_database() {
     
     foreach ($tables as $table) {
         $table_name = $table[0];
-        $result = $wpdb->query("OPTIMIZE TABLE `{$table_name}`");
+        $result = $wpdb->query("OPTIMIZE TABLE \`{$table_name}\`");
         
         if ($result !== false) {
             $optimized++;
@@ -890,16 +890,16 @@ function repair_wp_database() {
         $table_name = $table[0];
         
         // Vérifier la table
-        $check = $wpdb->get_row("CHECK TABLE `{$table_name}`");
+        $check = $wpdb->get_row("CHECK TABLE \`{$table_name}\`");
         
         if (isset($check->Msg_text) && $check->Msg_text !== 'OK') {
             // Réparer la table
-            $repair = $wpdb->get_row("REPAIR TABLE `{$table_name}`");
+            $repair = $wpdb->get_row("REPAIR TABLE \`{$table_name}\`");
             $repaired[$table_name] = $repair->Msg_text;
         }
         
         // Optimiser la table
-        $wpdb->query("OPTIMIZE TABLE `{$table_name}`");
+        $wpdb->query("OPTIMIZE TABLE \`{$table_name}\`");
     }
     
     return $repaired;
@@ -1822,13 +1822,13 @@ function convert_database_charset($new_charset = 'utf8mb4', $new_collation = 'ut
         $table_name = $table[0];
         
         // Convertir la table
-        $wpdb->query("ALTER TABLE `{$table_name}` CONVERT TO CHARACTER SET {$new_charset} COLLATE {$new_collation}");
+        $wpdb->query("ALTER TABLE \`{$table_name}\` CONVERT TO CHARACTER SET {$new_charset} COLLATE {$new_collation}");
         
         // Convertir chaque colonne
-        $columns = $wpdb->get_results("SHOW FULL COLUMNS FROM `{$table_name}`");
+        $columns = $wpdb->get_results("SHOW FULL COLUMNS FROM \`{$table_name}\`");
         foreach ($columns as $column) {
             if (in_array($column->Type, array('varchar', 'char', 'text', 'tinytext', 'mediumtext', 'longtext'))) {
-                $wpdb->query("ALTER TABLE `{$table_name}` MODIFY `{$column->Field}` {$column->Type} CHARACTER SET {$new_charset} COLLATE {$new_collation}");
+                $wpdb->query("ALTER TABLE \`{$table_name}\` MODIFY \`{$column->Field}\` {$column->Type} CHARACTER SET {$new_charset} COLLATE {$new_collation}");
             }
         }
         
