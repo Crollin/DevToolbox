@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, DragEvent } from "react";
 import { marked } from "marked";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
@@ -27,9 +27,13 @@ import {
   Trash2,
   Eye,
   Edit3,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+// Supported text file extensions
+const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".text", ".log", ".csv", ".json", ".xml", ".html", ".htm", ".css", ".js", ".ts", ".jsx", ".tsx", ".py", ".php", ".sql", ".sh", ".bash", ".yaml", ".yml", ".ini", ".conf", ".env"];
 
 const MarkdownEditor = () => {
   const tool = tools.find((t) => t.id === "markdown-editor")!;
@@ -59,6 +63,135 @@ Bonne édition !
 `);
   const [fileName, setFileName] = useState("document");
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if file is a text file
+  const isTextFile = (file: File): boolean => {
+    const name = file.name.toLowerCase();
+    return TEXT_EXTENSIONS.some(ext => name.endsWith(ext)) || file.type.startsWith("text/");
+  };
+
+  // Convert plain text to markdown (basic formatting)
+  const convertToMarkdown = (text: string, fileExt: string): string => {
+    // If already markdown, return as-is
+    if (fileExt === ".md" || fileExt === ".markdown") {
+      return text;
+    }
+
+    // For code files, wrap in code block
+    const codeExtensions: Record<string, string> = {
+      ".js": "javascript",
+      ".jsx": "jsx",
+      ".ts": "typescript",
+      ".tsx": "tsx",
+      ".py": "python",
+      ".php": "php",
+      ".sql": "sql",
+      ".sh": "bash",
+      ".bash": "bash",
+      ".css": "css",
+      ".html": "html",
+      ".htm": "html",
+      ".xml": "xml",
+      ".json": "json",
+      ".yaml": "yaml",
+      ".yml": "yaml",
+    };
+
+    if (codeExtensions[fileExt]) {
+      return `\`\`\`${codeExtensions[fileExt]}\n${text}\n\`\`\``;
+    }
+
+    // For CSV, try to convert to table
+    if (fileExt === ".csv") {
+      const lines = text.trim().split("\n");
+      if (lines.length > 0) {
+        const rows = lines.map(line => line.split(",").map(cell => cell.trim()));
+        const header = rows[0];
+        const separator = header.map(() => "---");
+        const tableRows = [
+          `| ${header.join(" | ")} |`,
+          `| ${separator.join(" | ")} |`,
+          ...rows.slice(1).map(row => `| ${row.join(" | ")} |`)
+        ];
+        return tableRows.join("\n");
+      }
+    }
+
+    // For plain text, preserve structure and add basic formatting
+    let markdown = text;
+    
+    // Convert lines that look like titles (short lines followed by empty lines)
+    const lines = markdown.split("\n");
+    const processedLines = lines.map((line, i) => {
+      const trimmed = line.trim();
+      const nextLine = lines[i + 1]?.trim();
+      
+      // If line is short, uppercase, and followed by empty line, make it a heading
+      if (trimmed.length > 0 && trimmed.length < 50 && trimmed === trimmed.toUpperCase() && !nextLine) {
+        return `## ${trimmed}`;
+      }
+      
+      return line;
+    });
+
+    return processedLines.join("\n");
+  };
+
+  // Handle file reading
+  const handleFile = async (file: File) => {
+    if (!isTextFile(file)) {
+      toast.error("Format non supporté. Utilisez un fichier texte (.txt, .md, .csv, etc.)");
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const ext = "." + file.name.split(".").pop()?.toLowerCase();
+      const baseName = file.name.replace(/\.[^/.]+$/, "");
+      
+      const markdown = convertToMarkdown(text, ext);
+      setContent(markdown);
+      setFileName(baseName);
+      toast.success(`Fichier "${file.name}" importé`);
+    } catch (error) {
+      toast.error("Erreur lors de la lecture du fichier");
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      await handleFile(files[0]);
+    }
+  };
+
+  // File input handler
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      await handleFile(files[0]);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   // Insert text at cursor position
   const insertText = useCallback((before: string, after: string = "", placeholder: string = "") => {
@@ -146,7 +279,32 @@ Bonne édition !
 
   return (
     <ToolLayout tool={tool}>
-      <div className="space-y-4">
+      <div 
+        className="space-y-4"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".txt,.md,.markdown,.text,.log,.csv,.json,.xml,.html,.htm,.css,.js,.ts,.jsx,.tsx,.py,.php,.sql,.sh,.bash,.yaml,.yml,.ini,.conf,.env"
+          onChange={handleFileInput}
+          className="hidden"
+        />
+
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+            <div className="border-2 border-dashed border-primary rounded-xl p-12 bg-primary/10">
+              <Upload className="w-16 h-16 text-primary mx-auto mb-4" />
+              <p className="text-lg font-medium text-foreground">Déposez votre fichier ici</p>
+              <p className="text-sm text-muted-foreground">Fichiers texte supportés: .txt, .md, .csv, .json, etc.</p>
+            </div>
+          </div>
+        )}
+
         {/* Header Actions */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
@@ -159,6 +317,10 @@ Bonne édition !
             <span className="text-muted-foreground text-sm">.md</span>
           </div>
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-1" />
+              <span className="hidden sm:inline">Importer</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={handleCopy}>
               <Copy className="w-4 h-4 mr-1" />
               <span className="hidden sm:inline">Copier</span>
@@ -213,7 +375,7 @@ Bonne édition !
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-[400px] font-mono text-sm rounded-t-none resize-none"
-                placeholder="Écrivez votre markdown ici..."
+                placeholder="Écrivez votre markdown ici ou glissez-déposez un fichier..."
               />
             </TabsContent>
 
@@ -253,7 +415,7 @@ Bonne édition !
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[500px] font-mono text-sm rounded-t-none resize-none"
-              placeholder="Écrivez votre markdown ici..."
+              placeholder="Écrivez votre markdown ici ou glissez-déposez un fichier..."
             />
           </div>
 
