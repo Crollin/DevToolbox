@@ -1274,14 +1274,14 @@ EOF
 
 # Compresser le tout
 cd $BACKUP_DIR
-tar -czf "${BACKUP_NAME}.tar.gz" $BACKUP_NAME
+tar -czf "\${BACKUP_NAME}.tar.gz" $BACKUP_NAME
 rm -rf $BACKUP_NAME
 
 # Supprimer les backups de plus de 30 jours
 find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
 
-echo "Backup terminé: $BACKUP_DIR/${BACKUP_NAME}.tar.gz"
-echo "Taille: $(du -h $BACKUP_DIR/${BACKUP_NAME}.tar.gz | cut -f1)"`,
+echo "Backup terminé: $BACKUP_DIR/\${BACKUP_NAME}.tar.gz"
+echo "Taille: $(du -h $BACKUP_DIR/\${BACKUP_NAME}.tar.gz | cut -f1)"`,
     language: "bash",
     category: "Backup",
     tags: ["backup", "database", "files"],
@@ -1450,12 +1450,12 @@ function disable_specific_hooks() {
 # Usage: ./install-wp.sh domain.com
 
 DOMAIN=$1
-DB_NAME="wp_${DOMAIN//./_}"
+DB_NAME="wp_\${DOMAIN//./_}"
 DB_USER="wp_user"
 DB_PASS=$(openssl rand -base64 32)
 WP_ADMIN_USER="admin"
 WP_ADMIN_PASS=$(openssl rand -base64 16)
-WP_ADMIN_EMAIL="admin@${DOMAIN}"
+WP_ADMIN_EMAIL="admin@\${DOMAIN}"
 
 echo "Installation de WordPress pour $DOMAIN..."
 
@@ -1573,14 +1573,14 @@ echo "$(date): Début du monitoring WordPress" >> $LOG_FILE
 # Vérifier l'espace disque
 DISK_USAGE=$(df -h $WP_ROOT | awk 'NR==2 {print $5}' | sed 's/%//')
 if [ $DISK_USAGE -gt 80 ]; then
-    echo "$(date): ALERTE - Espace disque: ${DISK_USAGE}%" >> $LOG_FILE
-    echo "Espace disque critique: ${DISK_USAGE}%" | mail -s "Alerte WordPress" $ALERT_EMAIL
+    echo "$(date): ALERTE - Espace disque: \${DISK_USAGE}%" >> $LOG_FILE
+    echo "Espace disque critique: \${DISK_USAGE}%" | mail -s "Alerte WordPress" $ALERT_EMAIL
 fi
 
 # Vérifier la mémoire
 MEM_USAGE=$(free | awk 'NR==2{printf "%.0f", $3*100/$2}')
 if [ $MEM_USAGE -gt 90 ]; then
-    echo "$(date): ALERTE - Mémoire: ${MEM_USAGE}%" >> $LOG_FILE
+    echo "$(date): ALERTE - Mémoire: \${MEM_USAGE}%" >> $LOG_FILE
 fi
 
 # Vérifier que WordPress répond
@@ -1592,7 +1592,7 @@ fi
 
 # Vérifier la taille de la base de données
 DB_SIZE=$(mysql -u wp_user -p'password' -e "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'DB Size in MB' FROM information_schema.tables WHERE table_schema='wordpress_db';" | tail -1)
-echo "$(date): Taille DB: ${DB_SIZE}MB" >> $LOG_FILE
+echo "$(date): Taille DB: \${DB_SIZE}MB" >> $LOG_FILE
 
 echo "$(date): Monitoring terminé" >> $LOG_FILE`,
     language: "bash",
@@ -1782,9 +1782,9 @@ mkdir -p $LOG_DIR
 find $LOG_DIR -name "*.log" -size +$MAX_SIZE -exec sh -c '
     LOG_FILE="$1"
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    mv "$LOG_FILE" "${LOG_FILE}.${TIMESTAMP}"
+    mv "$LOG_FILE" "\${LOG_FILE}.\${TIMESTAMP}"
     touch "$LOG_FILE"
-    gzip "${LOG_FILE}.${TIMESTAMP}"
+    gzip "\${LOG_FILE}.\${TIMESTAMP}"
 ' _ {} \;
 
 # Supprimer les anciens logs compressés
