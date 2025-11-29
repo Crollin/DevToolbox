@@ -1,58 +1,63 @@
-# Welcome to your Lovable project
+# DevToolbox — Boîte à outils développeur
 
-## Project info
+## À propos du projet
 
-**URL**: https://lovable.dev/projects/49a2ec20-d4bd-4db1-bbac-4e2543391366
+DevToolbox est une plateforme personnelle développée par **Creactiveweb** pour centraliser, organiser et lancer rapidement tous vos outils de développement web.
 
-## How can I edit this code?
+Cette application regroupe une collection d'outils pratiques pour les développeurs, incluant :
+- Gestionnaire de commandes Git
+- Gestionnaire de commandes Docker
+- Bibliothèque de snippets de code
+- Générateur de palettes de couleurs
+- Bibliothèque d'icônes SVG
+- Outils WordPress (WP-CLI, scripts)
+- Calculateur électrique
+- Gestionnaire de clés de licence
+- Et bien plus encore...
 
-There are several ways of editing your application.
+## Comment éditer ce code ?
 
-**Use Lovable**
+Il existe plusieurs façons d'éditer cette application.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/49a2ec20-d4bd-4db1-bbac-4e2543391366) and start prompting.
+### Utiliser votre IDE préféré
 
-Changes made via Lovable will be committed automatically to this repo.
+Si vous voulez travailler localement avec votre propre IDE, vous pouvez cloner ce dépôt et pousser les changements.
 
-**Use your preferred IDE**
+La seule exigence est d'avoir Node.js & npm installés - [installer avec nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Suivez ces étapes :
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Étape 1 : Cloner le dépôt en utilisant l'URL Git du projet.
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Étape 2 : Naviguer vers le répertoire du projet.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Étape 3 : Installer les dépendances nécessaires.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Étape 4 : Démarrer le serveur de développement avec rechargement automatique et aperçu instantané.
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Éditer un fichier directement dans GitHub
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- Naviguez vers le fichier souhaité.
+- Cliquez sur le bouton "Edit" (icône crayon) en haut à droite de la vue du fichier.
+- Effectuez vos modifications et commitez les changements.
 
-**Use GitHub Codespaces**
+### Utiliser GitHub Codespaces
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- Naviguez vers la page principale de votre dépôt.
+- Cliquez sur le bouton "Code" (bouton vert) près du haut à droite.
+- Sélectionnez l'onglet "Codespaces".
+- Cliquez sur "New codespace" pour lancer un nouvel environnement Codespace.
+- Éditez les fichiers directement dans le Codespace et commitez et poussez vos changements une fois terminé.
 
-## What technologies are used for this project?
+## Quelles technologies sont utilisées pour ce projet ?
 
-This project is built with:
+Ce projet est construit avec :
 
 - Vite
 - TypeScript
@@ -141,3 +146,7 @@ Le projet utilise React Router avec `BrowserRouter`. Les fichiers de configurati
 Si vous préférez utiliser une autre plateforme :
 - **Vercel** : Similaire à Netlify, excellent pour les projets React
 - **GitHub Pages** : Gratuit mais nécessite une configuration supplémentaire pour le routing SPA
+
+## Développé par Creactiveweb
+
+Ce projet est développé et maintenu par **Creactiveweb**.
