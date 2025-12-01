@@ -55,9 +55,9 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <section className="mb-10 animate-fade-in hero-background rounded-2xl p-8 sm:p-12 relative">
-          <div className="text-center mb-8 relative z-10">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 animate-pulse-glow">
+        <section className="mb-10 animate-fade-in">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
               Votre <span className="gradient-text">boîte à outils</span> dev
             </h2>
             <p className="text-muted-foreground max-w-lg mx-auto">
@@ -66,12 +66,10 @@ const Index = () => {
           </div>
 
           {/* Stats */}
-          <div className="relative z-10">
-            <StatsBar 
-              totalTools={tools.length} 
-              totalCategories={Object.keys(categoryLabels).length} 
-            />
-          </div>
+          <StatsBar 
+            totalTools={tools.length} 
+            totalCategories={Object.keys(categoryLabels).length} 
+          />
         </section>
 
         {/* Search & Filters */}
