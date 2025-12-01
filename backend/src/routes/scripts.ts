@@ -8,10 +8,27 @@ const router = express.Router();
 router.get('/', (req, res) => {
   try {
     const scripts = db.prepare('SELECT * FROM wp_scripts ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM wp_script_categories ORDER BY name').all().map(c => c.name);
-    const customTags = db.prepare('SELECT tag FROM wp_script_custom_tags ORDER BY tag').all().map(t => t.tag);
+    const categories = db.prepare('SELECT name FROM wp_script_categories ORDER BY name').all().map((c: { name: string }) => c.name);
+    const customTags = db.prepare('SELECT tag FROM wp_script_custom_tags ORDER BY tag').all().map((t: { tag: string }) => t.tag);
 
-    const formattedScripts = scripts.map(s => ({
+    const formattedScripts = scripts.map((s: {
+      id: string;
+      name: string;
+      description: string | null;
+      code: string;
+      language: string;
+      category: string;
+      tags: string | null;
+      wp_version_min: string | null;
+      wp_version_max: string | null;
+      author: string;
+      difficulty: string;
+      instructions: string | null;
+      dependencies: string | null;
+      warnings: string | null;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: s.id,
       name: s.name,
       description: s.description,

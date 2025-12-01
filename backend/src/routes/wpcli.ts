@@ -8,9 +8,21 @@ const router = express.Router();
 router.get('/', (req, res) => {
   try {
     const commands = db.prepare('SELECT * FROM wp_cli_commands ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM wp_cli_categories ORDER BY name').all().map(c => c.name);
+    const categories = db.prepare('SELECT name FROM wp_cli_categories ORDER BY name').all().map((c: { name: string }) => c.name);
 
-    const formattedCommands = commands.map(c => ({
+    const formattedCommands = commands.map((c: {
+      id: string;
+      command: string;
+      description: string | null;
+      example: string | null;
+      options: string | null;
+      notes: string | null;
+      category: string;
+      difficulty: string;
+      is_favorite: number;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: c.id,
       command: c.command,
       description: c.description,

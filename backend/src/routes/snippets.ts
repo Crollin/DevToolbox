@@ -8,11 +8,27 @@ const router = express.Router();
 router.get('/', (req, res) => {
   try {
     const snippets = db.prepare('SELECT * FROM code_snippets ORDER BY created_at DESC').all();
-    const folders = db.prepare('SELECT name FROM snippet_folders ORDER BY name').all().map(f => f.name);
-    const customTags = db.prepare('SELECT tag FROM snippet_custom_tags ORDER BY tag').all().map(t => t.tag);
+    const folders = db.prepare('SELECT name FROM snippet_folders ORDER BY name').all().map((f: { name: string }) => f.name);
+    const customTags = db.prepare('SELECT tag FROM snippet_custom_tags ORDER BY tag').all().map((t: { tag: string }) => t.tag);
 
     // Convertir les données
-    const formattedSnippets = snippets.map(s => ({
+    const formattedSnippets = snippets.map((s: {
+      id: string;
+      title: string;
+      description: string | null;
+      code: string;
+      language: string;
+      scope: string;
+      priority: number;
+      tags: string | null;
+      folder: string | null;
+      active: number;
+      run_once: number;
+      wp_code_box_id: number | null;
+      cloud_id: string | null;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: s.id,
       title: s.title,
       description: s.description,

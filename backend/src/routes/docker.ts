@@ -8,9 +8,19 @@ const router = express.Router();
 router.get('/', (req, res) => {
   try {
     const commands = db.prepare('SELECT * FROM docker_commands ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM docker_categories ORDER BY name').all().map(c => c.name);
+    const categories = db.prepare('SELECT name FROM docker_categories ORDER BY name').all().map((c: { name: string }) => c.name);
 
-    const formattedCommands = commands.map(c => ({
+    const formattedCommands = commands.map((c: {
+      id: string;
+      name: string;
+      command: string;
+      description: string | null;
+      category: string;
+      tags: string | null;
+      is_favorite: number;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: c.id,
       name: c.name,
       command: c.command,

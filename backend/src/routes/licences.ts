@@ -9,7 +9,17 @@ router.get('/', (req, res) => {
   try {
     const licences = db.prepare('SELECT * FROM licences ORDER BY created_at DESC').all();
 
-    const formattedLicences = licences.map(l => ({
+    const formattedLicences = licences.map((l: {
+      id: string;
+      name: string;
+      key: string;
+      type: string;
+      status: string;
+      expires_at: string | null;
+      notes: string | null;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: l.id,
       name: l.name,
       key: l.key,

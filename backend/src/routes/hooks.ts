@@ -8,9 +8,23 @@ const router = express.Router();
 router.get('/', (req, res) => {
   try {
     const hooks = db.prepare('SELECT * FROM wp_hooks ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM wp_hook_categories ORDER BY name').all().map(c => c.name);
+    const categories = db.prepare('SELECT name FROM wp_hook_categories ORDER BY name').all().map((c: { name: string }) => c.name);
 
-    const formattedHooks = hooks.map(h => ({
+    const formattedHooks = hooks.map((h: {
+      id: string;
+      name: string;
+      type: string;
+      description: string | null;
+      category: string;
+      tags: string | null;
+      example: string | null;
+      parameters: string | null;
+      since: string | null;
+      deprecated: string | null;
+      is_favorite: number;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: h.id,
       name: h.name,
       type: h.type,

@@ -42,7 +42,11 @@ router.put('/settings', (req, res) => {
 router.get('/history', (req, res) => {
   try {
     const history = db.prepare('SELECT * FROM electricalc_history ORDER BY created_at DESC LIMIT 50').all();
-    const formattedHistory = history.map(h => ({
+    const formattedHistory = history.map((h: {
+      id: number;
+      calculation: string;
+      created_at: string;
+    }) => ({
       id: h.id,
       calculation: JSON.parse(h.calculation),
       createdAt: h.created_at,

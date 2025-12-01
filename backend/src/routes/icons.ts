@@ -9,7 +9,16 @@ router.get('/', (req, res) => {
   try {
     const icons = db.prepare('SELECT * FROM svg_icons ORDER BY created_at DESC').all();
 
-    const formattedIcons = icons.map(i => ({
+    const formattedIcons = icons.map((i: {
+      id: string;
+      name: string;
+      svg: string;
+      tags: string | null;
+      category: string | null;
+      is_favorite: number;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: i.id,
       name: i.name,
       svg: i.svg,

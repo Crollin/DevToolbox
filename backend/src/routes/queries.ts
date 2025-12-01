@@ -9,7 +9,14 @@ router.get('/', (req, res) => {
   try {
     const queries = db.prepare('SELECT * FROM wp_queries ORDER BY created_at DESC').all();
 
-    const formattedQueries = queries.map(q => ({
+    const formattedQueries = queries.map((q: {
+      id: string;
+      name: string;
+      description: string | null;
+      config: string;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: q.id,
       name: q.name,
       description: q.description,

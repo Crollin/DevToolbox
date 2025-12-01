@@ -9,7 +9,15 @@ router.get('/', (req, res) => {
   try {
     const palettes = db.prepare('SELECT * FROM color_palettes ORDER BY created_at DESC').all();
 
-    const formattedPalettes = palettes.map(p => ({
+    const formattedPalettes = palettes.map((p: {
+      id: string;
+      name: string;
+      description: string | null;
+      harmony: string;
+      colors: string;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: p.id,
       name: p.name,
       description: p.description,
