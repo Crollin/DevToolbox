@@ -7,9 +7,7 @@ const router = express.Router();
 // GET /api/licences - Récupérer toutes les licences
 router.get('/', (req, res) => {
   try {
-    const licences = db.prepare('SELECT * FROM licences ORDER BY created_at DESC').all();
-
-    const formattedLicences = licences.map((l: {
+    const licences = db.prepare('SELECT * FROM licences ORDER BY created_at DESC').all() as {
       id: string;
       name: string;
       key: string;
@@ -19,7 +17,9 @@ router.get('/', (req, res) => {
       notes: string | null;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+
+    const formattedLicences = licences.map((l) => ({
       id: l.id,
       name: l.name,
       key: l.key,
@@ -69,7 +69,7 @@ router.put('/:id', (req, res) => {
       WHERE id = ?
     `).run(
       name, key, type, status, expiresAt || null, notes || null, now, req.params.id
-    );
+    ) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Licence non trouvée' });
@@ -84,7 +84,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/licences/:id - Supprimer une licence
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM licences WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM licences WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Licence non trouvée' });
     }

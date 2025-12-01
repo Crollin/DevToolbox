@@ -7,16 +7,16 @@ const router = express.Router();
 // GET /api/queries - Récupérer toutes les queries
 router.get('/', (req, res) => {
   try {
-    const queries = db.prepare('SELECT * FROM wp_queries ORDER BY created_at DESC').all();
-
-    const formattedQueries = queries.map((q: {
+    const queries = db.prepare('SELECT * FROM wp_queries ORDER BY created_at DESC').all() as {
       id: string;
       name: string;
       description: string | null;
       config: string;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+
+    const formattedQueries = queries.map((q) => ({
       id: q.id,
       name: q.name,
       description: q.description,
@@ -59,7 +59,7 @@ router.put('/:id', (req, res) => {
       UPDATE wp_queries
       SET name = ?, description = ?, config = ?, updated_at = ?
       WHERE id = ?
-    `).run(name, description || null, JSON.stringify(config), now, req.params.id);
+    `).run(name, description || null, JSON.stringify(config), now, req.params.id) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Query non trouvée' });
@@ -74,7 +74,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/queries/:id - Supprimer une query
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM wp_queries WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM wp_queries WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Query non trouvée' });
     }

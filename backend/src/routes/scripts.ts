@@ -7,11 +7,7 @@ const router = express.Router();
 // GET /api/scripts - Récupérer tous les scripts
 router.get('/', (req, res) => {
   try {
-    const scripts = db.prepare('SELECT * FROM wp_scripts ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM wp_script_categories ORDER BY name').all().map((c: { name: string }) => c.name);
-    const customTags = db.prepare('SELECT tag FROM wp_script_custom_tags ORDER BY tag').all().map((t: { tag: string }) => t.tag);
-
-    const formattedScripts = scripts.map((s: {
+    const scripts = db.prepare('SELECT * FROM wp_scripts ORDER BY created_at DESC').all() as {
       id: string;
       name: string;
       description: string | null;
@@ -28,7 +24,11 @@ router.get('/', (req, res) => {
       warnings: string | null;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+    const categories = (db.prepare('SELECT name FROM wp_script_categories ORDER BY name').all() as { name: string }[]).map((c) => c.name);
+    const customTags = (db.prepare('SELECT tag FROM wp_script_custom_tags ORDER BY tag').all() as { tag: string }[]).map((t) => t.tag);
+
+    const formattedScripts = scripts.map((s) => ({
       id: s.id,
       name: s.name,
       description: s.description,
@@ -92,7 +92,7 @@ router.put('/:id', (req, res) => {
       wpVersionMin || null, wpVersionMax || null, author, difficulty,
       instructions || null, JSON.stringify(dependencies || []), JSON.stringify(warnings || []),
       now, req.params.id
-    );
+    ) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Script non trouvé' });
@@ -107,7 +107,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/scripts/:id - Supprimer un script
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM wp_scripts WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM wp_scripts WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Script non trouvé' });
     }

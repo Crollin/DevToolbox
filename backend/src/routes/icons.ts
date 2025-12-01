@@ -7,9 +7,7 @@ const router = express.Router();
 // GET /api/icons - Récupérer toutes les icônes
 router.get('/', (req, res) => {
   try {
-    const icons = db.prepare('SELECT * FROM svg_icons ORDER BY created_at DESC').all();
-
-    const formattedIcons = icons.map((i: {
+    const icons = db.prepare('SELECT * FROM svg_icons ORDER BY created_at DESC').all() as {
       id: string;
       name: string;
       svg: string;
@@ -18,7 +16,9 @@ router.get('/', (req, res) => {
       is_favorite: number;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+
+    const formattedIcons = icons.map((i) => ({
       id: i.id,
       name: i.name,
       svg: i.svg,
@@ -69,7 +69,7 @@ router.put('/:id', (req, res) => {
     `).run(
       name, svg, JSON.stringify(tags || []), category || null,
       isFavorite ? 1 : 0, now, req.params.id
-    );
+    ) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Icône non trouvée' });
@@ -84,7 +84,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/icons/:id - Supprimer une icône
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM svg_icons WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM svg_icons WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Icône non trouvée' });
     }

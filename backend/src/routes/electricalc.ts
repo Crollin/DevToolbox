@@ -6,7 +6,11 @@ const router = express.Router();
 // GET /api/electricalc/settings - Récupérer les paramètres
 router.get('/settings', (req, res) => {
   try {
-    const row = db.prepare('SELECT * FROM electricalc_settings ORDER BY updated_at DESC LIMIT 1').get();
+    const row = db.prepare('SELECT * FROM electricalc_settings ORDER BY updated_at DESC LIMIT 1').get() as {
+      id: number;
+      settings: string;
+      updated_at: string;
+    } | undefined;
     if (!row) {
       return res.json({ settings: null });
     }
@@ -22,7 +26,9 @@ router.put('/settings', (req, res) => {
     const { settings } = req.body;
     const now = new Date().toISOString();
 
-    const existing = db.prepare('SELECT id FROM electricalc_settings LIMIT 1').get();
+    const existing = db.prepare('SELECT id FROM electricalc_settings LIMIT 1').get() as {
+      id: number;
+    } | undefined;
     
     if (existing) {
       db.prepare('UPDATE electricalc_settings SET settings = ?, updated_at = ? WHERE id = ?')
@@ -41,12 +47,12 @@ router.put('/settings', (req, res) => {
 // GET /api/electricalc/history - Récupérer l'historique
 router.get('/history', (req, res) => {
   try {
-    const history = db.prepare('SELECT * FROM electricalc_history ORDER BY created_at DESC LIMIT 50').all();
-    const formattedHistory = history.map((h: {
+    const history = db.prepare('SELECT * FROM electricalc_history ORDER BY created_at DESC LIMIT 50').all() as {
       id: number;
       calculation: string;
       created_at: string;
-    }) => ({
+    }[];
+    const formattedHistory = history.map((h) => ({
       id: h.id,
       calculation: JSON.parse(h.calculation),
       createdAt: h.created_at,

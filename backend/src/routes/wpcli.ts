@@ -7,10 +7,7 @@ const router = express.Router();
 // GET /api/wpcli - Récupérer toutes les commandes
 router.get('/', (req, res) => {
   try {
-    const commands = db.prepare('SELECT * FROM wp_cli_commands ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM wp_cli_categories ORDER BY name').all().map((c: { name: string }) => c.name);
-
-    const formattedCommands = commands.map((c: {
+    const commands = db.prepare('SELECT * FROM wp_cli_commands ORDER BY created_at DESC').all() as {
       id: string;
       command: string;
       description: string | null;
@@ -22,7 +19,10 @@ router.get('/', (req, res) => {
       is_favorite: number;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+    const categories = (db.prepare('SELECT name FROM wp_cli_categories ORDER BY name').all() as { name: string }[]).map((c) => c.name);
+
+    const formattedCommands = commands.map((c) => ({
       id: c.id,
       command: c.command,
       description: c.description,
@@ -76,7 +76,7 @@ router.put('/:id', (req, res) => {
     `).run(
       command, description || '', example || '', options || '', notes || '',
       category, difficulty, isFavorite ? 1 : 0, now, req.params.id
-    );
+    ) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Commande non trouvée' });
@@ -91,7 +91,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/wpcli/:id - Supprimer une commande
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM wp_cli_commands WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM wp_cli_commands WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Commande non trouvée' });
     }

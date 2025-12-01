@@ -7,10 +7,7 @@ const router = express.Router();
 // GET /api/git - Récupérer toutes les commandes
 router.get('/', (req, res) => {
   try {
-    const commands = db.prepare('SELECT * FROM git_commands ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM git_categories ORDER BY name').all().map((c: { name: string }) => c.name);
-
-    const formattedCommands = commands.map((c: {
+    const commands = db.prepare('SELECT * FROM git_commands ORDER BY created_at DESC').all() as {
       id: string;
       name: string;
       command: string;
@@ -20,7 +17,10 @@ router.get('/', (req, res) => {
       is_favorite: number;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+    const categories = (db.prepare('SELECT name FROM git_categories ORDER BY name').all() as { name: string }[]).map((c) => c.name);
+
+    const formattedCommands = commands.map((c) => ({
       id: c.id,
       name: c.name,
       command: c.command,
@@ -72,7 +72,7 @@ router.put('/:id', (req, res) => {
     `).run(
       name, command, description || '', category, JSON.stringify(tags || []),
       isFavorite ? 1 : 0, now, req.params.id
-    );
+    ) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Commande non trouvée' });
@@ -87,7 +87,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/git/:id - Supprimer une commande
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM git_commands WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM git_commands WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Commande non trouvée' });
     }

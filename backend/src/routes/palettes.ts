@@ -7,9 +7,7 @@ const router = express.Router();
 // GET /api/palettes - Récupérer toutes les palettes
 router.get('/', (req, res) => {
   try {
-    const palettes = db.prepare('SELECT * FROM color_palettes ORDER BY created_at DESC').all();
-
-    const formattedPalettes = palettes.map((p: {
+    const palettes = db.prepare('SELECT * FROM color_palettes ORDER BY created_at DESC').all() as {
       id: string;
       name: string;
       description: string | null;
@@ -17,7 +15,9 @@ router.get('/', (req, res) => {
       colors: string;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+
+    const formattedPalettes = palettes.map((p) => ({
       id: p.id,
       name: p.name,
       description: p.description,
@@ -61,7 +61,7 @@ router.put('/:id', (req, res) => {
       UPDATE color_palettes
       SET name = ?, description = ?, harmony = ?, colors = ?, updated_at = ?
       WHERE id = ?
-    `).run(name, description || '', harmony, JSON.stringify(colors), now, req.params.id);
+    `).run(name, description || '', harmony, JSON.stringify(colors), now, req.params.id) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Palette non trouvée' });
@@ -76,7 +76,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/palettes/:id - Supprimer une palette
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM color_palettes WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM color_palettes WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Palette non trouvée' });
     }

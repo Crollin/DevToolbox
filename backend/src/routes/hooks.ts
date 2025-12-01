@@ -7,10 +7,7 @@ const router = express.Router();
 // GET /api/hooks - Récupérer tous les hooks
 router.get('/', (req, res) => {
   try {
-    const hooks = db.prepare('SELECT * FROM wp_hooks ORDER BY created_at DESC').all();
-    const categories = db.prepare('SELECT name FROM wp_hook_categories ORDER BY name').all().map((c: { name: string }) => c.name);
-
-    const formattedHooks = hooks.map((h: {
+    const hooks = db.prepare('SELECT * FROM wp_hooks ORDER BY created_at DESC').all() as {
       id: string;
       name: string;
       type: string;
@@ -24,7 +21,10 @@ router.get('/', (req, res) => {
       is_favorite: number;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+    const categories = (db.prepare('SELECT name FROM wp_hook_categories ORDER BY name').all() as { name: string }[]).map((c) => c.name);
+
+    const formattedHooks = hooks.map((h) => ({
       id: h.id,
       name: h.name,
       type: h.type,
@@ -82,7 +82,7 @@ router.put('/:id', (req, res) => {
       name, type, description || '', category, JSON.stringify(tags || []),
       example || '', parameters || '', since || '', deprecated || null,
       isFavorite ? 1 : 0, now, req.params.id
-    );
+    ) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Hook non trouvé' });
@@ -97,7 +97,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/hooks/:id - Supprimer un hook
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM wp_hooks WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM wp_hooks WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Hook non trouvé' });
     }

@@ -7,12 +7,7 @@ const router = express.Router();
 // GET /api/snippets - Récupérer tous les snippets
 router.get('/', (req, res) => {
   try {
-    const snippets = db.prepare('SELECT * FROM code_snippets ORDER BY created_at DESC').all();
-    const folders = db.prepare('SELECT name FROM snippet_folders ORDER BY name').all().map((f: { name: string }) => f.name);
-    const customTags = db.prepare('SELECT tag FROM snippet_custom_tags ORDER BY tag').all().map((t: { tag: string }) => t.tag);
-
-    // Convertir les données
-    const formattedSnippets = snippets.map((s: {
+    const snippets = db.prepare('SELECT * FROM code_snippets ORDER BY created_at DESC').all() as {
       id: string;
       title: string;
       description: string | null;
@@ -28,7 +23,12 @@ router.get('/', (req, res) => {
       cloud_id: string | null;
       created_at: string;
       updated_at: string;
-    }) => ({
+    }[];
+    const folders = (db.prepare('SELECT name FROM snippet_folders ORDER BY name').all() as { name: string }[]).map((f) => f.name);
+    const customTags = (db.prepare('SELECT tag FROM snippet_custom_tags ORDER BY tag').all() as { tag: string }[]).map((t) => t.tag);
+
+    // Convertir les données
+    const formattedSnippets = snippets.map((s) => ({
       id: s.id,
       title: s.title,
       description: s.description,
@@ -59,7 +59,23 @@ router.get('/', (req, res) => {
 // GET /api/snippets/:id - Récupérer un snippet
 router.get('/:id', (req, res) => {
   try {
-    const snippet = db.prepare('SELECT * FROM code_snippets WHERE id = ?').get(req.params.id);
+    const snippet = db.prepare('SELECT * FROM code_snippets WHERE id = ?').get(req.params.id) as {
+      id: string;
+      title: string;
+      description: string | null;
+      code: string;
+      language: string;
+      scope: string;
+      priority: number;
+      tags: string | null;
+      folder: string | null;
+      active: number;
+      run_once: number;
+      wp_code_box_id: number | null;
+      cloud_id: string | null;
+      created_at: string;
+      updated_at: string;
+    } | undefined;
     if (!snippet) {
       return res.status(404).json({ error: 'Snippet non trouvé' });
     }
@@ -121,7 +137,7 @@ router.put('/:id', (req, res) => {
     `).run(
       title, description || '', code, language, scope, priority || 10,
       JSON.stringify(tags || []), folder || null, active ? 1 : 0, runOnce ? 1 : 0, now, req.params.id
-    );
+    ) as { changes: number };
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Snippet non trouvé' });
@@ -136,7 +152,7 @@ router.put('/:id', (req, res) => {
 // DELETE /api/snippets/:id - Supprimer un snippet
 router.delete('/:id', (req, res) => {
   try {
-    const result = db.prepare('DELETE FROM code_snippets WHERE id = ?').run(req.params.id);
+    const result = db.prepare('DELETE FROM code_snippets WHERE id = ?').run(req.params.id) as { changes: number };
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Snippet non trouvé' });
     }
