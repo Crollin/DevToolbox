@@ -5,19 +5,22 @@
 DevToolbox est une plateforme personnelle développée par **Creactiveweb** pour centraliser, organiser et lancer rapidement tous vos outils de développement web.
 
 Cette application regroupe une collection d'outils pratiques pour les développeurs, incluant :
-- Gestionnaire de commandes Git
-- Gestionnaire de commandes Docker
-- Bibliothèque de snippets de code
-- Générateur de palettes de couleurs
-- Bibliothèque d'icônes SVG
-- Outils WordPress (WP-CLI, scripts, hooks, queries)
-- Calculateur électrique
-- Gestionnaire de clés de licence
+- **Gestionnaire de commandes Git** - Collection de commandes Git avancées
+- **Gestionnaire de commandes Docker** - Glossaire complet des commandes Docker
+- **Bibliothèque de snippets de code** - Snippets avec import/export WPCodeBox
+- **Générateur de palettes de couleurs** - Palettes harmonieuses pour vos projets
+- **Bibliothèque d'icônes SVG** - Édition et export en SVG/JSX
+- **Outils WordPress** - WP-CLI, scripts, hooks, queries
+- **Image Resizer** - Redimensionnement et optimisation d'images pour WordPress (WebP)
+- **Calculateur électrique** - Consommation énergétique et estimation des coûts
+- **Gestionnaire de clés de licence** - Centralisation des licences SaaS
+- **Éditeur Markdown** - Éditeur WYSIWYG avec prévisualisation
+- **CSV Preview Pro** - Visualisation et manipulation de fichiers CSV
 - Et bien plus encore...
 
 ## Architecture
 
-DevToolbox utilise une architecture moderne avec :
+DevToolbox utilise comme architecture :
 - **Frontend** : Application React/Vite avec TypeScript
 - **Backend** : API REST Node.js/Express
 - **Base de données** : SQLite (légère et performante)
@@ -57,7 +60,7 @@ Pour développer localement sans Docker :
 
 ```sh
 # 1. Cloner le dépôt
-git clone <YOUR_GIT_URL>
+git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 
 # 2. Installer les dépendances du frontend
@@ -73,7 +76,7 @@ cd backend
 npm run dev  # Démarre sur http://localhost:1400
 
 # 5. Démarrer le frontend (dans un autre terminal)
-npm run dev  # Démarre sur http://localhost:8080
+npm run dev  # Démarre sur http://localhost:14001
 ```
 
 Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
@@ -91,16 +94,60 @@ DevToolbox/
 │   └── Dockerfile
 ├── src/                     # Frontend React
 │   ├── components/         # Composants React
+│   │   ├── imageresizer/  # Composants Image Resizer
+│   │   └── ...
 │   ├── hooks/              # Hooks personnalisés
+│   │   ├── useImageResizer.ts  # Hook pour Image Resizer
+│   │   └── ...
 │   ├── lib/                # Utilitaires (API client, etc.)
+│   │   ├── imagePresets.ts  # Présets WordPress pour images
+│   │   └── ...
 │   ├── pages/              # Pages de l'application
+│   │   ├── tools/
+│   │   │   ├── ImageResizer.tsx  # Page Image Resizer
+│   │   │   └── ...
+│   │   └── ...
 │   └── types/              # Types TypeScript
+│       ├── image-resizer.ts  # Types pour Image Resizer
+│       └── ...
 ├── docker/                  # Configuration Docker
 │   └── nginx.conf          # Configuration Nginx
 ├── docker-compose.yml       # Orchestration Docker
 ├── Dockerfile              # Image frontend
 └── DOCKER.md               # Documentation Docker
 ```
+
+## Outils disponibles
+
+### Utilitaires
+- **Image Resizer** - Redimensionnement et optimisation d'images pour WordPress
+  - Support de tous les formats d'images (JPG, PNG, GIF, WebP, SVG)
+  - Présets WordPress (Hero, Banner, Container, Thumbnail, etc.)
+  - Redimensionnement manuel avec ratio d'aspect
+  - Conversion WebP avec qualité ajustable (50-100%)
+  - Prévisualisation avant/après avec statistiques
+  - Traitement 100% côté client (pas de backend requis)
+- **Licence Key Hub** - Gestionnaire centralisé de clés de licence
+- **Mon Calcul Énergie** - Calculateur de consommation énergétique
+- **SVG Icon Library** - Bibliothèque d'icônes SVG
+- **WP Hook Reference** - Référence complète des hooks WordPress
+- **Markdown Editor** - Éditeur Markdown WYSIWYG
+
+### Scripts
+- **WP Script Library** - Bibliothèque de scripts PHP/Shell WordPress
+- **Code Snippet Library** - Snippets avec import/export WPCodeBox
+- **WP Query Builder** - Constructeur visuel de requêtes WP_Query
+
+### Commandes
+- **WP-CLI Glossary** - Glossaire de commandes WP-CLI
+- **Git Commander** - Collection de commandes Git avancées
+- **Docker Commander** - Glossaire complet des commandes Docker
+
+### Convertisseurs
+- **CSV Preview Pro** - Visualisation et manipulation de fichiers CSV
+
+### Génération
+- **Color Palette Gen** - Générateur de palettes de couleurs harmonieuses
 
 ## API Backend
 
@@ -120,6 +167,8 @@ Le backend expose une API REST complète pour tous les modules. Consultez le [RE
 - `/api/licences` - Gestion des licences
 - `/api/electricalc` - Calculateur électrique
 - `/health` - Health check
+
+**Note** : L'outil Image Resizer fonctionne entièrement côté client et n'utilise pas l'API backend.
 
 ## Commandes utiles
 
@@ -169,6 +218,7 @@ Voir [DOCKER.md](DOCKER.md) pour plus de commandes.
 - **shadcn-ui** - Composants UI
 - **Tailwind CSS** - Framework CSS
 - **React Router** - Routing
+- **browser-image-compression** - Compression et redimensionnement d'images côté client
 
 ### Backend
 - **Node.js** - Runtime JavaScript
@@ -253,6 +303,23 @@ docker-compose exec backend npm run db:migrate
 # Localement
 cd backend && npm run db:migrate
 ```
+
+## Fonctionnalités récentes
+
+### Image Resizer (Nouveau)
+Outil complet de redimensionnement et d'optimisation d'images pour WordPress :
+
+- **Présets WordPress** : Hero (1920x1080), Banner (1200x630), Container, Thumbnail, Medium, Large, Full
+- **Redimensionnement manuel** : Dimensions personnalisables avec conservation du ratio d'aspect
+- **Conversion WebP** : Export optimisé avec qualité ajustable (50-100%, défaut 75%)
+- **Prévisualisation** : Comparaison avant/après avec statistiques détaillées
+- **Traitement côté client** : Aucun backend requis, traitement dans le navigateur
+- **Support multi-formats** : JPG, PNG, GIF, WebP, SVG
+
+### Améliorations Docker
+- Script de vérification avant build (`scripts/verify-docker-build.sh`)
+- Support WebP dans la configuration Nginx
+- Optimisation du Dockerfile pour le cache
 
 ## Documentation
 

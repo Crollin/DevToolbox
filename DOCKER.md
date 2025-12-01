@@ -283,6 +283,20 @@ docker-compose up -d --build
 └─────────────────┘
 ```
 
+## Vérification avant le build
+
+Avant de construire l'image Docker, vous pouvez vérifier que tout est prêt :
+
+```bash
+# Exécuter le script de vérification
+./scripts/verify-docker-build.sh
+```
+
+Ce script vérifie :
+- La présence de `browser-image-compression` dans package.json
+- L'existence de `package-lock.json`
+- La présence de tous les fichiers nécessaires pour l'outil Image Resizer
+
 ## Support
 
 Pour toute question ou problème :
