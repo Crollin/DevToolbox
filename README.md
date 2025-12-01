@@ -20,7 +20,7 @@ Cette application regroupe une collection d'outils pratiques pour les développe
 
 ## Architecture
 
-DevToolbox utilise une architecture moderne avec :
+DevToolbox utilise comme architecture :
 - **Frontend** : Application React/Vite avec TypeScript
 - **Backend** : API REST Node.js/Express
 - **Base de données** : SQLite (légère et performante)
@@ -36,7 +36,7 @@ La méthode la plus simple pour démarrer DevToolbox est d'utiliser Docker Compo
 
 ```sh
 # Cloner le dépôt
-git clone <YOUR_GIT_URL>
+git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 
 # Démarrer tous les services (frontend + backend + base de données)
@@ -48,7 +48,7 @@ docker-compose logs -f
 
 L'application sera accessible sur :
 - **Frontend** : http://localhost
-- **Backend API** : http://localhost:3000
+- **Backend API** : http://localhost:14001
 
 Pour plus de détails, consultez le [Guide Docker](DOCKER.md).
 
@@ -60,7 +60,7 @@ Pour développer localement sans Docker :
 
 ```sh
 # 1. Cloner le dépôt
-git clone <YOUR_GIT_URL>
+git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 
 # 2. Installer les dépendances du frontend
@@ -73,10 +73,10 @@ cd ..
 
 # 4. Démarrer le backend (dans un terminal)
 cd backend
-npm run dev  # Démarre sur http://localhost:3000
+npm run dev  # Démarre sur http://localhost:14000
 
 # 5. Démarrer le frontend (dans un autre terminal)
-npm run dev  # Démarre sur http://localhost:8080
+npm run dev  # Démarre sur http://localhost:14001
 ```
 
 Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
