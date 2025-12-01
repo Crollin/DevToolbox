@@ -163,4 +163,14 @@ export const tools: Tool[] = [
     tags: ["markdown", "éditeur", "texte", "preview"],
     color: "amber",
   },
+  {
+    id: "image-resizer",
+    name: "Image Resizer",
+    description: "Redimensionnement et optimisation d'images pour WordPress avec export WebP.",
+    category: "utilitaires",
+    icon: "Image",
+    url: "#",
+    tags: ["images", "wordpress", "webp", "optimisation", "redimensionnement"],
+    color: "amber",
+  },
 ];

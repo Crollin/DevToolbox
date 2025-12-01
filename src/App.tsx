@@ -19,6 +19,7 @@ import CodeSnippetLibrary from "./pages/tools/CodeSnippetLibrary";
 import MarkdownEditor from "./pages/tools/MarkdownEditor";
 import WPHookReference from "./pages/tools/WPHookReference";
 import WPQueryBuilder from "./pages/tools/WPQueryBuilder";
+import ImageResizer from "./pages/tools/ImageResizer";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/tools/wp-hook-reference" element={<WPHookReference />} />
             <Route path="/tools/wp-query-builder" element={<WPQueryBuilder />} />
             <Route path="/tools/markdown-editor" element={<MarkdownEditor />} />
+            <Route path="/tools/image-resizer" element={<ImageResizer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

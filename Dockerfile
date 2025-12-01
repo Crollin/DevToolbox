@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copier les fichiers de configuration
+# Copier les fichiers de configuration pour optimiser le cache Docker
 COPY package*.json ./
 COPY vite.config.ts ./
 COPY tsconfig*.json ./
@@ -11,15 +11,15 @@ COPY tailwind.config.ts ./
 COPY postcss.config.js ./
 COPY components.json ./
 
-# Installer les dépendances
-RUN npm ci
+# Installer les dépendances (inclut browser-image-compression)
+RUN npm ci --only=production=false
 
 # Copier le code source
 COPY src ./src
 COPY index.html ./
 COPY public ./public
 
-# Builder l'application
+# Builder l'application (inclut l'outil Image Resizer)
 RUN npm run build
 
 # Stage 2: Production avec Nginx
