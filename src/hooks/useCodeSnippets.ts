@@ -81,11 +81,34 @@ export function useCodeSnippets() {
       if (USE_API) {
         try {
           const data = await api.get<{ snippets: CodeSnippet[]; folders: string[]; customTags: string[] }>('/snippets');
-          setState({
-            snippets: data.snippets || [],
-            folders: data.folders || defaultSnippetCategories,
-            customTags: data.customTags || [],
-          });
+          
+          // Si aucun snippet n'existe, initialiser avec les snippets par défaut
+          if (data.snippets.length === 0 && defaultSnippets.length > 0) {
+            try {
+              await api.post('/snippets/init', { snippets: defaultSnippets });
+              // Recharger les snippets après initialisation
+              const newData = await api.get<{ snippets: CodeSnippet[]; folders: string[]; customTags: string[] }>('/snippets');
+              setState({
+                snippets: newData.snippets || [],
+                folders: newData.folders || defaultSnippetCategories,
+                customTags: newData.customTags || [],
+              });
+            } catch (initError) {
+              console.error('Erreur lors de l\'initialisation des snippets:', initError);
+              // Utiliser les snippets par défaut en fallback
+              setState({
+                snippets: defaultSnippets,
+                folders: data.folders || defaultSnippetCategories,
+                customTags: data.customTags || [],
+              });
+            }
+          } else {
+            setState({
+              snippets: data.snippets || [],
+              folders: data.folders || defaultSnippetCategories,
+              customTags: data.customTags || [],
+            });
+          }
         } catch (error) {
           console.error('Erreur lors du chargement depuis l\'API:', error);
           // Fallback sur localStorage

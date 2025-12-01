@@ -1256,4 +1256,912 @@ add_action('woocommerce_single_product_summary', 'display_custom_field', 25);`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  // ========== SÉCURITÉ ==========
+  {
+    id: "41",
+    title: "Protection contre les injections SQL",
+    description: "Utilise prepare() pour sécuriser toutes les requêtes SQL",
+    code: `<?php
+// Toujours utiliser $wpdb->prepare() pour les requêtes SQL
+function get_user_posts($user_id) {
+    global $wpdb;
+    
+    // ❌ MAUVAIS - Vulnérable aux injections SQL
+    // $wpdb->query("SELECT * FROM {$wpdb->posts} WHERE post_author = $user_id");
+    
+    // ✅ BON - Protégé contre les injections
+    $results = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM {$wpdb->posts} WHERE post_author = %d AND post_status = %s",
+            $user_id,
+            'publish'
+        )
+    );
+    
+    return $results;
+}`,
+    language: "php",
+    scope: "global",
+    priority: 1,
+    tags: ["security", "database", "sql"],
+    folder: "Sécurité",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "42",
+    title: "Sanitization des données utilisateur",
+    description: "Sanitize toutes les données entrantes pour prévenir les attaques XSS",
+    code: `<?php
+// Sanitization des différents types de données
+function handle_form_submission() {
+    // Texte simple
+    $name = sanitize_text_field($_POST['name']);
+    
+    // Email
+    $email = sanitize_email($_POST['email']);
+    
+    // URL
+    $website = esc_url_raw($_POST['website']);
+    
+    // Texte avec HTML autorisé
+    $description = wp_kses_post($_POST['description']);
+    
+    // Nombre entier
+    $age = absint($_POST['age']);
+    
+    // Nombre décimal
+    $price = floatval($_POST['price']);
+    
+    // Sauvegarder en base de données
+    update_user_meta(get_current_user_id(), 'user_name', $name);
+    update_user_meta(get_current_user_id(), 'user_email', $email);
+}
+
+// Afficher des données (toujours échapper)
+function display_user_data($data) {
+    echo esc_html($data); // Pour texte simple
+    echo esc_url($data);  // Pour URLs
+    echo esc_attr($data); // Pour attributs HTML
+}`,
+    language: "php",
+    scope: "global",
+    priority: 1,
+    tags: ["security", "sanitization", "xss"],
+    folder: "Sécurité",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "43",
+    title: "Protection CSRF avec nonces",
+    description: "Implémente la protection CSRF avec les nonces WordPress",
+    code: `<?php
+// Créer un nonce pour un formulaire
+function render_form_with_nonce() {
+    wp_nonce_field('my_action', 'my_nonce_field');
+    ?>
+    <form method="post">
+        <input type="text" name="data" />
+        <input type="submit" value="Envoyer" />
+    </form>
+    <?php
+}
+
+// Vérifier le nonce lors de la soumission
+function process_form_submission() {
+    // Vérifier le nonce
+    if (!isset($_POST['my_nonce_field']) || !wp_verify_nonce($_POST['my_nonce_field'], 'my_action')) {
+        wp_die('Erreur de sécurité. Veuillez réessayer.');
+    }
+    
+    // Vérifier les permissions
+    if (!current_user_can('edit_posts')) {
+        wp_die('Permissions insuffisantes.');
+    }
+    
+    // Traiter les données
+    $data = sanitize_text_field($_POST['data']);
+    // ... traitement ...
+}
+
+add_action('admin_post_my_action', 'process_form_submission');
+
+// Pour AJAX
+function ajax_handler_with_nonce() {
+    check_ajax_referer('ajax-nonce', 'nonce');
+    
+    // Traiter la requête AJAX
+    wp_send_json_success(array('message' => 'Succès'));
+}
+add_action('wp_ajax_my_action', 'ajax_handler_with_nonce');`,
+    language: "php",
+    scope: "global",
+    priority: 1,
+    tags: ["security", "csrf", "nonce"],
+    folder: "Sécurité",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "44",
+    title: "Désactiver l'énumération des utilisateurs",
+    description: "Empêche l'énumération des utilisateurs WordPress via ?author=1",
+    code: `<?php
+// Bloquer l'énumération des utilisateurs
+add_filter('rest_endpoints', function($endpoints) {
+    if (isset($endpoints['/wp/v2/users'])) {
+        unset($endpoints['/wp/v2/users']);
+    }
+    if (isset($endpoints['/wp/v2/users/(?P<id>[\d]+)'])) {
+        unset($endpoints['/wp/v2/users/(?P<id>[\d]+)']);
+    }
+    return $endpoints;
+});
+
+// Bloquer l'accès via ?author=1
+add_action('template_redirect', function() {
+    if (is_author()) {
+        global $wp_query;
+        if (isset($wp_query->query_vars['author'])) {
+            wp_redirect(home_url(), 301);
+            exit;
+        }
+    }
+});
+
+// Masquer les noms d'utilisateurs dans les URLs
+add_filter('author_rewrite_rules', '__return_empty_array');`,
+    language: "php",
+    scope: "global",
+    priority: 1,
+    tags: ["security", "users", "enumeration"],
+    folder: "Sécurité",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ========== OPTIMISATION ==========
+  {
+    id: "45",
+    title: "Lazy loading des images",
+    description: "Active le lazy loading natif WordPress pour améliorer les performances",
+    code: `<?php
+// Activer le lazy loading natif WordPress (5.5+)
+add_filter('wp_lazy_loading_enabled', '__return_true');
+
+// Lazy loading personnalisé avec JavaScript
+function add_lazy_loading_images() {
+    ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const images = document.querySelectorAll('img[data-src]');
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    observer.unobserve(img);
+                }
+            });
+        });
+        images.forEach(img => imageObserver.observe(img));
+    });
+    </script>
+    <?php
+}
+add_action('wp_footer', 'add_lazy_loading_images');`,
+    language: "php",
+    scope: "frontend",
+    priority: 5,
+    tags: ["performance", "lazy-loading", "images"],
+    folder: "Performance",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "46",
+    title: "Optimiser les requêtes de base de données",
+    description: "Réduit le nombre de requêtes SQL avec des optimisations",
+    code: `<?php
+// Désactiver les requêtes inutiles
+remove_action('wp_head', 'wp_generator');
+remove_action('wp_head', 'wlwmanifest_link');
+remove_action('wp_head', 'rsd_link');
+
+// Optimiser les requêtes de posts
+function optimize_post_queries($query) {
+    if (!is_admin() && $query->is_main_query()) {
+        $query->set('no_found_rows', true);
+        $query->set('update_post_meta_cache', false);
+        $query->set('update_post_term_cache', false);
+    }
+}
+add_action('pre_get_posts', 'optimize_post_queries');
+
+// Utiliser transients pour mettre en cache
+function get_cached_data($key, $callback, $expiration = 3600) {
+    $data = get_transient($key);
+    if (false === $data) {
+        $data = $callback();
+        set_transient($key, $data, $expiration);
+    }
+    return $data;
+}`,
+    language: "php",
+    scope: "global",
+    priority: 5,
+    tags: ["performance", "database", "queries"],
+    folder: "Performance",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "47",
+    title: "Cache avec transients",
+    description: "Utilise les transients WordPress pour mettre en cache les données",
+    code: `<?php
+// Fonction helper pour le cache avec transients
+function get_cached_data($key, $callback, $expiration = 3600, $group = 'default') {
+    $cache_key = $group . '_' . $key;
+    $data = get_transient($cache_key);
+    
+    if (false === $data) {
+        $data = $callback();
+        set_transient($cache_key, $data, $expiration);
+    }
+    
+    return $data;
+}
+
+// Exemple : Cache des posts récents
+function get_recent_posts_cached() {
+    return get_cached_data('recent_posts', function() {
+        return get_posts(array(
+            'numberposts' => 10,
+            'post_status' => 'publish',
+        ));
+    }, 1800); // Cache de 30 minutes
+}`,
+    language: "php",
+    scope: "global",
+    priority: 5,
+    tags: ["performance", "cache", "transients"],
+    folder: "Performance",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "48",
+    title: "Désactiver les scripts inutiles",
+    description: "Désactive les scripts WordPress non utilisés pour améliorer les performances",
+    code: `<?php
+// Désactiver les emojis
+function disable_emojis_completely() {
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('admin_print_scripts', 'print_emoji_detection_script');
+    remove_action('wp_print_styles', 'print_emoji_styles');
+    remove_action('admin_print_styles', 'print_emoji_styles');
+    remove_filter('the_content_feed', 'wp_staticize_emoji');
+    remove_filter('comment_text_rss', 'wp_staticize_emoji');
+    remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+    add_filter('emoji_svg_url', '__return_false');
+}
+add_action('init', 'disable_emojis_completely');
+
+// Désactiver les embeds
+function disable_embeds() {
+    wp_deregister_script('wp-embed');
+    remove_action('wp_head', 'wp_oembed_add_discovery_links');
+    remove_action('wp_head', 'wp_oembed_add_host_js');
+}
+add_action('init', 'disable_embeds', 9999);`,
+    language: "php",
+    scope: "frontend",
+    priority: 5,
+    tags: ["performance", "scripts", "optimization"],
+    folder: "Performance",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ========== WOOCOMMERCE ==========
+  {
+    id: "49",
+    title: "Personnaliser les emails de commande",
+    description: "Modifie le contenu des emails WooCommerce",
+    code: `<?php
+// Personnaliser l'objet de l'email de commande
+add_filter('woocommerce_email_subject_new_order', 'custom_new_order_email_subject', 10, 2);
+function custom_new_order_email_subject($subject, $order) {
+    return 'Nouvelle commande #' . $order->get_order_number();
+}
+
+// Personnaliser le contenu de l'email
+add_filter('woocommerce_email_order_details', 'custom_email_order_details', 10, 4);
+function custom_email_order_details($order, $sent_to_admin, $plain_text, $email) {
+    echo '<p>Merci pour votre commande !</p>';
+    echo '<p>Votre commande sera traitée dans les plus brefs délais.</p>';
+}
+
+// Ajouter du contenu personnalisé
+add_action('woocommerce_email_order_details', 'add_custom_email_content', 20, 4);
+function add_custom_email_content($order, $sent_to_admin, $plain_text, $email) {
+    if ($email->id === 'customer_completed_order') {
+        echo '<p>Nous espérons que vous serez satisfait de votre achat !</p>';
+    }
+}`,
+    language: "php",
+    scope: "global",
+    priority: 10,
+    tags: ["woocommerce", "emails", "orders"],
+    folder: "WooCommerce",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "50",
+    title: "Ajouter des champs personnalisés au checkout",
+    description: "Ajoute des champs supplémentaires au formulaire de commande",
+    code: `<?php
+// Ajouter un champ personnalisé au checkout
+add_action('woocommerce_after_order_notes', 'add_custom_checkout_field');
+function add_custom_checkout_field($checkout) {
+    woocommerce_form_field('custom_field', array(
+        'type' => 'text',
+        'class' => array('form-row-wide'),
+        'label' => 'Champ personnalisé',
+        'placeholder' => 'Entrez votre information',
+        'required' => true,
+    ), $checkout->get_value('custom_field'));
+}
+
+// Valider le champ
+add_action('woocommerce_checkout_process', 'validate_custom_checkout_field');
+function validate_custom_checkout_field() {
+    if (empty($_POST['custom_field'])) {
+        wc_add_notice('Le champ personnalisé est requis.', 'error');
+    }
+}
+
+// Sauvegarder le champ
+add_action('woocommerce_checkout_update_order_meta', 'save_custom_checkout_field');
+function save_custom_checkout_field($order_id) {
+    if (!empty($_POST['custom_field'])) {
+        update_post_meta($order_id, '_custom_field', sanitize_text_field($_POST['custom_field']));
+    }
+}`,
+    language: "php",
+    scope: "frontend",
+    priority: 10,
+    tags: ["woocommerce", "checkout", "custom-fields"],
+    folder: "WooCommerce",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "51",
+    title: "Modifier les calculs de livraison",
+    description: "Personnalise les méthodes et calculs de livraison WooCommerce",
+    code: `<?php
+// Ajouter une méthode de livraison personnalisée
+add_action('woocommerce_shipping_init', 'custom_shipping_method_init');
+function custom_shipping_method_init() {
+    if (!class_exists('WC_Custom_Shipping_Method')) {
+        class WC_Custom_Shipping_Method extends WC_Shipping_Method {
+            public function __construct() {
+                $this->id = 'custom_shipping';
+                $this->method_title = 'Livraison personnalisée';
+                $this->method_description = 'Description de votre méthode de livraison';
+                $this->enabled = 'yes';
+                $this->title = 'Livraison personnalisée';
+                $this->init();
+            }
+            
+            function init() {
+                $this->init_form_fields();
+                $this->init_settings();
+                add_action('woocommerce_update_options_shipping_' . $this->id, array($this, 'process_admin_options'));
+            }
+            
+            function calculate_shipping($package = array()) {
+                $rate = array(
+                    'id' => $this->id,
+                    'label' => $this->title,
+                    'cost' => 10.00, // Coût fixe
+                    'calc_tax' => 'per_item'
+                );
+                $this->add_rate($rate);
+            }
+        }
+    }
+}
+add_action('woocommerce_shipping_methods', 'add_custom_shipping_method');
+function add_custom_shipping_method($methods) {
+    $methods['custom_shipping'] = 'WC_Custom_Shipping_Method';
+    return $methods;
+}`,
+    language: "php",
+    scope: "global",
+    priority: 10,
+    tags: ["woocommerce", "shipping", "delivery"],
+    folder: "WooCommerce",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "52",
+    title: "Personnaliser les pages produit",
+    description: "Modifie l'affichage des pages produit WooCommerce",
+    code: `<?php
+// Réorganiser les éléments de la page produit
+remove_action('woocommerce_single_product_summary', 'woocommerce_template_single_title', 5);
+add_action('woocommerce_single_product_summary', 'woocommerce_template_single_title', 3);
+
+// Ajouter du contenu après le résumé
+add_action('woocommerce_single_product_summary', 'add_custom_content_after_summary', 25);
+function add_custom_content_after_summary() {
+    echo '<div class="custom-product-info">';
+    echo '<p>Informations personnalisées sur le produit</p>';
+    echo '</div>';
+}
+
+// Modifier les onglets produits
+add_filter('woocommerce_product_tabs', 'custom_product_tabs');
+function custom_product_tabs($tabs) {
+    // Réorganiser les onglets
+    $tabs['description']['priority'] = 5;
+    $tabs['reviews']['priority'] = 15;
+    
+    // Ajouter un nouvel onglet
+    $tabs['custom_tab'] = array(
+        'title' => 'Onglet personnalisé',
+        'priority' => 20,
+        'callback' => 'custom_tab_content'
+    );
+    
+    return $tabs;
+}
+
+function custom_tab_content() {
+    echo '<p>Contenu de l\'onglet personnalisé</p>';
+}`,
+    language: "php",
+    scope: "frontend",
+    priority: 10,
+    tags: ["woocommerce", "products", "tabs"],
+    folder: "WooCommerce",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ========== STYLE/CSS ==========
+  {
+    id: "53",
+    title: "CSS personnalisé dans l'admin",
+    description: "Ajoute du CSS personnalisé dans l'administration WordPress",
+    code: `<?php
+function add_admin_custom_css() {
+    echo '<style>
+        /* Personnaliser le menu admin */
+        #adminmenu .wp-menu-image img {
+            width: 20px;
+            height: 20px;
+        }
+        
+        /* Personnaliser les postbox */
+        .postbox {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Personnaliser les boutons */
+        .button-primary {
+            background: #0073aa;
+            border-color: #005177;
+        }
+        
+        /* Personnaliser les tableaux */
+        .wp-list-table th {
+            background: #f0f0f1;
+        }
+    </style>';
+}
+add_action('admin_head', 'add_admin_custom_css');`,
+    language: "php",
+    scope: "admin",
+    priority: 10,
+    tags: ["admin", "css", "customization"],
+    folder: "Admin",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "54",
+    title: "Personnaliser la page de connexion",
+    description: "Modifie le style et le contenu de la page de connexion WordPress",
+    code: `<?php
+// Ajouter du CSS personnalisé à la page de connexion
+function custom_login_styles() {
+    echo '<style type="text/css">
+        #login h1 a, .login h1 a {
+            background-image: url(' . get_stylesheet_directory_uri() . '/images/logo.png);
+            height: 80px;
+            width: 300px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            padding-bottom: 20px;
+        }
+        .login form {
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .wp-core-ui .button-primary {
+            background: #0073aa;
+            border-color: #005177;
+        }
+    </style>';
+}
+add_action('login_enqueue_scripts', 'custom_login_styles');
+
+// Changer l'URL du logo
+add_filter('login_headerurl', function() {
+    return home_url();
+});
+
+// Changer le titre du logo
+add_filter('login_headertitle', function() {
+    return get_bloginfo('name');
+});`,
+    language: "php",
+    scope: "admin",
+    priority: 10,
+    tags: ["admin", "login", "customization"],
+    folder: "Admin",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "55",
+    title: "Styles conditionnels selon le contexte",
+    description: "Ajoute du CSS conditionnel selon la page ou le contexte",
+    code: `<?php
+function add_conditional_styles() {
+    // Styles pour la page d'accueil
+    if (is_front_page()) {
+        echo '<style>
+            .home-hero {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 80px 0;
+            }
+        </style>';
+    }
+    
+    // Styles pour les pages
+    if (is_page()) {
+        echo '<style>
+            .page-content {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 40px 20px;
+            }
+        </style>';
+    }
+    
+    // Styles pour les articles
+    if (is_single()) {
+        echo '<style>
+            .single-post {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+        </style>';
+    }
+    
+    // Styles pour mobile
+    echo '<style>
+        @media (max-width: 768px) {
+            .responsive-hide {
+                display: none;
+            }
+        }
+    </style>';
+}
+add_action('wp_head', 'add_conditional_styles');`,
+    language: "php",
+    scope: "frontend",
+    priority: 10,
+    tags: ["css", "responsive", "conditional"],
+    folder: "Frontend",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "56",
+    title: "Personnaliser l'éditeur Gutenberg",
+    description: "Ajoute des styles personnalisés à l'éditeur Gutenberg",
+    code: `<?php
+// Ajouter des styles à l'éditeur Gutenberg
+function add_gutenberg_styles() {
+    wp_enqueue_style(
+        'custom-gutenberg-styles',
+        get_stylesheet_directory_uri() . '/editor-styles.css',
+        array('wp-edit-blocks'),
+        '1.0.0'
+    );
+}
+add_action('enqueue_block_editor_assets', 'add_gutenberg_styles');
+
+// Ajouter des couleurs personnalisées
+function add_custom_colors() {
+    add_theme_support('editor-color-palette', array(
+        array(
+            'name' => 'Bleu',
+            'slug' => 'blue',
+            'color' => '#0073aa',
+        ),
+        array(
+            'name' => 'Rouge',
+            'slug' => 'red',
+            'color' => '#dc3232',
+        ),
+    ));
+}
+add_action('after_setup_theme', 'add_custom_colors');
+
+// Ajouter des tailles de police personnalisées
+function add_custom_font_sizes() {
+    add_theme_support('editor-font-sizes', array(
+        array(
+            'name' => 'Petit',
+            'size' => 14,
+            'slug' => 'small',
+        ),
+        array(
+            'name' => 'Grand',
+            'size' => 24,
+            'slug' => 'large',
+        ),
+    ));
+}
+add_action('after_setup_theme', 'add_custom_font_sizes');`,
+    language: "php",
+    scope: "admin",
+    priority: 10,
+    tags: ["gutenberg", "editor", "customization"],
+    folder: "Admin",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  // ========== WORDPRESS AVANCÉ ==========
+  {
+    id: "57",
+    title: "Gestion des rôles et capacités",
+    description: "Crée et modifie les rôles et capacités WordPress",
+    code: `<?php
+// Créer un nouveau rôle
+function create_custom_role() {
+    add_role(
+        'custom_editor',
+        'Éditeur personnalisé',
+        array(
+            'read' => true,
+            'edit_posts' => true,
+            'edit_published_posts' => true,
+            'publish_posts' => true,
+            'delete_posts' => true,
+            'upload_files' => true,
+        )
+    );
+}
+add_action('init', 'create_custom_role');
+
+// Ajouter une capacité à un rôle existant
+function add_custom_capability() {
+    $role = get_role('editor');
+    $role->add_cap('edit_theme_options');
+}
+
+// Supprimer une capacité
+function remove_capability() {
+    $role = get_role('author');
+    $role->remove_cap('publish_posts');
+}
+
+// Vérifier les capacités
+function check_user_capability() {
+    if (current_user_can('edit_posts')) {
+        // L'utilisateur peut éditer des posts
+    }
+}`,
+    language: "php",
+    scope: "global",
+    priority: 10,
+    tags: ["roles", "capabilities", "permissions"],
+    folder: "WordPress",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "58",
+    title: "Personnalisation de l'API REST",
+    description: "Crée des endpoints personnalisés pour l'API REST WordPress",
+    code: `<?php
+// Ajouter un endpoint personnalisé
+function register_custom_rest_route() {
+    register_rest_route('custom/v1', '/data', array(
+        'methods' => 'GET',
+        'callback' => 'get_custom_data',
+        'permission_callback' => function() {
+            return current_user_can('read');
+        },
+    ));
+    
+    register_rest_route('custom/v1', '/data', array(
+        'methods' => 'POST',
+        'callback' => 'create_custom_data',
+        'permission_callback' => function() {
+            return current_user_can('edit_posts');
+        },
+    ));
+}
+add_action('rest_api_init', 'register_custom_rest_route');
+
+// Callback pour GET
+function get_custom_data($request) {
+    $data = array(
+        'message' => 'Hello from REST API',
+        'timestamp' => current_time('mysql'),
+        'user_id' => get_current_user_id(),
+    );
+    return new WP_REST_Response($data, 200);
+}
+
+// Callback pour POST
+function create_custom_data($request) {
+    $params = $request->get_json_params();
+    // Traiter les données
+    return new WP_REST_Response(array('success' => true), 201);
+}
+
+// Usage: /wp-json/custom/v1/data`,
+    language: "php",
+    scope: "global",
+    priority: 10,
+    tags: ["rest-api", "api", "endpoint"],
+    folder: "API",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "59",
+    title: "Cron jobs personnalisés",
+    description: "Crée et gère des tâches cron personnalisées",
+    code: `<?php
+// Planifier un événement cron
+function schedule_custom_cron() {
+    if (!wp_next_scheduled('my_custom_cron_event')) {
+        wp_schedule_event(time(), 'hourly', 'my_custom_cron_event');
+    }
+}
+add_action('wp', 'schedule_custom_cron');
+
+// Exécuter la tâche cron
+add_action('my_custom_cron_event', 'do_custom_cron_task');
+function do_custom_cron_task() {
+    // Tâche à exécuter
+    error_log('Tâche cron exécutée : ' . date('Y-m-d H:i:s'));
+    
+    // Exemple : Nettoyer les transients expirés
+    global $wpdb;
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_%' AND option_value < UNIX_TIMESTAMP()");
+}
+
+// Ajouter un intervalle personnalisé
+add_filter('cron_schedules', 'add_custom_cron_interval');
+function add_custom_cron_interval($schedules) {
+    $schedules['every_5_minutes'] = array(
+        'interval' => 300,
+        'display' => 'Toutes les 5 minutes'
+    );
+    return $schedules;
+}
+
+// Désactiver un événement cron
+function unschedule_custom_cron() {
+    $timestamp = wp_next_scheduled('my_custom_cron_event');
+    if ($timestamp) {
+        wp_unschedule_event($timestamp, 'my_custom_cron_event');
+    }
+}`,
+    language: "php",
+    scope: "global",
+    priority: 10,
+    tags: ["cron", "scheduled-tasks", "automation"],
+    folder: "WordPress",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "60",
+    title: "Hooks personnalisés",
+    description: "Crée et utilise des hooks personnalisés (actions et filtres)",
+    code: `<?php
+// Créer une action personnalisée
+function trigger_custom_action() {
+    do_action('my_custom_action', get_current_user_id(), 'data');
+}
+add_action('wp_footer', 'trigger_custom_action');
+
+// Écouter l'action personnalisée
+add_action('my_custom_action', 'handle_custom_action', 10, 2);
+function handle_custom_action($user_id, $data) {
+    error_log("Action personnalisée déclenchée pour l'utilisateur : " . $user_id);
+}
+
+// Créer un filtre personnalisé
+function apply_custom_filter($content) {
+    $content = apply_filters('my_custom_filter', $content, get_the_ID());
+    return $content;
+}
+add_filter('the_content', 'apply_custom_filter');
+
+// Modifier via le filtre personnalisé
+add_filter('my_custom_filter', 'modify_content', 10, 2);
+function modify_content($content, $post_id) {
+    if (is_single()) {
+        $content = '<div class="custom-wrapper">' . $content . '</div>';
+    }
+    return $content;
+}
+
+// Exemple d'utilisation dans un thème
+// do_action('before_post_content');
+// apply_filters('post_content_class', 'default-class');`,
+    language: "php",
+    scope: "global",
+    priority: 10,
+    tags: ["hooks", "actions", "filters"],
+    folder: "WordPress",
+    active: true,
+    runOnce: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];

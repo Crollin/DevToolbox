@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './db/database';
+import { initializeDefaultSnippets } from './db/initSnippets';
 import snippetsRoutes from './routes/snippets';
 import hooksRoutes from './routes/hooks';
 import queriesRoutes from './routes/queries';
@@ -22,6 +23,7 @@ app.use(express.json());
 
 // Initialiser la base de données
 initializeDatabase();
+initializeDefaultSnippets();
 
 // Routes
 app.use('/api/snippets', snippetsRoutes);
