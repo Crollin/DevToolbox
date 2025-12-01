@@ -1,15 +1,53 @@
-# Guide Docker - DevToolbox
+# Guide Docker
 
-Ce guide explique comment utiliser Docker pour déployer DevToolbox avec son backend API et sa base de données SQLite.
+Guide complet pour utiliser Docker avec DevToolbox.
 
-## Prérequis
+## Table des matières
 
-- Docker (version 20.10 ou supérieure)
-- Docker Compose (version 2.0 ou supérieure)
+- [Architecture](#architecture)
+- [Démarrage rapide](#démarrage-rapide)
+- [Commandes essentielles](#commandes-essentielles)
+- [Configuration](#configuration)
+- [Développement avec Docker](#développement-avec-docker)
+- [Production](#production)
+- [Dépannage](#dépannage)
 
-## Structure
+## Architecture
 
 Le projet utilise une architecture multi-conteneurs :
+
+```
+┌─────────────┐
+│   Client    │
+│  (Browser)  │
+└──────┬──────┘
+       │
+       │ HTTP
+       │
+┌──────▼──────────┐
+│   Frontend      │
+│   (Nginx)       │
+│   Port 14001    │
+└──────┬──────────┘
+       │
+       │ /api/* → Proxy
+       │
+┌──────▼──────────┐
+│    Backend      │
+│   (Express)     │
+│   Port 1400     │
+└──────┬──────────┘
+       │
+       │ SQLite
+       │
+┌──────▼──────────┐
+│   Database      │
+│   (SQLite)      │
+│   ./data/*.db   │
+└─────────────────┘
+```
+
+### Services
 
 - **Frontend** : Application React/Vite servie par Nginx (port 14001)
 - **Backend** : API REST Node.js/Express (port 1400)
@@ -20,11 +58,10 @@ Le projet utilise une architecture multi-conteneurs :
 ### 1. Cloner et préparer le projet
 
 ```bash
-# Cloner le dépôt (si nécessaire)
-git clone https://github.com/Crollin/DevToolbox
+git clone <votre-repo>
 cd DevToolbox
 
-# Copier le fichier d'environnement
+# Copier le fichier d'environnement (si nécessaire)
 cp .env.example .env
 ```
 
@@ -49,7 +86,7 @@ docker-compose logs -f frontend
 - **Health check backend** : http://localhost:1400/health
 - **Health check frontend** : http://localhost:14001/health
 
-## Commandes utiles
+## Commandes essentielles
 
 ### Gestion des conteneurs
 
@@ -109,6 +146,9 @@ docker-compose exec backend cp /app/data/devtoolbox.db /app/data/devtoolbox.db.b
 
 # Restaurer depuis un backup
 docker-compose exec backend cp /app/data/devtoolbox.db.backup /app/data/devtoolbox.db
+
+# Voir les tables
+docker-compose exec backend sh -c "cd /app/data && sqlite3 devtoolbox.db '.tables'"
 ```
 
 ## Configuration
@@ -124,7 +164,7 @@ NODE_ENV=production
 DB_PATH=./data/devtoolbox.db
 
 # Frontend
-FRONTEND_PORT=14001
+FRONTEND_PORT=80
 ```
 
 ### Ports
@@ -154,7 +194,7 @@ Les données sont persistées dans le dossier `./data` du projet :
 
 Pour changer l'emplacement, modifiez le volume dans `docker-compose.yml`.
 
-## Développement
+## Développement avec Docker
 
 ### Mode développement local
 
@@ -201,6 +241,20 @@ docker push registry.example.com/devtoolbox-frontend:latest
 docker-compose pull
 docker-compose up -d
 ```
+
+### Script de vérification avant build
+
+Avant de construire l'image Docker, vous pouvez vérifier que tout est prêt :
+
+```bash
+# Exécuter le script de vérification
+./scripts/verify-docker-build.sh
+```
+
+Ce script vérifie :
+- La présence de `browser-image-compression` dans package.json
+- L'existence de `package-lock.json`
+- La présence de tous les fichiers nécessaires pour l'outil Image Resizer
 
 ## Dépannage
 
@@ -250,57 +304,85 @@ rm -rf ./data
 docker-compose up -d --build
 ```
 
-## Architecture
-
-```
-┌─────────────┐
-│   Client    │
-│  (Browser)  │
-└──────┬──────┘
-       │
-       │ HTTP
-       │
-┌──────▼──────────┐
-│   Frontend      │
-│   (Nginx)       │
-│   Port 14001    │
-└──────┬──────────┘
-       │
-       │ /api/* → Proxy
-       │
-┌──────▼──────────┐
-│    Backend      │
-│   (Express)     │
-│   Port 1400     │
-└──────┬──────────┘
-       │
-       │ SQLite
-       │
-┌──────▼──────────┐
-│   Database      │
-│   (SQLite)      │
-│   ./data/*.db   │
-└─────────────────┘
-```
-
-## Vérification avant le build
-
-Avant de construire l'image Docker, vous pouvez vérifier que tout est prêt :
+### Problèmes de réseau
 
 ```bash
-# Exécuter le script de vérification
-./scripts/verify-docker-build.sh
+# Vérifier les réseaux Docker
+docker network ls
+
+# Inspecter le réseau
+docker network inspect devtoolbox_default
+
+# Recréer le réseau
+docker-compose down
+docker network prune
+docker-compose up -d
 ```
 
-Ce script vérifie :
-- La présence de `browser-image-compression` dans package.json
-- L'existence de `package-lock.json`
-- La présence de tous les fichiers nécessaires pour l'outil Image Resizer
+### Problèmes de build
+
+```bash
+# Build sans cache
+docker-compose build --no-cache
+
+# Build un service spécifique
+docker-compose build --no-cache backend
+
+# Vérifier les images
+docker images | grep devtoolbox
+```
+
+## Commandes avancées
+
+### Exécuter des commandes dans les conteneurs
+
+```bash
+# Backend - Migration de base de données
+docker-compose exec backend npm run db:migrate
+
+# Backend - Accéder au shell
+docker-compose exec backend sh
+
+# Frontend - Vérifier la configuration Nginx
+docker-compose exec frontend nginx -t
+```
+
+### Monitoring
+
+```bash
+# Utilisation des ressources
+docker stats
+
+# Utilisation des ressources d'un service
+docker stats devtoolbox-backend-1
+
+# Espace disque utilisé
+docker system df
+```
+
+### Nettoyage
+
+```bash
+# Supprimer les conteneurs arrêtés
+docker-compose rm
+
+# Supprimer les images non utilisées
+docker image prune
+
+# Nettoyage complet (⚠️ attention)
+docker system prune -a
+```
 
 ## Support
 
 Pour toute question ou problème :
+
 1. Vérifiez les logs : `docker-compose logs`
-2. Consultez la documentation du projet
-3. Ouvrez une issue sur le dépôt GitHub
+2. Consultez la [documentation](Home)
+3. Consultez le [guide de dépannage](Troubleshooting)
+4. Ouvrez une issue sur le dépôt GitHub
+
+---
+
+*Dernière mise à jour : 2024*
 

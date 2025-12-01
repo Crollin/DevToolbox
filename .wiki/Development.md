@@ -1,0 +1,447 @@
+# Guide de développement
+
+Guide complet pour développer et contribuer à DevToolbox.
+
+## Table des matières
+
+- [Structure du projet](#structure-du-projet)
+- [Configuration de l'environnement](#configuration-de-lenvironnement)
+- [Architecture](#architecture)
+- [Ajout de nouveaux outils](#ajout-de-nouveaux-outils)
+- [Standards de code](#standards-de-code)
+- [Tests et débogage](#tests-et-débogage)
+- [Workflow de développement](#workflow-de-développement)
+
+## Structure du projet
+
+```
+DevToolbox/
+├── backend/                 # Backend API
+│   ├── src/
+│   │   ├── db/             # Configuration base de données
+│   │   │   ├── database.ts      # Initialisation SQLite
+│   │   │   ├── migrate.ts       # Migrations
+│   │   │   └── initSnippets.ts  # Snippets par défaut
+│   │   ├── routes/         # Routes API
+│   │   │   ├── snippets.ts
+│   │   │   ├── hooks.ts
+│   │   │   └── ...
+│   │   └── index.ts        # Point d'entrée
+│   ├── data/               # Base de données SQLite
+│   ├── package.json
+│   └── tsconfig.json
+├── src/                     # Frontend React
+│   ├── components/         # Composants React
+│   │   ├── ui/             # Composants shadcn/ui
+│   │   ├── codesnippets/   # Composants pour snippets
+│   │   ├── docker/         # Composants pour Docker
+│   │   └── ...
+│   ├── hooks/              # Hooks personnalisés
+│   │   ├── useCodeSnippets.ts
+│   │   ├── useDockerCommands.ts
+│   │   └── ...
+│   ├── lib/                # Utilitaires
+│   │   ├── api.ts          # Client API
+│   │   ├── utils.ts        # Utilitaires généraux
+│   │   └── ...
+│   ├── pages/              # Pages de l'application
+│   │   ├── Index.tsx       # Page d'accueil
+│   │   └── tools/          # Pages des outils
+│   ├── types/              # Types TypeScript
+│   │   ├── codesnippet.ts
+│   │   ├── docker.ts
+│   │   └── ...
+│   └── data/
+│       └── tools.ts        # Liste des outils
+├── docker/                  # Configuration Docker
+│   └── nginx.conf
+├── docker-compose.yml
+├── Dockerfile
+└── package.json
+```
+
+## Configuration de l'environnement
+
+### Prérequis
+
+- **Node.js** 20+ (recommandé : utiliser [nvm](https://github.com/nvm-sh/nvm))
+- **npm** ou **yarn**
+- **Git**
+- **Docker** (optionnel, pour tester avec Docker)
+
+### Installation
+
+```bash
+# Cloner le dépôt
+git clone https://github.com/Crollin/DevToolbox
+cd DevToolbox
+
+# Installer les dépendances frontend
+npm install
+
+# Installer les dépendances backend
+cd backend
+npm install
+cd ..
+```
+
+### Variables d'environnement
+
+#### Frontend
+
+Créez un fichier `.env` à la racine :
+
+```env
+VITE_API_URL=http://localhost:1400
+```
+
+#### Backend
+
+Créez un fichier `.env` dans `backend/` :
+
+```env
+PORT=1400
+NODE_ENV=development
+DB_PATH=./data/devtoolbox.db
+```
+
+### Démarrage en développement
+
+```bash
+# Terminal 1 : Backend
+cd backend
+npm run dev
+
+# Terminal 2 : Frontend
+npm run dev
+```
+
+Le frontend sera accessible sur http://localhost:8080 et proxy les requêtes `/api` vers le backend sur http://localhost:1400.
+
+## Architecture
+
+### Frontend
+
+- **Framework** : React 18 avec TypeScript
+- **Build tool** : Vite
+- **Routing** : React Router v6
+- **UI** : shadcn/ui + Tailwind CSS
+- **State management** : React Query (TanStack Query)
+- **Formulaires** : React Hook Form + Zod
+
+### Backend
+
+- **Framework** : Express.js avec TypeScript
+- **Base de données** : SQLite avec better-sqlite3
+- **Structure** : Routes modulaires par fonctionnalité
+
+### Communication Frontend/Backend
+
+Le frontend utilise un client API centralisé (`src/lib/api.ts`) qui fait des requêtes HTTP vers le backend. Le proxy Vite redirige automatiquement `/api/*` vers `http://localhost:1400/api/*`.
+
+## Ajout de nouveaux outils
+
+### 1. Ajouter l'outil à la liste
+
+Éditez `src/data/tools.ts` :
+
+```typescript
+{
+  id: "mon-outil",
+  name: "Mon Outil",
+  description: "Description de mon outil",
+  category: "utilitaires",
+  icon: "IconName",
+  url: "#",
+  tags: ["tag1", "tag2"],
+  color: "amber",
+}
+```
+
+### 2. Créer la route
+
+Ajoutez la route dans `src/App.tsx` :
+
+```typescript
+<Route path="/tools/mon-outil" element={<MonOutil />} />
+```
+
+### 3. Créer la page
+
+Créez `src/pages/tools/MonOutil.tsx` :
+
+```typescript
+import { useState } from 'react';
+import ToolLayout from '@/components/ToolLayout';
+
+const MonOutil = () => {
+  return (
+    <ToolLayout
+      title="Mon Outil"
+      description="Description de mon outil"
+    >
+      {/* Contenu de l'outil */}
+    </ToolLayout>
+  );
+};
+
+export default MonOutil;
+```
+
+### 4. Créer les types (si nécessaire)
+
+Créez `src/types/mon-outil.ts` :
+
+```typescript
+export interface MonOutil {
+  id: string;
+  name: string;
+  // ...
+}
+```
+
+### 5. Créer le hook personnalisé (si nécessaire)
+
+Créez `src/hooks/useMonOutil.ts` :
+
+```typescript
+import { useQuery, useMutation } from '@tanstack/react-query';
+import api from '@/lib/api';
+
+export const useMonOutil = () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['mon-outil'],
+    queryFn: () => api.get('/mon-outil'),
+  });
+
+  return { data, isLoading };
+};
+```
+
+### 6. Créer les routes backend (si nécessaire)
+
+Créez `backend/src/routes/mon-outil.ts` :
+
+```typescript
+import express from 'express';
+import db from '../db/database';
+
+const router = express.Router();
+
+router.get('/', (req, res) => {
+  // Logique
+});
+
+export default router;
+```
+
+Ajoutez la route dans `backend/src/index.ts` :
+
+```typescript
+import monOutilRoutes from './routes/mon-outil';
+app.use('/api/mon-outil', monOutilRoutes);
+```
+
+### 7. Créer la table de base de données (si nécessaire)
+
+Ajoutez la migration dans `backend/src/db/migrate.ts` :
+
+```typescript
+db.exec(`
+  CREATE TABLE IF NOT EXISTS mon_outil (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`);
+```
+
+## Standards de code
+
+### TypeScript
+
+- Utilisez TypeScript pour tous les nouveaux fichiers
+- Définissez des interfaces/types pour toutes les structures de données
+- Évitez `any`, utilisez `unknown` si nécessaire
+- Utilisez les types fournis dans `src/types/`
+
+### React
+
+- Utilisez des composants fonctionnels avec hooks
+- Utilisez `const` pour les composants
+- Nommez les composants en PascalCase
+- Utilisez des props typées avec des interfaces
+
+```typescript
+interface MyComponentProps {
+  title: string;
+  onClick: () => void;
+}
+
+const MyComponent: React.FC<MyComponentProps> = ({ title, onClick }) => {
+  // ...
+};
+```
+
+### Styling
+
+- Utilisez Tailwind CSS pour le styling
+- Utilisez les composants shadcn/ui pour l'UI
+- Suivez le design system existant
+- Utilisez les classes utilitaires Tailwind
+
+### Naming conventions
+
+- **Fichiers** : kebab-case (`mon-composant.tsx`)
+- **Composants** : PascalCase (`MonComposant`)
+- **Fonctions/variables** : camelCase (`maFonction`)
+- **Constantes** : UPPER_SNAKE_CASE (`MA_CONSTANTE`)
+- **Types/interfaces** : PascalCase (`MonType`)
+
+### Imports
+
+Organisez les imports dans cet ordre :
+
+1. Imports externes (React, bibliothèques)
+2. Imports internes (composants, hooks, utils)
+3. Imports de types
+4. Imports relatifs
+
+```typescript
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+import ToolLayout from '@/components/ToolLayout';
+import { useMyHook } from '@/hooks/useMyHook';
+
+import type { MyType } from '@/types/my-type';
+```
+
+## Tests et débogage
+
+### Débogage frontend
+
+```bash
+# Mode développement avec hot reload
+npm run dev
+
+# Build de développement
+npm run build:dev
+
+# Prévisualiser le build
+npm run preview
+```
+
+### Débogage backend
+
+```bash
+# Mode développement avec rechargement automatique
+cd backend && npm run dev
+
+# Voir les logs
+# Les logs s'affichent dans la console
+```
+
+### Outils de débogage
+
+- **React DevTools** : Extension navigateur pour inspecter les composants
+- **Network tab** : Inspecter les requêtes API
+- **Console** : Logs et erreurs JavaScript
+- **SQLite** : Accéder directement à la base de données
+
+```bash
+# Accéder à la base de données
+cd backend/data
+sqlite3 devtoolbox.db
+
+# Commandes SQLite utiles
+.tables          # Lister les tables
+.schema snippets # Voir le schéma d'une table
+SELECT * FROM snippets LIMIT 10;
+```
+
+## Workflow de développement
+
+### 1. Créer une branche
+
+```bash
+git checkout -b feature/mon-nouveau-outil
+```
+
+### 2. Développer
+
+- Faites des commits réguliers
+- Suivez les [standards de code](#standards-de-code)
+- Testez votre code localement
+
+### 3. Tester
+
+```bash
+# Frontend
+npm run dev
+npm run build
+
+# Backend
+cd backend && npm run dev
+cd backend && npm run build
+```
+
+### 4. Commit
+
+```bash
+git add .
+git commit -m "feat: ajout de mon nouvel outil"
+```
+
+Format des messages de commit :
+- `feat:` : Nouvelle fonctionnalité
+- `fix:` : Correction de bug
+- `docs:` : Documentation
+- `style:` : Formatage
+- `refactor:` : Refactorisation
+- `test:` : Tests
+- `chore:` : Tâches de maintenance
+
+### 5. Push et Pull Request
+
+```bash
+git push origin feature/mon-nouveau-outil
+```
+
+Créez une Pull Request sur GitHub avec :
+- Description de la fonctionnalité
+- Captures d'écran (si applicable)
+- Tests effectués
+
+## Ressources utiles
+
+### Documentation
+
+- [React](https://react.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [React Query](https://tanstack.com/query)
+- [Express.js](https://expressjs.com/)
+
+### Outils
+
+- **VS Code** : Éditeur recommandé
+- **ESLint** : Linter pour le code
+- **Prettier** : Formatage automatique (si configuré)
+
+## Support
+
+Pour toute question :
+
+1. Consultez la [documentation](Home)
+2. Vérifiez les [issues existantes](Lien vers les issues)
+3. Ouvrez une nouvelle issue si nécessaire
+4. Consultez le [guide de contribution](Contributing)
+
+---
+
+*Dernière mise à jour : 2024*
+

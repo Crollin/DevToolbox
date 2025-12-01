@@ -47,8 +47,8 @@ docker-compose logs -f
 ```
 
 L'application sera accessible sur :
-- **Frontend** : http://localhost
-- **Backend API** : http://localhost:14001
+- **Frontend** : http://localhost:14001
+- **Backend API** : http://localhost:1400
 
 Pour plus de détails, consultez le [Guide Docker](DOCKER.md).
 
@@ -73,7 +73,7 @@ cd ..
 
 # 4. Démarrer le backend (dans un terminal)
 cd backend
-npm run dev  # Démarre sur http://localhost:14000
+npm run dev  # Démarre sur http://localhost:1400
 
 # 5. Démarrer le frontend (dans un autre terminal)
 npm run dev  # Démarre sur http://localhost:14001
