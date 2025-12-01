@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
@@ -22,32 +23,34 @@ import WPQueryBuilder from "./pages/tools/WPQueryBuilder";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/tools/licence-key-hub" element={<LicenceKeyHub />} />
-          <Route path="/tools/csv-preview-pro" element={<CsvPreviewPro />} />
-          <Route path="/tools/mon-calcul-energie" element={<MonCalculEnergie />} />
-          <Route path="/tools/wp-script-library" element={<WPScriptLibrary />} />
-          <Route path="/tools/color-palette-gen" element={<ColorPaletteGen />} />
-          <Route path="/tools/wpcli-glossary" element={<WPCLIGlossary />} />
-          <Route path="/tools/svg-icon-library" element={<SVGIconLibrary />} />
-          <Route path="/tools/git-commander" element={<GitCommander />} />
-          <Route path="/tools/docker-commander" element={<DockerCommander />} />
-          <Route path="/tools/code-snippet-library" element={<CodeSnippetLibrary />} />
-          <Route path="/tools/wp-hook-reference" element={<WPHookReference />} />
-          <Route path="/tools/wp-query-builder" element={<WPQueryBuilder />} />
-          <Route path="/tools/markdown-editor" element={<MarkdownEditor />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/tools/licence-key-hub" element={<LicenceKeyHub />} />
+            <Route path="/tools/csv-preview-pro" element={<CsvPreviewPro />} />
+            <Route path="/tools/mon-calcul-energie" element={<MonCalculEnergie />} />
+            <Route path="/tools/wp-script-library" element={<WPScriptLibrary />} />
+            <Route path="/tools/color-palette-gen" element={<ColorPaletteGen />} />
+            <Route path="/tools/wpcli-glossary" element={<WPCLIGlossary />} />
+            <Route path="/tools/svg-icon-library" element={<SVGIconLibrary />} />
+            <Route path="/tools/git-commander" element={<GitCommander />} />
+            <Route path="/tools/docker-commander" element={<DockerCommander />} />
+            <Route path="/tools/code-snippet-library" element={<CodeSnippetLibrary />} />
+            <Route path="/tools/wp-hook-reference" element={<WPHookReference />} />
+            <Route path="/tools/wp-query-builder" element={<WPQueryBuilder />} />
+            <Route path="/tools/markdown-editor" element={<MarkdownEditor />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
