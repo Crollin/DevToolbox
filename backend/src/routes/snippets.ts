@@ -4,6 +4,56 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
+// POST /api/snippets/init - Initialiser les snippets par défaut
+router.post('/init', (req, res) => {
+  try {
+    const { snippets } = req.body;
+    
+    if (!Array.isArray(snippets) || snippets.length === 0) {
+      return res.status(400).json({ error: 'Aucun snippet fourni' });
+    }
+
+    const now = new Date().toISOString();
+    const insertSnippet = db.prepare(`
+      INSERT OR IGNORE INTO code_snippets 
+      (id, title, description, code, language, scope, priority, tags, folder, active, run_once, wp_code_box_id, cloud_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    let inserted = 0;
+    for (const snippet of snippets) {
+      try {
+        insertSnippet.run(
+          snippet.id,
+          snippet.title,
+          snippet.description || '',
+          snippet.code,
+          snippet.language,
+          snippet.scope,
+          snippet.priority || 10,
+          JSON.stringify(snippet.tags || []),
+          snippet.folder || null,
+          snippet.active ? 1 : 0,
+          snippet.runOnce ? 1 : 0,
+          snippet.wpCodeBoxId || null,
+          snippet.cloudId || null,
+          snippet.createdAt || now,
+          snippet.updatedAt || now
+        );
+        inserted++;
+      } catch (err) {
+        // Ignorer les erreurs de duplication (INSERT OR IGNORE)
+        console.warn(`Snippet ${snippet.id} déjà présent ou erreur:`, err);
+      }
+    }
+
+    res.json({ success: true, inserted, total: snippets.length });
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation des snippets:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'initialisation des snippets' });
+  }
+});
+
 // GET /api/snippets - Récupérer tous les snippets
 router.get('/', (req, res) => {
   try {
