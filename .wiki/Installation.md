@@ -45,7 +45,7 @@ Cette méthode est la plus simple et recommandée pour la production.
 ### Étape 1 : Cloner le dépôt
 
 ```bash
-git clone <YOUR_GIT_URL>
+git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 ```
 
@@ -64,8 +64,8 @@ docker-compose logs -f
 Une fois les conteneurs démarrés, l'application est accessible sur :
 
 - **Frontend** : http://localhost
-- **Backend API** : http://localhost:3000
-- **Health check backend** : http://localhost:3000/health
+- **Backend API** : http://localhost:1400
+- **Health check backend** : http://localhost:1400/health
 - **Health check frontend** : http://localhost/health
 
 ### Commandes utiles Docker
@@ -97,7 +97,7 @@ Cette méthode est recommandée pour le développement.
 ### Étape 1 : Cloner le dépôt
 
 ```bash
-git clone <YOUR_GIT_URL>
+git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 ```
 
@@ -124,7 +124,7 @@ cd backend
 npm run dev
 ```
 
-Le backend démarre sur **http://localhost:3000**
+Le backend démarre sur **http://localhost:1400**
 
 ### Étape 5 : Démarrer le frontend
 
@@ -147,7 +147,7 @@ Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
 Créez un fichier `.env` dans le dossier `backend/` :
 
 ```env
-PORT=3000
+PORT=1400
 NODE_ENV=development
 DB_PATH=./data/devtoolbox.db
 ```
@@ -157,7 +157,7 @@ DB_PATH=./data/devtoolbox.db
 Créez un fichier `.env` à la racine du projet :
 
 ```env
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:1400
 ```
 
 ### Base de données
@@ -185,7 +185,7 @@ cd backend && npm run db:migrate
 
 ```bash
 # Test de santé
-curl http://localhost:3000/health
+curl http://localhost:1400/health
 
 # Réponse attendue :
 # {"status":"ok","timestamp":"2024-..."}
@@ -193,7 +193,7 @@ curl http://localhost:3000/health
 
 ### 2. Vérifier le frontend
 
-Ouvrez http://localhost (Docker) ou http://localhost:8080 (local) dans votre navigateur.
+Ouvrez http://localhost:14001 (Docker) ou http://localhost:8080 (local) dans votre navigateur.
 
 Vous devriez voir :
 - La page d'accueil avec tous les outils
@@ -204,7 +204,7 @@ Vous devriez voir :
 
 ```bash
 # Lister les snippets
-curl http://localhost:3000/api/snippets
+curl http://localhost:1400/api/snippets
 
 # Réponse attendue : tableau JSON des snippets
 ```
@@ -226,9 +226,9 @@ sqlite3 devtoolbox.db ".tables"
 
 ### Le backend ne démarre pas
 
-1. **Vérifier le port** : Le port 3000 est-il disponible ?
+1. **Vérifier le port** : Le port 1400 est-il disponible ?
    ```bash
-   lsof -i :3000
+   lsof -i :1400
    ```
 
 2. **Vérifier les logs** :
@@ -249,7 +249,7 @@ sqlite3 devtoolbox.db ".tables"
 
 1. **Vérifier que le backend est démarré** :
    ```bash
-   curl http://localhost:3000/health
+   curl http://localhost:1400/health
    ```
 
 2. **Vérifier la configuration du proxy** dans `vite.config.ts`

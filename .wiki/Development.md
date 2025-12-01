@@ -73,7 +73,7 @@ DevToolbox/
 
 ```bash
 # Cloner le dépôt
-git clone <YOUR_GIT_URL>
+git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 
 # Installer les dépendances frontend
@@ -92,7 +92,7 @@ cd ..
 Créez un fichier `.env` à la racine :
 
 ```env
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:1400
 ```
 
 #### Backend
@@ -100,7 +100,7 @@ VITE_API_URL=http://localhost:3000
 Créez un fichier `.env` dans `backend/` :
 
 ```env
-PORT=3000
+PORT=1400
 NODE_ENV=development
 DB_PATH=./data/devtoolbox.db
 ```
@@ -116,7 +116,7 @@ npm run dev
 npm run dev
 ```
 
-Le frontend sera accessible sur http://localhost:8080 et proxy les requêtes `/api` vers le backend sur http://localhost:3000.
+Le frontend sera accessible sur http://localhost:8080 et proxy les requêtes `/api` vers le backend sur http://localhost:1400.
 
 ## Architecture
 
@@ -137,7 +137,7 @@ Le frontend sera accessible sur http://localhost:8080 et proxy les requêtes `/a
 
 ### Communication Frontend/Backend
 
-Le frontend utilise un client API centralisé (`src/lib/api.ts`) qui fait des requêtes HTTP vers le backend. Le proxy Vite redirige automatiquement `/api/*` vers `http://localhost:3000/api/*`.
+Le frontend utilise un client API centralisé (`src/lib/api.ts`) qui fait des requêtes HTTP vers le backend. Le proxy Vite redirige automatiquement `/api/*` vers `http://localhost:1400/api/*`.
 
 ## Ajout de nouveaux outils
 

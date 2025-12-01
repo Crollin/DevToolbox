@@ -28,9 +28,9 @@ L'API backend de DevToolbox est une API REST qui expose des endpoints pour gére
 
 ## Base URL
 
-- **Développement local** : `http://localhost:3000`
-- **Docker** : `http://localhost:3000`
-- **Production** : `https://votre-domaine.com:3000`
+- **Développement local** : `http://localhost:1400`
+- **Docker** : `http://localhost:1400`
+- **Production** : `https://votre-domaine.com:1400`
 
 ## Codes de réponse
 
@@ -635,10 +635,10 @@ Vérifie l'état du serveur.
 
 ```bash
 # Récupérer tous les snippets
-curl http://localhost:3000/api/snippets
+curl http://localhost:1400/api/snippets
 
 # Créer un snippet
-curl -X POST http://localhost:3000/api/snippets \
+curl -X POST http://localhost:1400/api/snippets \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Mon snippet",
@@ -648,7 +648,7 @@ curl -X POST http://localhost:3000/api/snippets \
   }'
 
 # Mettre à jour un snippet
-curl -X PUT http://localhost:3000/api/snippets/UUID \
+curl -X PUT http://localhost:1400/api/snippets/UUID \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Snippet modifié",
@@ -656,19 +656,19 @@ curl -X PUT http://localhost:3000/api/snippets/UUID \
   }'
 
 # Supprimer un snippet
-curl -X DELETE http://localhost:3000/api/snippets/UUID
+curl -X DELETE http://localhost:1400/api/snippets/UUID
 ```
 
 ### Exemple avec JavaScript (Fetch)
 
 ```javascript
 // Récupérer tous les snippets
-const response = await fetch('http://localhost:3000/api/snippets');
+const response = await fetch('http://localhost:1400/api/snippets');
 const data = await response.json();
 console.log(data.snippets);
 
 // Créer un snippet
-const newSnippet = await fetch('http://localhost:3000/api/snippets', {
+const newSnippet = await fetch('http://localhost:1400/api/snippets', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -690,7 +690,7 @@ console.log(result);
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api'
+  baseURL: 'http://localhost:1400/api'
 });
 
 // Récupérer tous les snippets

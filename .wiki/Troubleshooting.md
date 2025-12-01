@@ -45,12 +45,12 @@ cd backend && npm install && cd ..
 
 ### Port déjà utilisé
 
-**Symptôme** : `EADDRINUSE: address already in use :::3000`
+**Symptôme** : `EADDRINUSE: address already in use :::1400`
 
 **Solution** :
 ```bash
 # Trouver le processus utilisant le port
-lsof -i :3000  # ou lsof -i :8080
+lsof -i :1400  # ou lsof -i :8080
 
 # Tuer le processus
 kill -9 <PID>
@@ -159,14 +159,14 @@ npm run db:migrate
 npm run dev
 ```
 
-### Port 3000 déjà utilisé
+### Port 1400 déjà utilisé
 
-**Symptôme** : `EADDRINUSE: address already in use :::3000`
+**Symptôme** : `EADDRINUSE: address already in use :::1400`
 
 **Solution** :
 ```bash
 # Trouver et tuer le processus
-lsof -i :3000
+lsof -i :1400
 kill -9 <PID>
 
 # Ou changer le port
@@ -183,10 +183,10 @@ PORT=3001
 **Solution** :
 ```bash
 # Vérifier que le backend est démarré
-curl http://localhost:3000/health
+curl http://localhost:1400/health
 
 # Vérifier la configuration du proxy dans vite.config.ts
-# Le proxy doit pointer vers http://localhost:3000
+# Le proxy doit pointer vers http://localhost:1400
 
 # Vérifier VITE_API_URL dans .env
 echo $VITE_API_URL

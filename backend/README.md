@@ -14,7 +14,7 @@ npm install
 # Démarrer en mode développement avec rechargement automatique
 npm run dev
 
-# Le serveur démarre sur http://localhost:3000
+# Le serveur démarre sur http://localhost:1400
 ```
 
 ## Production
@@ -122,7 +122,7 @@ Pour changer l'emplacement, définissez la variable d'environnement `DB_PATH`.
 
 ## Variables d'environnement
 
-- `PORT` - Port du serveur (défaut: 3000)
+- `PORT` - Port du serveur (défaut: 1400)
 - `NODE_ENV` - Environnement (development/production)
 - `DB_PATH` - Chemin vers le fichier SQLite (défaut: ./data/devtoolbox.db)
 

@@ -69,17 +69,17 @@ DevToolbox regroupe **15 outils** organisés en 5 catégories :
 docker-compose up -d
 
 # Accès
-# Frontend : http://localhost
-# Backend API : http://localhost:3000
+# Frontend : http://localhost:14001
+# Backend API : http://localhost:1400
 ```
 
 Pour plus de détails, consultez le [Guide d'installation](Installation).
 
 ## Ressources
 
-- **Dépôt GitHub** : [Lien vers le dépôt]
+- **Dépôt GitHub** : https://github.com/Crollin/DevToolbox
 - **Documentation** : Ce wiki
-- **Issues** : [Lien vers les issues]
+- **Issues** : [Lien vers les issues](https://github.com/Crollin/DevToolbox/issues)
 - **Développé par** : Creactiveweb
 
 ## Support
@@ -87,7 +87,7 @@ Pour plus de détails, consultez le [Guide d'installation](Installation).
 Pour toute question ou problème :
 1. Consultez la [FAQ](Troubleshooting)
 2. Vérifiez la [documentation](Installation)
-3. Ouvrez une [issue](Lien vers les issues)
+3. Ouvrez une [issue](https://github.com/Crollin/DevToolbox/issues)
 
 ---
 

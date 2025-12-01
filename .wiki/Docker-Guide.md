@@ -27,7 +27,7 @@ Le projet utilise une architecture multi-conteneurs :
 ┌──────▼──────────┐
 │   Frontend      │
 │   (Nginx)       │
-│   Port 80       │
+│   Port 14001    │
 └──────┬──────────┘
        │
        │ /api/* → Proxy
@@ -35,7 +35,7 @@ Le projet utilise une architecture multi-conteneurs :
 ┌──────▼──────────┐
 │    Backend      │
 │   (Express)     │
-│   Port 3000     │
+│   Port 1400     │
 └──────┬──────────┘
        │
        │ SQLite
@@ -49,8 +49,8 @@ Le projet utilise une architecture multi-conteneurs :
 
 ### Services
 
-- **Frontend** : Application React/Vite servie par Nginx (port 80)
-- **Backend** : API REST Node.js/Express (port 3000)
+- **Frontend** : Application React/Vite servie par Nginx (port 14001)
+- **Backend** : API REST Node.js/Express (port 1400)
 - **Base de données** : SQLite (fichier persistant dans `./data`)
 
 ## Démarrage rapide
@@ -81,10 +81,10 @@ docker-compose logs -f frontend
 
 ### 3. Accéder à l'application
 
-- **Frontend** : http://localhost
-- **Backend API** : http://localhost:3000
-- **Health check backend** : http://localhost:3000/health
-- **Health check frontend** : http://localhost/health
+- **Frontend** : http://localhost:14001
+- **Backend API** : http://localhost:1400
+- **Health check backend** : http://localhost:1400/health
+- **Health check frontend** : http://localhost:14001/health
 
 ## Commandes essentielles
 
@@ -159,7 +159,7 @@ Modifiez le fichier `.env` pour personnaliser la configuration :
 
 ```env
 # Backend
-BACKEND_PORT=3000
+BACKEND_PORT=1400
 NODE_ENV=production
 DB_PATH=./data/devtoolbox.db
 
@@ -170,8 +170,8 @@ FRONTEND_PORT=80
 ### Ports
 
 Par défaut :
-- Frontend : port 80
-- Backend : port 3000
+- Frontend : port 14001
+- Backend : port 1400
 
 Pour changer les ports, modifiez `docker-compose.yml` :
 
@@ -179,10 +179,10 @@ Pour changer les ports, modifiez `docker-compose.yml` :
 services:
   frontend:
     ports:
-      - "8080:80"  # Changer 8080 selon vos besoins
+      - "14001:80"  # Changer 14001 selon vos besoins
   backend:
     ports:
-      - "3001:3000"  # Changer 3001 selon vos besoins
+      - "1400:1400"  # Changer 1400 selon vos besoins
 ```
 
 ### Volumes
@@ -204,7 +204,7 @@ Pour développer sans Docker :
 # Backend
 cd backend
 npm install
-npm run dev  # Port 3000
+npm run dev  # Port 1400
 
 # Frontend
 npm install
@@ -265,7 +265,7 @@ Ce script vérifie :
 docker-compose logs backend
 
 # Vérifier que le port n'est pas déjà utilisé
-lsof -i :3000
+lsof -i :1400
 
 # Rebuild le conteneur
 docker-compose build --no-cache backend
@@ -276,7 +276,7 @@ docker-compose up -d backend
 
 1. Vérifier que le backend est démarré : `docker-compose ps`
 2. Vérifier la configuration Nginx : `docker-compose exec frontend cat /etc/nginx/conf.d/default.conf`
-3. Tester l'API directement : `curl http://localhost:3000/health`
+3. Tester l'API directement : `curl http://localhost:1400/health`
 
 ### Problèmes de permissions
 

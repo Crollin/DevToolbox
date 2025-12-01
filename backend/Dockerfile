@@ -33,7 +33,7 @@ COPY --from=builder /app/dist ./dist
 RUN mkdir -p /app/data
 
 # Exposer le port
-EXPOSE 3000
+EXPOSE 1400
 
 # Commande de démarrage
 CMD ["node", "dist/index.js"]
