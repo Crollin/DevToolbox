@@ -10,8 +10,10 @@ import {
   SnippetScope,
   SnippetPriority
 } from "@/types/codesnippet";
+import api from "@/lib/api";
 
 const STORAGE_KEY = "code-snippet-library";
+const USE_API = import.meta.env.VITE_USE_API !== "false"; // Par défaut true en production
 
 interface CodeSnippetState {
   snippets: CodeSnippet[];
@@ -73,37 +75,85 @@ export function useCodeSnippets() {
   });
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage
+  // Load from API or localStorage
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setState({
-          snippets: parsed.snippets || defaultSnippets,
-          folders: parsed.folders || defaultSnippetCategories,
-          customTags: parsed.customTags || [],
-        });
-      } catch {
-        setState({
-          snippets: defaultSnippets,
-          folders: defaultSnippetCategories,
-          customTags: [],
-        });
+    const loadData = async () => {
+      if (USE_API) {
+        try {
+          const data = await api.get<{ snippets: CodeSnippet[]; folders: string[]; customTags: string[] }>('/snippets');
+          setState({
+            snippets: data.snippets || [],
+            folders: data.folders || defaultSnippetCategories,
+            customTags: data.customTags || [],
+          });
+        } catch (error) {
+          console.error('Erreur lors du chargement depuis l\'API:', error);
+          // Fallback sur localStorage
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              setState({
+                snippets: parsed.snippets || defaultSnippets,
+                folders: parsed.folders || defaultSnippetCategories,
+                customTags: parsed.customTags || [],
+              });
+            } catch {
+              setState({
+                snippets: defaultSnippets,
+                folders: defaultSnippetCategories,
+                customTags: [],
+              });
+            }
+          } else {
+            setState({
+              snippets: defaultSnippets,
+              folders: defaultSnippetCategories,
+              customTags: [],
+            });
+          }
+        }
+      } else {
+        // Mode localStorage
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setState({
+              snippets: parsed.snippets || defaultSnippets,
+              folders: parsed.folders || defaultSnippetCategories,
+              customTags: parsed.customTags || [],
+            });
+          } catch {
+            setState({
+              snippets: defaultSnippets,
+              folders: defaultSnippetCategories,
+              customTags: [],
+            });
+          }
+        } else {
+          setState({
+            snippets: defaultSnippets,
+            folders: defaultSnippetCategories,
+            customTags: [],
+          });
+        }
       }
-    } else {
-      setState({
-        snippets: defaultSnippets,
-        folders: defaultSnippetCategories,
-        customTags: [],
-      });
-    }
-    setIsLoaded(true);
+      setIsLoaded(true);
+    };
+
+    loadData();
   }, []);
 
-  // Save to localStorage
+  // Save to API or localStorage
   useEffect(() => {
-    if (isLoaded) {
+    if (!isLoaded) return;
+
+    if (USE_API) {
+      // Les sauvegardes se font via les fonctions add/update/delete
+      // Pas besoin de sauvegarder automatiquement tout l'état
+    } else {
+      // Mode localStorage - sauvegarder l'état complet
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
   }, [state, isLoaded]);
@@ -121,36 +171,84 @@ export function useCodeSnippets() {
   }, [state.customTags, state.snippets]);
 
   // Add snippet
-  const addSnippet = useCallback((snippet: Omit<CodeSnippet, "id" | "createdAt" | "updatedAt">) => {
-    const newSnippet: CodeSnippet = {
-      ...snippet,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setState((prev) => ({
-      ...prev,
-      snippets: [newSnippet, ...prev.snippets],
-    }));
-    return newSnippet;
+  const addSnippet = useCallback(async (snippet: Omit<CodeSnippet, "id" | "createdAt" | "updatedAt">) => {
+    if (USE_API) {
+      try {
+        const result = await api.post<{ id: string; createdAt: string; updatedAt: string }>('/snippets', snippet);
+        const newSnippet: CodeSnippet = {
+          ...snippet,
+          id: result.id,
+          createdAt: result.createdAt,
+          updatedAt: result.updatedAt,
+        };
+        setState((prev) => ({
+          ...prev,
+          snippets: [newSnippet, ...prev.snippets],
+        }));
+        return newSnippet;
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout du snippet:', error);
+        throw error;
+      }
+    } else {
+      const newSnippet: CodeSnippet = {
+        ...snippet,
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setState((prev) => ({
+        ...prev,
+        snippets: [newSnippet, ...prev.snippets],
+      }));
+      return newSnippet;
+    }
   }, []);
 
   // Update snippet
-  const updateSnippet = useCallback((id: string, updates: Partial<Omit<CodeSnippet, "id" | "createdAt">>) => {
-    setState((prev) => ({
-      ...prev,
-      snippets: prev.snippets.map((s) =>
-        s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
-      ),
-    }));
+  const updateSnippet = useCallback(async (id: string, updates: Partial<Omit<CodeSnippet, "id" | "createdAt">>) => {
+    if (USE_API) {
+      try {
+        await api.put(`/snippets/${id}`, updates);
+        setState((prev) => ({
+          ...prev,
+          snippets: prev.snippets.map((s) =>
+            s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
+          ),
+        }));
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour du snippet:', error);
+        throw error;
+      }
+    } else {
+      setState((prev) => ({
+        ...prev,
+        snippets: prev.snippets.map((s) =>
+          s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
+        ),
+      }));
+    }
   }, []);
 
   // Delete snippet
-  const deleteSnippet = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      snippets: prev.snippets.filter((s) => s.id !== id),
-    }));
+  const deleteSnippet = useCallback(async (id: string) => {
+    if (USE_API) {
+      try {
+        await api.delete(`/snippets/${id}`);
+        setState((prev) => ({
+          ...prev,
+          snippets: prev.snippets.filter((s) => s.id !== id),
+        }));
+      } catch (error) {
+        console.error('Erreur lors de la suppression du snippet:', error);
+        throw error;
+      }
+    } else {
+      setState((prev) => ({
+        ...prev,
+        snippets: prev.snippets.filter((s) => s.id !== id),
+      }));
+    }
   }, []);
 
   // Toggle snippet active state
@@ -312,19 +410,53 @@ export function useCodeSnippets() {
   }, [state.snippets, state.folders]);
 
   // Add folder
-  const addFolder = useCallback((folder: string) => {
-    setState((prev) => ({
-      ...prev,
-      folders: [...new Set([...prev.folders, folder])],
-    }));
+  const addFolder = useCallback(async (folder: string) => {
+    if (USE_API) {
+      try {
+        await api.post('/snippets/folders', { name: folder });
+        setState((prev) => ({
+          ...prev,
+          folders: [...new Set([...prev.folders, folder])],
+        }));
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout du dossier:', error);
+        // Ajouter quand même localement en cas d'erreur
+        setState((prev) => ({
+          ...prev,
+          folders: [...new Set([...prev.folders, folder])],
+        }));
+      }
+    } else {
+      setState((prev) => ({
+        ...prev,
+        folders: [...new Set([...prev.folders, folder])],
+      }));
+    }
   }, []);
 
   // Add tag
-  const addTag = useCallback((tag: string) => {
-    setState((prev) => ({
-      ...prev,
-      customTags: [...new Set([...prev.customTags, tag])],
-    }));
+  const addTag = useCallback(async (tag: string) => {
+    if (USE_API) {
+      try {
+        await api.post('/snippets/tags', { tag });
+        setState((prev) => ({
+          ...prev,
+          customTags: [...new Set([...prev.customTags, tag])],
+        }));
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout du tag:', error);
+        // Ajouter quand même localement en cas d'erreur
+        setState((prev) => ({
+          ...prev,
+          customTags: [...new Set([...prev.customTags, tag])],
+        }));
+      }
+    } else {
+      setState((prev) => ({
+        ...prev,
+        customTags: [...new Set([...prev.customTags, tag])],
+      }));
+    }
   }, []);
 
   return {
