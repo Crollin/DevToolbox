@@ -1,4 +1,5 @@
 import { Terminal, Plus } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
   onAddTool?: () => void;
@@ -26,13 +27,16 @@ const Header = ({ onAddTool }: HeaderProps) => {
             </div>
           </div>
 
-          <button
-            onClick={onAddTool}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Ajouter un outil</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={onAddTool}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Ajouter un outil</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
