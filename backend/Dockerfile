@@ -7,7 +7,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Installer les dépendances
-RUN npm ci
+# Utiliser npm install car package-lock.json peut ne pas exister
+RUN npm install --frozen-lockfile 2>/dev/null || npm install
 
 # Copier le code source
 COPY src ./src
@@ -22,7 +23,8 @@ WORKDIR /app
 
 # Installer seulement les dépendances de production
 COPY package*.json ./
-RUN npm ci --only=production
+# Utiliser npm install car package-lock.json peut ne pas exister
+RUN npm install --frozen-lockfile --omit=dev 2>/dev/null || npm install --omit=dev
 
 # Copier les fichiers compilés
 COPY --from=builder /app/dist ./dist
