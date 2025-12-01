@@ -1,23 +1,20 @@
-# Stage 1: Build
+# Stage 1: Build avec cache optimisé
 FROM node:20-alpine AS builder
+
+LABEL maintainer="DevToolbox"
+LABEL description="DevToolbox Frontend - Build Stage"
 
 WORKDIR /app
 
-# Copier les fichiers de configuration pour optimiser le cache Docker
-COPY package*.json ./
-COPY vite.config.ts ./
-COPY tsconfig*.json ./
-COPY tailwind.config.ts ./
-COPY postcss.config.js ./
-COPY components.json ./
+# Copier tous les fichiers de configuration en une fois pour optimiser le cache
+COPY package*.json vite.config.ts tsconfig*.json tailwind.config.ts postcss.config.js components.json ./
 
 # Installer les dépendances (inclut browser-image-compression)
 RUN npm ci
 
 # Copier le code source
 COPY src ./src
-COPY index.html ./
-COPY public ./public
+COPY index.html public ./
 
 # Builder l'application (inclut l'outil Image Resizer)
 RUN npm run build
@@ -25,14 +22,22 @@ RUN npm run build
 # Stage 2: Production avec Nginx
 FROM nginx:alpine
 
-# Copier la configuration Nginx
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+LABEL maintainer="DevToolbox"
+LABEL description="DevToolbox Frontend - Production"
+LABEL version="1.0"
 
-# Copier les fichiers buildés
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Nginx utilise déjà l'utilisateur nginx (non-root), s'assurer des permissions correctes
+COPY --chown=nginx:nginx docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copier les fichiers buildés avec les bonnes permissions
+COPY --chown=nginx:nginx --from=builder /app/dist /usr/share/nginx/html
 
 # Exposer le port
 EXPOSE 80
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+  CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
 # Démarrer Nginx
 CMD ["nginx", "-g", "daemon off;"]

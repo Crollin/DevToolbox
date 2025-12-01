@@ -1,3 +1,11 @@
+# Configuration Docker Compose pour DevToolbox
+# 
+# Pour le déploiement sur serveurs distants avec credentials Docker :
+# 1. Configurez les credentials avant de lancer docker-compose :
+#    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+# 2. Ou utilisez un fichier .env avec DOCKER_USERNAME et DOCKER_PASSWORD
+# 3. Voir docker/README-DEPLOY.md pour plus de détails
+
 services:
   backend:
     build:
