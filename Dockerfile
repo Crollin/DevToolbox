@@ -12,7 +12,7 @@ COPY postcss.config.js ./
 COPY components.json ./
 
 # Installer les dépendances (inclut browser-image-compression)
-RUN npm ci --only=production=false
+RUN npm ci
 
 # Copier le code source
 COPY src ./src
