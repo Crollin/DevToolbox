@@ -1,4 +1,4 @@
-import { Terminal, Plus, LogOut, User } from "lucide-react";
+import { Terminal, Plus, LogOut, User, Key } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
@@ -10,6 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { ChangePasswordModal } from "./auth/ChangePasswordModal";
+import { useState } from "react";
 
 interface HeaderProps {
   onAddTool?: () => void;
@@ -17,6 +19,7 @@ interface HeaderProps {
 
 const Header = ({ onAddTool }: HeaderProps) => {
   const { user, isAuthenticated, logout } = useAuth();
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   return (
     <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
@@ -57,6 +60,11 @@ const Header = ({ onAddTool }: HeaderProps) => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowChangePasswordModal(true)}>
+                    <Key className="w-4 h-4 mr-2" />
+                    Changer le mot de passe
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="text-destructive">
                     <LogOut className="w-4 h-4 mr-2" />
                     Se déconnecter
@@ -74,6 +82,10 @@ const Header = ({ onAddTool }: HeaderProps) => {
           </div>
         </div>
       </div>
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
     </header>
   );
 };

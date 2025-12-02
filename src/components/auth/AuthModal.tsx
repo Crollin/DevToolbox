@@ -27,9 +27,20 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Authentification</DialogTitle>
-          <DialogDescription>
-            Connectez-vous ou créez un compte pour accéder à vos licences
+          <div className="flex items-center justify-center mb-4">
+            <img
+              src="/favicon.svg"
+              alt="DevToolbox"
+              className="w-16 h-16"
+              onError={(e) => {
+                // Fallback sur favicon.ico si SVG ne charge pas
+                (e.target as HTMLImageElement).src = "/favicon.ico";
+              }}
+            />
+          </div>
+          <DialogTitle className="text-center">Authentification</DialogTitle>
+          <DialogDescription className="text-center">
+            Connectez-vous ou créez un compte pour accéder à vos outils
           </DialogDescription>
         </DialogHeader>
         

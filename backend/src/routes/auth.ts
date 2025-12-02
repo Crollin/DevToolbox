@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import db from '../db/database';
-import { generateToken, JWTPayload } from '../middleware/auth';
+import { generateToken, JWTPayload, authenticateToken } from '../middleware/auth';
+import { sendConfirmationEmail } from '../lib/email';
 
 const router = express.Router();
 
@@ -66,6 +67,14 @@ router.post('/register', async (req: Request, res: Response) => {
       now
     );
 
+    // Envoyer l'email de confirmation (ne pas bloquer l'inscription si ça échoue)
+    let emailSent = false;
+    try {
+      emailSent = await sendConfirmationEmail(email, name);
+    } catch (emailError) {
+      console.error('Erreur lors de l\'envoi de l\'email de confirmation (non bloquant):', emailError);
+    }
+
     res.status(201).json({
       token,
       user: {
@@ -73,6 +82,7 @@ router.post('/register', async (req: Request, res: Response) => {
         email,
         name,
       },
+      emailSent,
     });
   } catch (error) {
     console.error('Erreur lors de l\'inscription:', error);
@@ -122,6 +132,44 @@ router.post('/login', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erreur lors de la connexion:', error);
     res.status(500).json({ error: 'Erreur lors de la connexion' });
+  }
+});
+
+// PUT /api/auth/change-password - Changer le mot de passe
+router.put('/change-password', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { newPassword } = req.body;
+
+    // Validation
+    if (!newPassword) {
+      return res.status(400).json({ error: 'Le nouveau mot de passe est requis' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
+    }
+
+    // Hasher le nouveau mot de passe
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    const now = new Date().toISOString();
+
+    // Mettre à jour le mot de passe
+    const result = db.prepare(`
+      UPDATE users
+      SET password_hash = ?, updated_at = ?
+      WHERE id = ?
+    `).run(passwordHash, now, userId) as { changes: number };
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    res.json({ success: true, message: 'Mot de passe modifié avec succès' });
+  } catch (error) {
+    console.error('Erreur lors du changement de mot de passe:', error);
+    res.status(500).json({ error: 'Erreur lors du changement de mot de passe' });
   }
 });
 

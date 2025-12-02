@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, CheckCircle2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -16,6 +17,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +37,14 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     setIsLoading(true);
 
     try {
-      await register(email, password, name);
+      const result = await register(email, password, name);
+      setEmailSent(result.emailSent);
+      if (result.emailSent) {
+        toast({
+          title: "Email de confirmation envoyé",
+          description: "Un email de bienvenue a été envoyé à votre adresse.",
+        });
+      }
       onSuccess?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de l'inscription");
@@ -49,6 +58,13 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       {error && (
         <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
           {error}
+        </div>
+      )}
+      
+      {emailSent && (
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>Email de confirmation envoyé ! Vérifiez votre boîte de réception.</span>
         </div>
       )}
       

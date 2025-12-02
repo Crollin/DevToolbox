@@ -123,9 +123,24 @@ BACKEND_PORT=1400
 NODE_ENV=production
 DB_PATH=./data/devtoolbox.db
 
+# Authentification (OBLIGATOIRE en production)
+JWT_SECRET=votre-secret-jwt-tres-securise
+
+# Email (Optionnel - pour l'envoi d'emails de confirmation)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=votre-email@gmail.com
+SMTP_PASS=votre-mot-de-passe-app
+SMTP_FROM=noreply@devtoolbox.com
+FRONTEND_URL=https://devtoolbox.example.com
+
 # Frontend
 FRONTEND_PORT=14001
 ```
+
+**Important** : 
+- `JWT_SECRET` est obligatoire en production. Générez un secret fort avec : `openssl rand -base64 32`
+- Les variables SMTP sont optionnelles. L'application fonctionne sans elles, mais aucun email ne sera envoyé.
 
 ### Ports
 

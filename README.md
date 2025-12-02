@@ -24,6 +24,7 @@ DevToolbox utilise comme architecture :
 - **Frontend** : Application React/Vite avec TypeScript
 - **Backend** : API REST Node.js/Express
 - **Base de données** : SQLite (légère et performante)
+- **Authentification** : JWT (JSON Web Tokens) avec système de comptes utilisateurs
 - **Déploiement** : Docker Compose pour un déploiement facile
 
 ## Démarrage rapide
@@ -80,6 +81,30 @@ npm run dev  # Démarre sur http://localhost:14001
 ```
 
 Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
+
+## Authentification
+
+### Première utilisation
+
+**Important** : Tous les outils nécessitent une authentification. Lors de votre première visite, vous devrez créer un compte pour accéder aux fonctionnalités.
+
+1. Accédez à n'importe quel outil depuis la page d'accueil
+2. Un formulaire d'authentification s'affichera automatiquement
+3. Créez un compte avec votre email, nom et mot de passe (minimum 6 caractères)
+4. Une fois connecté, vous aurez accès à tous les outils
+
+### Fonctionnalités
+
+- **Comptes utilisateurs** : Chaque utilisateur a son propre espace de données
+- **Synchronisation multi-appareils** : Vos données sont stockées sur le serveur et accessibles depuis n'importe quel navigateur/appareil
+- **Changement de mot de passe** : Modifiez votre mot de passe depuis le menu utilisateur (icône en haut à droite)
+- **Email de confirmation** : Un email de bienvenue est envoyé lors de l'inscription (si SMTP configuré)
+
+### Protection des routes
+
+- **Page d'accueil** (`/`) : Accessible sans authentification
+- **Tous les outils** (`/tools/*`) : Nécessitent une authentification
+- Redirection automatique vers le formulaire de connexion si non authentifié
 
 ## Structure du projet
 
@@ -155,20 +180,29 @@ Le backend expose une API REST complète pour tous les modules. Consultez le [RE
 
 ### Endpoints principaux
 
-- `/api/snippets` - Gestion des snippets de code
-- `/api/hooks` - Gestion des hooks WordPress
-- `/api/queries` - Gestion des queries WordPress
-- `/api/palettes` - Gestion des palettes de couleurs
-- `/api/scripts` - Gestion des scripts WordPress
-- `/api/wpcli` - Gestion des commandes WP-CLI
-- `/api/docker` - Gestion des commandes Docker
-- `/api/git` - Gestion des commandes Git
-- `/api/icons` - Gestion des icônes SVG
-- `/api/licences` - Gestion des licences
-- `/api/electricalc` - Calculateur électrique
-- `/health` - Health check
+#### Authentification
+- `POST /api/auth/register` - Créer un compte
+- `POST /api/auth/login` - Se connecter
+- `GET /api/auth/me` - Récupérer l'utilisateur actuel
+- `PUT /api/auth/change-password` - Changer le mot de passe (authentification requise)
 
-**Note** : L'outil Image Resizer fonctionne entièrement côté client et n'utilise pas l'API backend.
+#### Données utilisateur
+- `/api/snippets` - Gestion des snippets de code (authentification requise)
+- `/api/hooks` - Gestion des hooks WordPress (authentification requise)
+- `/api/queries` - Gestion des queries WordPress (authentification requise)
+- `/api/palettes` - Gestion des palettes de couleurs (authentification requise)
+- `/api/scripts` - Gestion des scripts WordPress (authentification requise)
+- `/api/wpcli` - Gestion des commandes WP-CLI (authentification requise)
+- `/api/docker` - Gestion des commandes Docker (authentification requise)
+- `/api/git` - Gestion des commandes Git (authentification requise)
+- `/api/icons` - Gestion des icônes SVG (authentification requise)
+- `/api/licences` - Gestion des licences (authentification requise)
+- `/api/electricalc` - Calculateur électrique (authentification requise)
+- `/health` - Health check (public)
+
+**Note** : 
+- L'outil Image Resizer fonctionne entièrement côté client et n'utilise pas l'API backend
+- Toutes les routes de données nécessitent une authentification JWT (sauf `/health`)
 
 ## Commandes utiles
 
@@ -276,7 +310,34 @@ Pour déployer uniquement le frontend sur Netlify ou Vercel (sans backend) :
 Pour utiliser l'API backend en production, vous devez :
 1. Déployer le backend sur un serveur (avec Docker ou directement)
 2. Configurer la variable d'environnement `VITE_API_URL` pointant vers votre API
-3. Déployer le frontend avec cette configuration
+3. Configurer les variables d'environnement du backend (voir section ci-dessous)
+4. Déployer le frontend avec cette configuration
+
+### Variables d'environnement
+
+#### Backend
+
+**Obligatoires** :
+- `JWT_SECRET` - Secret pour signer les tokens JWT (à générer pour la production)
+
+**Optionnelles** :
+- `PORT` - Port du serveur (défaut: 1400)
+- `NODE_ENV` - Environnement (development/production)
+- `DB_PATH` - Chemin vers le fichier SQLite (défaut: ./data/devtoolbox.db)
+
+**Configuration Email (optionnelle)** :
+- `SMTP_HOST` - Serveur SMTP (ex: smtp.gmail.com)
+- `SMTP_PORT` - Port SMTP (généralement 587 ou 465)
+- `SMTP_USER` - Utilisateur SMTP
+- `SMTP_PASS` - Mot de passe SMTP
+- `SMTP_FROM` - Adresse email expéditrice (défaut: SMTP_USER)
+- `FRONTEND_URL` - URL du frontend pour les liens dans les emails
+
+**Note** : L'envoi d'emails est optionnel. L'inscription fonctionne même sans configuration SMTP, mais aucun email de confirmation ne sera envoyé.
+
+#### Frontend
+
+- `VITE_API_URL` - URL de l'API backend (défaut: /api)
 
 ## Base de données
 
@@ -306,7 +367,18 @@ cd backend && npm run db:migrate
 
 ## Fonctionnalités récentes
 
-### Image Resizer (Nouveau)
+### Système d'authentification (Nouveau)
+Système complet de gestion des utilisateurs avec synchronisation multi-appareils :
+
+- **Comptes utilisateurs** : Création de compte obligatoire pour accéder aux outils
+- **Authentification JWT** : Tokens sécurisés avec expiration de 7 jours
+- **Synchronisation** : Données stockées sur le serveur, accessibles depuis tous les navigateurs/appareils
+- **Changement de mot de passe** : Modification depuis le menu utilisateur
+- **Email de confirmation** : Envoi automatique d'un email de bienvenue à l'inscription (si SMTP configuré)
+- **Protection des routes** : Tous les outils nécessitent une authentification (sauf page d'accueil)
+- **Migration automatique** : Les données localStorage sont automatiquement migrées vers l'API lors de la première connexion
+
+### Image Resizer
 Outil complet de redimensionnement et d'optimisation d'images pour WordPress :
 
 - **Présets WordPress** : Hero (1920x1080), Banner (1200x630), Container, Thumbnail, Medium, Large, Full
