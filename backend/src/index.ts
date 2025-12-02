@@ -13,6 +13,7 @@ import gitRoutes from './routes/git';
 import iconsRoutes from './routes/icons';
 import licencesRoutes from './routes/licences';
 import electricalcRoutes from './routes/electricalc';
+import authRoutes from './routes/auth';
 
 const app = express();
 const PORT = process.env.PORT || 1400;
@@ -26,6 +27,7 @@ initializeDatabase();
 initializeDefaultSnippets();
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/snippets', snippetsRoutes);
 app.use('/api/hooks', hooksRoutes);
 app.use('/api/queries', queriesRoutes);

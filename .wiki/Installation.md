@@ -142,23 +142,54 @@ Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
 
 ### Variables d'environnement
 
-#### Backend
+#### Configuration avec fichier .env (Recommandé)
 
-Créez un fichier `.env` dans le dossier `backend/` :
+Pour configurer les variables d'environnement, utilisez le fichier `.env` à la racine du projet :
 
-```env
-PORT=1400
-NODE_ENV=development
-DB_PATH=./data/devtoolbox.db
+```bash
+# 1. Copier le fichier d'exemple
+cp .env.example .env
+
+# 2. Éditer .env avec vos valeurs
+nano .env  # ou votre éditeur préféré
 ```
 
-#### Frontend
+Le fichier `.env.example` contient toutes les variables nécessaires avec des commentaires explicatifs et des exemples pour différents providers SMTP.
 
-Créez un fichier `.env` à la racine du projet :
+**Important** : 
+- Le fichier `.env` est ignoré par Git et ne sera pas commité
+- Ne partagez jamais vos secrets !
+- En production, générez un `JWT_SECRET` fort : `openssl rand -base64 32`
+
+#### Variables Backend
+
+**Obligatoires** :
+- `JWT_SECRET` - Secret pour signer les tokens JWT (⚠️ obligatoire en production)
+
+**Optionnelles** :
+- `PORT` - Port du serveur (défaut: 1400)
+- `NODE_ENV` - Environnement (development/production)
+- `DB_PATH` - Chemin vers le fichier SQLite (défaut: ./data/devtoolbox.db)
+
+**Configuration Email (optionnelle)** :
+- `SMTP_HOST` - Serveur SMTP
+- `SMTP_PORT` - Port SMTP (généralement 587 ou 465)
+- `SMTP_USER` - Utilisateur SMTP
+- `SMTP_PASS` - Mot de passe SMTP ou clé API
+- `SMTP_FROM` - Adresse email expéditrice
+- `FRONTEND_URL` - URL du frontend pour les liens dans les emails
+
+**Note** : L'envoi d'emails est optionnel. L'inscription fonctionne même sans configuration SMTP.
+
+#### Variables Frontend
+
+Créez un fichier `.env` à la racine du projet (si développement local) :
 
 ```env
 VITE_API_URL=http://localhost:1400
 ```
+
+**Note** : En production avec Docker, le frontend utilise le proxy Nginx vers `/api`, donc cette variable n'est généralement pas nécessaire.
 
 ### Base de données
 

@@ -10,7 +10,8 @@ WORKDIR /app
 COPY package*.json vite.config.ts tsconfig*.json tailwind.config.ts postcss.config.js components.json ./
 
 # Installer les dépendances (inclut browser-image-compression)
-RUN npm ci
+# Utiliser npm ci si package-lock.json existe, sinon npm install
+RUN npm ci 2>/dev/null || npm install
 
 # Copier le code source
 COPY src ./src

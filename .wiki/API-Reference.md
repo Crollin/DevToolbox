@@ -42,6 +42,114 @@ L'API backend de DevToolbox est une API REST qui expose des endpoints pour gére
 | 404 | Ressource non trouvée |
 | 500 | Erreur serveur |
 
+## Authentification
+
+Tous les endpoints de données nécessitent une authentification JWT (sauf `/health`).
+
+### Obtenir un token
+
+#### `POST /api/auth/register`
+
+Crée un nouveau compte utilisateur.
+
+**Corps de la requête** :
+```json
+{
+  "email": "user@example.com",
+  "name": "John Doe",
+  "password": "motdepasse123"
+}
+```
+
+**Réponse** (201) :
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "name": "John Doe"
+  },
+  "emailSent": true
+}
+```
+
+#### `POST /api/auth/login`
+
+Connecte un utilisateur existant.
+
+**Corps de la requête** :
+```json
+{
+  "email": "user@example.com",
+  "password": "motdepasse123"
+}
+```
+
+**Réponse** (200) :
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "name": "John Doe"
+  }
+}
+```
+
+#### `GET /api/auth/me`
+
+Récupère les informations de l'utilisateur actuel.
+
+**Headers** :
+```
+Authorization: Bearer <token>
+```
+
+**Réponse** (200) :
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "name": "John Doe"
+}
+```
+
+#### `PUT /api/auth/change-password`
+
+Change le mot de passe de l'utilisateur connecté.
+
+**Headers** :
+```
+Authorization: Bearer <token>
+```
+
+**Corps de la requête** :
+```json
+{
+  "currentPassword": "ancien-mot-de-passe",
+  "newPassword": "nouveau-mot-de-passe"
+}
+```
+
+**Réponse** (200) :
+```json
+{
+  "message": "Mot de passe modifié avec succès"
+}
+```
+
+### Utilisation du token
+
+Pour utiliser les endpoints protégés, incluez le token dans le header `Authorization` :
+
+```
+Authorization: Bearer <votre-token-jwt>
+```
+
+Le token expire après 7 jours. Vous devrez vous reconnecter pour obtenir un nouveau token.
+
 ## Endpoints
 
 ### Snippets
@@ -634,12 +742,21 @@ Vérifie l'état du serveur.
 ### Exemple avec cURL
 
 ```bash
+# 1. S'inscrire ou se connecter pour obtenir un token
+TOKEN=$(curl -X POST http://localhost:1400/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"motdepasse123"}' \
+  | jq -r '.token')
+
+# 2. Utiliser le token pour les requêtes protégées
 # Récupérer tous les snippets
-curl http://localhost:1400/api/snippets
+curl http://localhost:1400/api/snippets \
+  -H "Authorization: Bearer $TOKEN"
 
 # Créer un snippet
 curl -X POST http://localhost:1400/api/snippets \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
     "title": "Mon snippet",
     "code": "<?php echo \"Hello\"; ?>",
@@ -650,20 +767,40 @@ curl -X POST http://localhost:1400/api/snippets \
 # Mettre à jour un snippet
 curl -X PUT http://localhost:1400/api/snippets/UUID \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
     "title": "Snippet modifié",
     "code": "<?php echo \"Hello World\"; ?>"
   }'
 
 # Supprimer un snippet
-curl -X DELETE http://localhost:1400/api/snippets/UUID
+curl -X DELETE http://localhost:1400/api/snippets/UUID \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ### Exemple avec JavaScript (Fetch)
 
 ```javascript
+// 1. Se connecter pour obtenir un token
+const loginResponse = await fetch('http://localhost:1400/api/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'motdepasse123'
+  })
+});
+const { token } = await loginResponse.json();
+
+// 2. Utiliser le token pour les requêtes protégées
 // Récupérer tous les snippets
-const response = await fetch('http://localhost:1400/api/snippets');
+const response = await fetch('http://localhost:1400/api/snippets', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
 const data = await response.json();
 console.log(data.snippets);
 
@@ -672,6 +809,7 @@ const newSnippet = await fetch('http://localhost:1400/api/snippets', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   },
   body: JSON.stringify({
     title: 'Mon snippet',
@@ -714,7 +852,9 @@ console.log(newSnippet.data);
 3. **Tags** : Les tags sont stockés sous forme de tableaux JSON
 4. **Base de données** : SQLite est utilisée, donc toutes les opérations sont synchrones
 5. **CORS** : CORS est activé pour permettre les requêtes depuis le frontend
-6. **Pas d'authentification** : L'API actuelle n'a pas d'authentification (à ajouter en production)
+6. **Authentification** : Tous les endpoints de données nécessitent une authentification JWT (sauf `/health`)
+7. **Tokens JWT** : Les tokens expirent après 7 jours. Renouvelez votre session en vous reconnectant
+8. **Données utilisateur** : Chaque utilisateur ne voit que ses propres données (isolation par `user_id`)
 
 ## Support
 

@@ -155,17 +155,70 @@ docker-compose exec backend sh -c "cd /app/data && sqlite3 devtoolbox.db '.table
 
 ### Variables d'environnement
 
-Modifiez le fichier `.env` pour personnaliser la configuration :
+#### Configuration avec fichier .env
+
+Le fichier `.env` à la racine du projet est automatiquement chargé par Docker Compose pour le service backend.
+
+**Étapes de configuration** :
+
+```bash
+# 1. Copier le fichier d'exemple
+cp .env.example .env
+
+# 2. Éditer .env avec vos valeurs
+nano .env  # ou votre éditeur préféré
+```
+
+**Variables disponibles** :
 
 ```env
-# Backend
-BACKEND_PORT=1400
-NODE_ENV=production
-DB_PATH=./data/devtoolbox.db
+# ============================================
+# Authentification JWT (OBLIGATOIRE en production)
+# ============================================
+# Générez un secret fort avec : openssl rand -base64 32
+JWT_SECRET=dev-secret-change-in-production
 
-# Frontend
-FRONTEND_PORT=80
+# ============================================
+# Configuration Backend
+# ============================================
+NODE_ENV=production
+PORT=1400
+DB_PATH=/app/data/devtoolbox.db
+
+# ============================================
+# Configuration SMTP (Optionnel)
+# ============================================
+# Si ces variables ne sont pas définies, l'application fonctionnera
+# mais aucun email de confirmation ne sera envoyé à l'inscription.
+
+# Exemple avec Gmail :
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=votre-email@gmail.com
+# SMTP_PASS=votre-mot-de-passe-app
+# Note : Pour Gmail, utilisez un "Mot de passe d'application"
+
+# Exemple avec SendGrid :
+# SMTP_HOST=smtp.sendgrid.net
+# SMTP_PORT=587
+# SMTP_USER=apikey
+# SMTP_PASS=votre-cle-api-sendgrid
+
+# Configuration SMTP (décommentez et remplissez selon votre provider)
+# SMTP_HOST=
+# SMTP_PORT=587
+# SMTP_USER=
+# SMTP_PASS=
+# SMTP_FROM=noreply@devtoolbox.com
+
+# URL du frontend (pour les liens dans les emails)
+FRONTEND_URL=http://localhost:14001
 ```
+
+**Important** :
+- Le fichier `.env` est ignoré par Git (ne sera pas commité)
+- En production, générez un `JWT_SECRET` fort : `openssl rand -base64 32`
+- Les variables SMTP sont optionnelles mais recommandées pour l'envoi d'emails de confirmation
 
 ### Ports
 

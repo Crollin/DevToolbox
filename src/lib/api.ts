@@ -1,5 +1,6 @@
 // Configuration de l'API
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+import { getAuthToken } from './auth';
 
 // Fonction utilitaire pour les appels API
 async function apiRequest<T>(
@@ -7,16 +8,29 @@ async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const token = getAuthToken();
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  // Ajouter le token d'authentification si disponible
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   
   const response = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
+    // Si erreur 401, supprimer le token
+    if (response.status === 401) {
+      const { removeAuthToken } = await import('./auth');
+      removeAuthToken();
+    }
     const error = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
     throw new Error(error.error || `Erreur HTTP: ${response.status}`);
   }

@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LicenceKeyHub from "./pages/tools/LicenceKeyHub";
@@ -26,31 +28,131 @@ const queryClient = new QueryClient();
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/tools/licence-key-hub" element={<LicenceKeyHub />} />
-            <Route path="/tools/csv-preview-pro" element={<CsvPreviewPro />} />
-            <Route path="/tools/mon-calcul-energie" element={<MonCalculEnergie />} />
-            <Route path="/tools/wp-script-library" element={<WPScriptLibrary />} />
-            <Route path="/tools/color-palette-gen" element={<ColorPaletteGen />} />
-            <Route path="/tools/wpcli-glossary" element={<WPCLIGlossary />} />
-            <Route path="/tools/svg-icon-library" element={<SVGIconLibrary />} />
-            <Route path="/tools/git-commander" element={<GitCommander />} />
-            <Route path="/tools/docker-commander" element={<DockerCommander />} />
-            <Route path="/tools/code-snippet-library" element={<CodeSnippetLibrary />} />
-            <Route path="/tools/wp-hook-reference" element={<WPHookReference />} />
-            <Route path="/tools/wp-query-builder" element={<WPQueryBuilder />} />
-            <Route path="/tools/markdown-editor" element={<MarkdownEditor />} />
-            <Route path="/tools/image-resizer" element={<ImageResizer />} />
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route
+                path="/tools/licence-key-hub"
+                element={
+                  <ProtectedRoute>
+                    <LicenceKeyHub />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/csv-preview-pro"
+                element={
+                  <ProtectedRoute>
+                    <CsvPreviewPro />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/mon-calcul-energie"
+                element={
+                  <ProtectedRoute>
+                    <MonCalculEnergie />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/wp-script-library"
+                element={
+                  <ProtectedRoute>
+                    <WPScriptLibrary />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/color-palette-gen"
+                element={
+                  <ProtectedRoute>
+                    <ColorPaletteGen />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/wpcli-glossary"
+                element={
+                  <ProtectedRoute>
+                    <WPCLIGlossary />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/svg-icon-library"
+                element={
+                  <ProtectedRoute>
+                    <SVGIconLibrary />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/git-commander"
+                element={
+                  <ProtectedRoute>
+                    <GitCommander />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/docker-commander"
+                element={
+                  <ProtectedRoute>
+                    <DockerCommander />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/code-snippet-library"
+                element={
+                  <ProtectedRoute>
+                    <CodeSnippetLibrary />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/wp-hook-reference"
+                element={
+                  <ProtectedRoute>
+                    <WPHookReference />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/wp-query-builder"
+                element={
+                  <ProtectedRoute>
+                    <WPQueryBuilder />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/markdown-editor"
+                element={
+                  <ProtectedRoute>
+                    <MarkdownEditor />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/image-resizer"
+                element={
+                  <ProtectedRoute>
+                    <ImageResizer />
+                  </ProtectedRoute>
+                }
+              />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   </ThemeProvider>
 );

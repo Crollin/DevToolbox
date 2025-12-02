@@ -237,10 +237,35 @@ export function initializeDatabase() {
     )
   `);
 
+  // Table pour les utilisateurs
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  // Table pour les sessions (blacklist de tokens)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Table pour les licences
   db.exec(`
     CREATE TABLE IF NOT EXISTS licences (
       id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
       name TEXT NOT NULL,
       key TEXT NOT NULL,
       type TEXT NOT NULL,
@@ -248,9 +273,66 @@ export function initializeDatabase() {
       expires_at TEXT,
       notes TEXT,
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+
+  // Table pour les configurations Ntfy par utilisateur
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ntfy_configs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      enabled INTEGER NOT NULL DEFAULT 0,
+      server_url TEXT NOT NULL DEFAULT 'https://ntfy.sh',
+      topic TEXT NOT NULL DEFAULT '',
+      token TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Migration : Ajouter user_id à la table licences si elle existe déjà sans cette colonne
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(licences)").all() as Array<{ name: string }>;
+    const hasUserId = tableInfo.some((col) => col.name === 'user_id');
+    
+    if (!hasUserId) {
+      // Si la table existe sans user_id, on doit créer une nouvelle table et migrer les données
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS licences_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT,
+          name TEXT NOT NULL,
+          key TEXT NOT NULL,
+          type TEXT NOT NULL,
+          status TEXT NOT NULL,
+          expires_at TEXT,
+          notes TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      
+      // Copier les données existantes (sans user_id pour l'instant)
+      db.exec(`
+        INSERT INTO licences_new (id, name, key, type, status, expires_at, notes, created_at, updated_at)
+        SELECT id, name, key, type, status, expires_at, notes, created_at, updated_at
+        FROM licences
+      `);
+      
+      // Supprimer l'ancienne table et renommer la nouvelle
+      db.exec(`DROP TABLE licences`);
+      db.exec(`ALTER TABLE licences_new RENAME TO licences`);
+      
+      console.log('Migration de la table licences effectuée avec succès');
+    }
+  } catch (error) {
+    // Si la table n'existe pas encore, pas de problème
+    console.log('Table licences n\'existe pas encore ou migration déjà effectuée');
+  }
 
   // Table pour les calculs électriques
   db.exec(`

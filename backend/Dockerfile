@@ -57,7 +57,7 @@ EXPOSE 1400
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-  CMD wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:1400/health || exit 1
 
 # Commande de démarrage
 CMD ["node", "dist/index.js"]

@@ -6,6 +6,35 @@ La base de données SQLite est utilisée pour stocker toutes les données de Dev
 
 ## Tables
 
+### Authentification et utilisateurs
+
+- `users` - Comptes utilisateurs
+  - `id` (TEXT PRIMARY KEY) - Identifiant unique
+  - `email` (TEXT UNIQUE) - Email de l'utilisateur
+  - `password_hash` (TEXT) - Mot de passe hashé (bcrypt)
+  - `name` (TEXT) - Nom de l'utilisateur
+  - `created_at` (TEXT) - Date de création
+  - `updated_at` (TEXT) - Date de mise à jour
+
+- `sessions` - Blacklist de tokens (optionnel)
+  - `id` (TEXT PRIMARY KEY) - Identifiant unique
+  - `user_id` (TEXT) - Référence à l'utilisateur
+  - `token` (TEXT) - Token JWT blacklisté
+  - `expires_at` (TEXT) - Date d'expiration
+  - `created_at` (TEXT) - Date de création
+
+- `ntfy_configs` - Configurations Ntfy par utilisateur
+  - `id` (TEXT PRIMARY KEY) - Identifiant unique
+  - `user_id` (TEXT UNIQUE) - Référence à l'utilisateur
+  - `enabled` (INTEGER) - Activation (0/1)
+  - `server_url` (TEXT) - URL du serveur Ntfy
+  - `topic` (TEXT) - Topic Ntfy
+  - `token` (TEXT) - Token Ntfy (optionnel)
+  - `created_at` (TEXT) - Date de création
+  - `updated_at` (TEXT) - Date de mise à jour
+
+### Données utilisateur
+
 - `code_snippets` - Snippets de code
 - `snippet_folders` - Dossiers de snippets
 - `snippet_custom_tags` - Tags personnalisés de snippets
@@ -23,7 +52,17 @@ La base de données SQLite est utilisée pour stocker toutes les données de Dev
 - `git_commands` - Commandes Git
 - `git_categories` - Catégories Git
 - `svg_icons` - Icônes SVG
-- `licences` - Licences
+- `licences` - Licences (modifiée pour inclure `user_id`)
+  - `id` (TEXT PRIMARY KEY)
+  - `user_id` (TEXT) - **NOUVEAU** - Référence à l'utilisateur propriétaire
+  - `name` (TEXT) - Nom de la licence
+  - `key` (TEXT) - Clé de licence
+  - `type` (TEXT) - Type de licence
+  - `status` (TEXT) - Statut (active, lifetime, expired)
+  - `expires_at` (TEXT) - Date d'expiration
+  - `notes` (TEXT) - Notes
+  - `created_at` (TEXT) - Date de création
+  - `updated_at` (TEXT) - Date de mise à jour
 - `electricalc_settings` - Paramètres du calculateur électrique
 - `electricalc_history` - Historique des calculs
 
