@@ -1,13 +1,14 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 import db from '../db/database';
 import { generateToken, JWTPayload } from '../middleware/auth';
 
 const router = express.Router();
 
 // POST /api/auth/register - Inscription
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
 
@@ -80,7 +81,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login - Connexion
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -125,7 +126,7 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/me - Récupérer l'utilisateur actuel
-router.get('/me', (req, res) => {
+router.get('/me', (req: Request, res: Response) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -134,17 +135,16 @@ router.get('/me', (req, res) => {
       return res.status(401).json({ error: 'Token d\'authentification manquant' });
     }
 
-    const jwt = require('jsonwebtoken');
     const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
     
     let decoded: JWTPayload;
     try {
       decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch (jwtError: any) {
-      if (jwtError.name === 'JsonWebTokenError') {
+    } catch (jwtError: unknown) {
+      if (jwtError instanceof jwt.JsonWebTokenError) {
         return res.status(401).json({ error: 'Token invalide' });
       }
-      if (jwtError.name === 'TokenExpiredError') {
+      if (jwtError instanceof jwt.TokenExpiredError) {
         return res.status(401).json({ error: 'Token expiré' });
       }
       throw jwtError;
