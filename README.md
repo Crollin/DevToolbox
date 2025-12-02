@@ -279,7 +279,8 @@ cd DevToolbox
 
 # Configurer les variables d'environnement
 cp .env.example .env
-# Éditer .env selon vos besoins
+# Éditer .env selon vos besoins (OBLIGATOIRE : générer un JWT_SECRET fort)
+# Générer un secret : openssl rand -base64 32
 
 # Démarrer les services
 docker-compose up -d
@@ -315,10 +316,28 @@ Pour utiliser l'API backend en production, vous devez :
 
 ### Variables d'environnement
 
+#### Configuration avec fichier .env
+
+Pour configurer les variables d'environnement, utilisez le fichier `.env` :
+
+```bash
+# 1. Copier le fichier d'exemple
+cp .env.example .env
+
+# 2. Éditer .env avec vos valeurs
+nano .env  # ou votre éditeur préféré
+```
+
+Le fichier `.env.example` contient toutes les variables nécessaires avec des commentaires explicatifs.
+
+**Important** : Le fichier `.env` est ignoré par Git et ne sera pas commité. Ne partagez jamais vos secrets !
+
 #### Backend
 
 **Obligatoires** :
 - `JWT_SECRET` - Secret pour signer les tokens JWT (à générer pour la production)
+  - Générer un secret fort : `openssl rand -base64 32`
+  - **⚠️ Obligatoire en production** : Ne jamais utiliser le secret par défaut en production
 
 **Optionnelles** :
 - `PORT` - Port du serveur (défaut: 1400)
@@ -326,14 +345,19 @@ Pour utiliser l'API backend en production, vous devez :
 - `DB_PATH` - Chemin vers le fichier SQLite (défaut: ./data/devtoolbox.db)
 
 **Configuration Email (optionnelle)** :
-- `SMTP_HOST` - Serveur SMTP (ex: smtp.gmail.com)
+- `SMTP_HOST` - Serveur SMTP (ex: smtp.gmail.com, smtp.sendgrid.net)
 - `SMTP_PORT` - Port SMTP (généralement 587 ou 465)
 - `SMTP_USER` - Utilisateur SMTP
-- `SMTP_PASS` - Mot de passe SMTP
+- `SMTP_PASS` - Mot de passe SMTP (ou clé API pour SendGrid)
 - `SMTP_FROM` - Adresse email expéditrice (défaut: SMTP_USER)
 - `FRONTEND_URL` - URL du frontend pour les liens dans les emails
 
 **Note** : L'envoi d'emails est optionnel. L'inscription fonctionne même sans configuration SMTP, mais aucun email de confirmation ne sera envoyé.
+
+**Exemples de configuration SMTP** :
+- **Gmail** : Utilisez un "Mot de passe d'application" (pas votre mot de passe principal)
+- **SendGrid** : Utilisez `apikey` comme `SMTP_USER` et votre clé API comme `SMTP_PASS`
+- **Mailgun** : Utilisez les identifiants fournis par Mailgun
 
 #### Frontend
 

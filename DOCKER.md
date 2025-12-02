@@ -115,32 +115,73 @@ docker-compose exec backend cp /app/data/devtoolbox.db.backup /app/data/devtoolb
 
 ### Variables d'environnement
 
-Modifiez le fichier `.env` pour personnaliser la configuration :
+#### Configuration avec fichier .env
+
+Le fichier `.env` à la racine du projet est automatiquement chargé par Docker Compose pour le service backend.
+
+**Étapes de configuration** :
+
+```bash
+# 1. Copier le fichier d'exemple
+cp .env.example .env
+
+# 2. Éditer .env avec vos valeurs
+nano .env  # ou votre éditeur préféré
+```
+
+Le fichier `.env.example` contient toutes les variables nécessaires avec des commentaires explicatifs et des exemples pour différents providers SMTP (Gmail, SendGrid, Mailgun).
+
+**Variables disponibles** :
 
 ```env
-# Backend
-BACKEND_PORT=1400
+# ============================================
+# Authentification JWT (OBLIGATOIRE en production)
+# ============================================
+# Générez un secret fort avec : openssl rand -base64 32
+JWT_SECRET=dev-secret-change-in-production
+
+# ============================================
+# Configuration Backend
+# ============================================
 NODE_ENV=production
-DB_PATH=./data/devtoolbox.db
+PORT=1400
+DB_PATH=/app/data/devtoolbox.db
 
-# Authentification (OBLIGATOIRE en production)
-JWT_SECRET=votre-secret-jwt-tres-securise
+# ============================================
+# Configuration SMTP (Optionnel)
+# ============================================
+# Si ces variables ne sont pas définies, l'application fonctionnera
+# mais aucun email de confirmation ne sera envoyé à l'inscription.
 
-# Email (Optionnel - pour l'envoi d'emails de confirmation)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=votre-email@gmail.com
-SMTP_PASS=votre-mot-de-passe-app
-SMTP_FROM=noreply@devtoolbox.com
-FRONTEND_URL=https://devtoolbox.example.com
+# Exemple avec Gmail :
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=votre-email@gmail.com
+# SMTP_PASS=votre-mot-de-passe-app
+# Note : Pour Gmail, utilisez un "Mot de passe d'application"
 
-# Frontend
-FRONTEND_PORT=14001
+# Exemple avec SendGrid :
+# SMTP_HOST=smtp.sendgrid.net
+# SMTP_PORT=587
+# SMTP_USER=apikey
+# SMTP_PASS=votre-cle-api-sendgrid
+
+# Configuration SMTP (décommentez et remplissez selon votre provider)
+# SMTP_HOST=
+# SMTP_PORT=587
+# SMTP_USER=
+# SMTP_PASS=
+# SMTP_FROM=noreply@devtoolbox.com
+
+# URL du frontend (pour les liens dans les emails)
+FRONTEND_URL=http://localhost:14001
 ```
 
 **Important** : 
-- `JWT_SECRET` est obligatoire en production. Générez un secret fort avec : `openssl rand -base64 32`
-- Les variables SMTP sont optionnelles. L'application fonctionne sans elles, mais aucun email ne sera envoyé.
+- Le fichier `.env` est ignoré par Git (ne sera pas commité)
+- `JWT_SECRET` est **obligatoire en production**. Générez un secret fort avec : `openssl rand -base64 32`
+- Ne jamais utiliser le secret par défaut (`dev-secret-change-in-production`) en production
+- Les variables SMTP sont optionnelles. L'application fonctionne sans elles, mais aucun email de confirmation ne sera envoyé
 
 ### Ports
 
