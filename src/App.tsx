@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LicenceKeyHub from "./pages/tools/LicenceKeyHub";
@@ -26,13 +28,21 @@ const queryClient = new QueryClient();
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/tools/licence-key-hub" element={<LicenceKeyHub />} />
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route
+                path="/tools/licence-key-hub"
+                element={
+                  <ProtectedRoute>
+                    <LicenceKeyHub />
+                  </ProtectedRoute>
+                }
+              />
             <Route path="/tools/csv-preview-pro" element={<CsvPreviewPro />} />
             <Route path="/tools/mon-calcul-energie" element={<MonCalculEnergie />} />
             <Route path="/tools/wp-script-library" element={<WPScriptLibrary />} />
@@ -47,10 +57,11 @@ const App = () => (
             <Route path="/tools/markdown-editor" element={<MarkdownEditor />} />
             <Route path="/tools/image-resizer" element={<ImageResizer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   </ThemeProvider>
 );
