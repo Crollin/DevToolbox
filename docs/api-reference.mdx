@@ -1,0 +1,975 @@
+---
+title: Référence API
+description: Documentation complète de l'API REST backend de DevToolbox
+api: true
+---
+
+# Référence API
+
+Documentation complète de l'API REST backend de DevToolbox.
+
+## Vue d'ensemble
+
+L'API backend de DevToolbox est une API REST qui expose des endpoints pour gérer tous les modules de l'application. Tous les endpoints retournent des réponses au format JSON.
+
+## Base URL
+
+- **Développement local** : `http://localhost:1400`
+- **Docker** : `http://localhost:1400`
+- **Production** : `https://votre-domaine.com:1400`
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| 200 | Succès |
+| 201 | Créé avec succès |
+| 400 | Requête invalide |
+| 404 | Ressource non trouvée |
+| 500 | Erreur serveur |
+
+## Authentification
+
+Tous les endpoints de données nécessitent une authentification JWT (sauf `/health`).
+
+<Info>
+Le token expire après 7 jours. Vous devrez vous reconnecter pour obtenir un nouveau token.
+</Info>
+
+### Obtenir un token
+
+<Endpoint name="POST /api/auth/register" method="post" path="/api/auth/register">
+  <Param name="email" type="string" required>
+    Adresse email de l'utilisateur
+  </Param>
+  <Param name="name" type="string" required>
+    Nom de l'utilisateur
+  </Param>
+  <Param name="password" type="string" required>
+    Mot de passe
+  </Param>
+
+  <Response status="201">
+    Crée un nouveau compte utilisateur et retourne un token JWT.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/auth/login" method="post" path="/api/auth/login">
+  <Param name="email" type="string" required>
+    Adresse email de l'utilisateur
+  </Param>
+  <Param name="password" type="string" required>
+    Mot de passe
+  </Param>
+
+  <Response status="200">
+    Connecte un utilisateur existant et retourne un token JWT.
+  </Response>
+</Endpoint>
+
+<Endpoint name="GET /api/auth/me" method="get" path="/api/auth/me">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère les informations de l'utilisateur actuel.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/auth/change-password" method="put" path="/api/auth/change-password">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="currentPassword" type="string" required>
+    Mot de passe actuel
+  </Param>
+  <Param name="newPassword" type="string" required>
+    Nouveau mot de passe
+  </Param>
+
+  <Response status="200">
+    Change le mot de passe de l'utilisateur connecté.
+  </Response>
+</Endpoint>
+
+### Utilisation du token
+
+Pour utiliser les endpoints protégés, incluez le token dans le header `Authorization` :
+
+```
+Authorization: Bearer <votre-token-jwt>
+```
+
+## Endpoints
+
+### Snippets
+
+Gestion des snippets de code avec support WPCodeBox.
+
+<Endpoint name="GET /api/snippets" method="get" path="/api/snippets">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère tous les snippets de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="GET /api/snippets/:id" method="get" path="/api/snippets/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID du snippet (UUID)
+  </Param>
+
+  <Response status="200">
+    Récupère un snippet spécifique.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/snippets" method="post" path="/api/snippets">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="title" type="string" required>
+    Titre du snippet
+  </Param>
+  <Param name="description" type="string">
+    Description du snippet
+  </Param>
+  <Param name="code" type="string" required>
+    Code du snippet
+  </Param>
+  <Param name="language" type="string" required>
+    Langage (php, javascript, css, etc.)
+  </Param>
+  <Param name="scope" type="string">
+    Scope (frontend, admin, both)
+  </Param>
+  <Param name="priority" type="number">
+    Priorité (défaut: 10)
+  </Param>
+  <Param name="tags" type="array">
+    Tags pour la recherche
+  </Param>
+  <Param name="folder" type="string">
+    Dossier d'organisation
+  </Param>
+  <Param name="active" type="boolean">
+    Actif ou non (défaut: true)
+  </Param>
+  <Param name="runOnce" type="boolean">
+    Exécuter une seule fois (défaut: false)
+  </Param>
+
+  <Response status="201">
+    Crée un nouveau snippet.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/snippets/:id" method="put" path="/api/snippets/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID du snippet (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour un snippet existant. Même format que POST.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/snippets/:id" method="delete" path="/api/snippets/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID du snippet (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime un snippet.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/snippets/folders" method="post" path="/api/snippets/folders">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom du dossier
+  </Param>
+
+  <Response status="201">
+    Ajoute un dossier personnalisé.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/snippets/tags" method="post" path="/api/snippets/tags">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom du tag
+  </Param>
+
+  <Response status="201">
+    Ajoute un tag personnalisé.
+  </Response>
+</Endpoint>
+
+### Hooks WordPress
+
+Gestion des hooks WordPress (actions et filtres).
+
+<Endpoint name="GET /api/hooks" method="get" path="/api/hooks">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère tous les hooks de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/hooks" method="post" path="/api/hooks">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom du hook
+  </Param>
+  <Param name="type" type="string" required>
+    Type (action ou filter)
+  </Param>
+  <Param name="description" type="string">
+    Description du hook
+  </Param>
+  <Param name="category" type="string">
+    Catégorie
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+  <Param name="example" type="string">
+    Exemple de code
+  </Param>
+  <Param name="parameters" type="string">
+    Paramètres du hook
+  </Param>
+  <Param name="since" type="string">
+    Version WordPress depuis laquelle le hook existe
+  </Param>
+
+  <Response status="201">
+    Crée un nouveau hook.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/hooks/:id" method="put" path="/api/hooks/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID du hook (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour un hook.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/hooks/:id" method="delete" path="/api/hooks/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID du hook (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime un hook.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/hooks/categories" method="post" path="/api/hooks/categories">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom de la catégorie
+  </Param>
+
+  <Response status="201">
+    Ajoute une catégorie personnalisée.
+  </Response>
+</Endpoint>
+
+### Queries WordPress
+
+Gestion des requêtes WP_Query.
+
+<Endpoint name="GET /api/queries" method="get" path="/api/queries">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère toutes les queries de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/queries" method="post" path="/api/queries">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom de la query
+  </Param>
+  <Param name="description" type="string">
+    Description
+  </Param>
+  <Param name="query" type="object" required>
+    Objet de requête WP_Query
+  </Param>
+  <Param name="category" type="string">
+    Catégorie
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+
+  <Response status="201">
+    Crée une nouvelle query.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/queries/:id" method="put" path="/api/queries/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la query (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour une query.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/queries/:id" method="delete" path="/api/queries/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la query (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime une query.
+  </Response>
+</Endpoint>
+
+### Palettes de couleurs
+
+Gestion des palettes de couleurs.
+
+<Endpoint name="GET /api/palettes" method="get" path="/api/palettes">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère toutes les palettes de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/palettes" method="post" path="/api/palettes">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom de la palette
+  </Param>
+  <Param name="description" type="string">
+    Description
+  </Param>
+  <Param name="colors" type="array" required>
+    Tableau de couleurs (nom, hex, rgb)
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+
+  <Response status="201">
+    Crée une nouvelle palette.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/palettes/:id" method="put" path="/api/palettes/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la palette (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour une palette.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/palettes/:id" method="delete" path="/api/palettes/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la palette (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime une palette.
+  </Response>
+</Endpoint>
+
+### Scripts WordPress
+
+Gestion des scripts PHP/Shell WordPress.
+
+<Endpoint name="GET /api/scripts" method="get" path="/api/scripts">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère tous les scripts de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/scripts" method="post" path="/api/scripts">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="title" type="string" required>
+    Titre du script
+  </Param>
+  <Param name="description" type="string">
+    Description
+  </Param>
+  <Param name="code" type="string" required>
+    Code du script
+  </Param>
+  <Param name="language" type="string" required>
+    Langage (php, shell)
+  </Param>
+  <Param name="category" type="string">
+    Catégorie
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+
+  <Response status="201">
+    Crée un nouveau script.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/scripts/:id" method="put" path="/api/scripts/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID du script (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour un script.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/scripts/:id" method="delete" path="/api/scripts/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID du script (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime un script.
+  </Response>
+</Endpoint>
+
+### Commandes WP-CLI
+
+Gestion des commandes WP-CLI.
+
+<Endpoint name="GET /api/wpcli" method="get" path="/api/wpcli">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère toutes les commandes WP-CLI de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/wpcli" method="post" path="/api/wpcli">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="command" type="string" required>
+    Commande WP-CLI
+  </Param>
+  <Param name="description" type="string">
+    Description
+  </Param>
+  <Param name="category" type="string">
+    Catégorie
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+  <Param name="example" type="string">
+    Exemple d'utilisation
+  </Param>
+
+  <Response status="201">
+    Crée une nouvelle commande.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/wpcli/:id" method="put" path="/api/wpcli/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la commande (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour une commande.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/wpcli/:id" method="delete" path="/api/wpcli/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la commande (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime une commande.
+  </Response>
+</Endpoint>
+
+### Commandes Docker
+
+Gestion des commandes Docker.
+
+<Endpoint name="GET /api/docker" method="get" path="/api/docker">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère toutes les commandes Docker de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/docker" method="post" path="/api/docker">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="command" type="string" required>
+    Commande Docker
+  </Param>
+  <Param name="description" type="string">
+    Description
+  </Param>
+  <Param name="category" type="string">
+    Catégorie
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+  <Param name="example" type="string">
+    Exemple d'utilisation
+  </Param>
+
+  <Response status="201">
+    Crée une nouvelle commande.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/docker/:id" method="put" path="/api/docker/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la commande (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour une commande.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/docker/:id" method="delete" path="/api/docker/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la commande (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime une commande.
+  </Response>
+</Endpoint>
+
+### Commandes Git
+
+Gestion des commandes Git.
+
+<Endpoint name="GET /api/git" method="get" path="/api/git">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère toutes les commandes Git de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/git" method="post" path="/api/git">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="command" type="string" required>
+    Commande Git
+  </Param>
+  <Param name="description" type="string">
+    Description
+  </Param>
+  <Param name="category" type="string">
+    Catégorie
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+  <Param name="example" type="string">
+    Exemple d'utilisation
+  </Param>
+
+  <Response status="201">
+    Crée une nouvelle commande.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/git/:id" method="put" path="/api/git/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la commande (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour une commande.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/git/:id" method="delete" path="/api/git/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la commande (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime une commande.
+  </Response>
+</Endpoint>
+
+### Icônes SVG
+
+Gestion des icônes SVG.
+
+<Endpoint name="GET /api/icons" method="get" path="/api/icons">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère toutes les icônes de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/icons" method="post" path="/api/icons">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom de l'icône
+  </Param>
+  <Param name="description" type="string">
+    Description
+  </Param>
+  <Param name="svg" type="string" required>
+    Code SVG
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+
+  <Response status="201">
+    Crée une nouvelle icône.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/icons/:id" method="put" path="/api/icons/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de l'icône (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour une icône.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/icons/:id" method="delete" path="/api/icons/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de l'icône (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime une icône.
+  </Response>
+</Endpoint>
+
+### Licences
+
+Gestion des clés de licence.
+
+<Endpoint name="GET /api/licences" method="get" path="/api/licences">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère toutes les licences de l'utilisateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/licences" method="post" path="/api/licences">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="name" type="string" required>
+    Nom du produit/service
+  </Param>
+  <Param name="key" type="string" required>
+    Clé de licence
+  </Param>
+  <Param name="type" type="string">
+    Type (SaaS, Plugin, Theme, etc.)
+  </Param>
+  <Param name="provider" type="string">
+    Fournisseur
+  </Param>
+  <Param name="status" type="string">
+    Statut (active, expired, suspended)
+  </Param>
+  <Param name="expiresAt" type="string">
+    Date d'expiration (ISO 8601)
+  </Param>
+  <Param name="notes" type="string">
+    Notes
+  </Param>
+  <Param name="tags" type="array">
+    Tags
+  </Param>
+
+  <Response status="201">
+    Crée une nouvelle licence.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/licences/:id" method="put" path="/api/licences/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la licence (UUID)
+  </Param>
+
+  <Response status="200">
+    Met à jour une licence.
+  </Response>
+</Endpoint>
+
+<Endpoint name="DELETE /api/licences/:id" method="delete" path="/api/licences/:id">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="id" type="path" required>
+    ID de la licence (UUID)
+  </Param>
+
+  <Response status="200">
+    Supprime une licence.
+  </Response>
+</Endpoint>
+
+### Calculateur électrique
+
+Gestion du calculateur électrique.
+
+<Endpoint name="GET /api/electricalc/settings" method="get" path="/api/electricalc/settings">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère les paramètres du calculateur.
+  </Response>
+</Endpoint>
+
+<Endpoint name="PUT /api/electricalc/settings" method="put" path="/api/electricalc/settings">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="settings" type="object" required>
+    Paramètres (pricePerKwh, currency)
+  </Param>
+
+  <Response status="200">
+    Met à jour les paramètres.
+  </Response>
+</Endpoint>
+
+<Endpoint name="GET /api/electricalc/history" method="get" path="/api/electricalc/history">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+
+  <Response status="200">
+    Récupère l'historique des calculs (50 derniers).
+  </Response>
+</Endpoint>
+
+<Endpoint name="POST /api/electricalc/history" method="post" path="/api/electricalc/history">
+  <Param name="Authorization" type="header" required>
+    Bearer token JWT
+  </Param>
+  <Param name="calculation" type="object" required>
+    Calcul (power, hours, days, cost)
+  </Param>
+
+  <Response status="201">
+    Ajoute un calcul à l'historique.
+  </Response>
+</Endpoint>
+
+## Health Check
+
+<Endpoint name="GET /health" method="get" path="/health">
+  <Response status="200">
+    Vérifie l'état du serveur. Aucune authentification requise.
+  </Response>
+</Endpoint>
+
+## Exemples
+
+### Exemple avec cURL
+
+<CodeGroup>
+```bash Login
+# 1. S'inscrire ou se connecter pour obtenir un token
+TOKEN=$(curl -X POST http://localhost:1400/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"motdepasse123"}' \
+  | jq -r '.token')
+```
+
+```bash Get Snippets
+# 2. Utiliser le token pour les requêtes protégées
+# Récupérer tous les snippets
+curl http://localhost:1400/api/snippets \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```bash Create Snippet
+# Créer un snippet
+curl -X POST http://localhost:1400/api/snippets \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "title": "Mon snippet",
+    "code": "<?php echo \"Hello\"; ?>",
+    "language": "php",
+    "scope": "frontend"
+  }'
+```
+</CodeGroup>
+
+### Exemple avec JavaScript (Fetch)
+
+```javascript
+// 1. Se connecter pour obtenir un token
+const loginResponse = await fetch('http://localhost:1400/api/auth/login', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'motdepasse123'
+  })
+});
+const { token } = await loginResponse.json();
+
+// 2. Utiliser le token pour les requêtes protégées
+// Récupérer tous les snippets
+const response = await fetch('http://localhost:1400/api/snippets', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+const data = await response.json();
+console.log(data.snippets);
+```
+
+## Notes importantes
+
+1. **Format des dates** : Toutes les dates sont au format ISO 8601 (UTC)
+2. **IDs** : Les IDs sont des UUIDs v4
+3. **Tags** : Les tags sont stockés sous forme de tableaux JSON
+4. **Base de données** : SQLite est utilisée, donc toutes les opérations sont synchrones
+5. **CORS** : CORS est activé pour permettre les requêtes depuis le frontend
+6. **Authentification** : Tous les endpoints de données nécessitent une authentification JWT (sauf `/health`)
+7. **Tokens JWT** : Les tokens expirent après 7 jours. Renouvelez votre session en vous reconnectant
+8. **Données utilisateur** : Chaque utilisateur ne voit que ses propres données (isolation par `user_id`)
+
+## Support
+
+Pour toute question sur l'API :
+
+1. Consultez le [Guide de développement](/development)
+2. Vérifiez les [logs du backend](/docker#logs-et-débogage)
+3. Ouvrez une issue sur GitHub
+

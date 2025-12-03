@@ -1,0 +1,345 @@
+---
+title: Installation
+description: Guide complet pour installer et configurer DevToolbox sur votre système
+---
+
+# Guide d'installation
+
+Ce guide vous explique comment installer et configurer DevToolbox sur votre système.
+
+## Prérequis
+
+### Pour Docker (Option 1)
+
+- **Docker** version 20.10 ou supérieure
+- **Docker Compose** version 2.0 ou supérieure
+
+Vérifiez vos versions :
+
+```bash
+docker --version
+docker-compose --version
+```
+
+### Pour l'installation locale (Option 2)
+
+- **Node.js** version 20 ou supérieure
+- **npm** (inclus avec Node.js)
+- **Git** pour cloner le dépôt
+
+<Info>
+**Recommandation** : Utilisez [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) pour gérer Node.js.
+</Info>
+
+Vérifiez vos versions :
+
+```bash
+node --version  # Doit être >= 20
+npm --version
+```
+
+## Option 1 : Installation avec Docker (Recommandé)
+
+Cette méthode est la plus simple et recommandée pour la production.
+
+### Étape 1 : Cloner le dépôt
+
+```bash
+git clone https://github.com/Crollin/DevToolbox
+cd DevToolbox
+```
+
+### Étape 2 : Démarrer les services
+
+```bash
+# Démarrer tous les services (frontend + backend + base de données)
+docker-compose up -d
+
+# Voir les logs
+docker-compose logs -f
+```
+
+### Étape 3 : Accéder à l'application
+
+Une fois les conteneurs démarrés, l'application est accessible sur :
+
+- **Frontend** : http://localhost:14001
+- **Backend API** : http://localhost:1400
+- **Health check backend** : http://localhost:1400/health
+- **Health check frontend** : http://localhost:14001/health
+
+### Commandes utiles Docker
+
+```bash
+# Arrêter les services
+docker-compose down
+
+# Redémarrer les services
+docker-compose restart
+
+# Rebuild après modifications
+docker-compose up -d --build
+
+# Voir les logs d'un service spécifique
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Accéder au shell du backend
+docker-compose exec backend sh
+```
+
+Pour plus de détails, consultez le [Guide Docker](/docker).
+
+## Option 2 : Installation locale (Développement)
+
+Cette méthode est recommandée pour le développement.
+
+### Étape 1 : Cloner le dépôt
+
+```bash
+git clone https://github.com/Crollin/DevToolbox
+cd DevToolbox
+```
+
+### Étape 2 : Installer les dépendances du frontend
+
+```bash
+npm install
+```
+
+### Étape 3 : Installer les dépendances du backend
+
+```bash
+cd backend
+npm install
+cd ..
+```
+
+### Étape 4 : Démarrer le backend
+
+Dans un terminal :
+
+```bash
+cd backend
+npm run dev
+```
+
+Le backend démarre sur **http://localhost:1400**
+
+### Étape 5 : Démarrer le frontend
+
+Dans un autre terminal :
+
+```bash
+npm run dev
+```
+
+Le frontend démarre sur **http://localhost:8080** (ou le port disponible)
+
+Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
+
+## Configuration initiale
+
+### Variables d'environnement
+
+#### Configuration avec fichier .env (Recommandé)
+
+Pour configurer les variables d'environnement, utilisez le fichier `.env` à la racine du projet :
+
+```bash
+# 1. Copier le fichier d'exemple
+cp .env.example .env
+
+# 2. Éditer .env avec vos valeurs
+nano .env  # ou votre éditeur préféré
+```
+
+Le fichier `.env.example` contient toutes les variables nécessaires avec des commentaires explicatifs et des exemples pour différents providers SMTP.
+
+<Warning>
+**Important** : 
+- Le fichier `.env` est ignoré par Git et ne sera pas commité
+- Ne partagez jamais vos secrets !
+- En production, générez un `JWT_SECRET` fort : `openssl rand -base64 32`
+</Warning>
+
+#### Variables Backend
+
+**Obligatoires** :
+- `JWT_SECRET` - Secret pour signer les tokens JWT (⚠️ obligatoire en production)
+
+**Optionnelles** :
+- `PORT` - Port du serveur (défaut: 1400)
+- `NODE_ENV` - Environnement (development/production)
+- `DB_PATH` - Chemin vers le fichier SQLite (défaut: ./data/devtoolbox.db)
+
+**Configuration Email (optionnelle)** :
+- `SMTP_HOST` - Serveur SMTP
+- `SMTP_PORT` - Port SMTP (généralement 587 ou 465)
+- `SMTP_USER` - Utilisateur SMTP
+- `SMTP_PASS` - Mot de passe SMTP ou clé API
+- `SMTP_FROM` - Adresse email expéditrice
+- `FRONTEND_URL` - URL du frontend pour les liens dans les emails
+
+<Info>
+**Note** : L'envoi d'emails est optionnel. L'inscription fonctionne même sans configuration SMTP.
+</Info>
+
+#### Variables Frontend
+
+Créez un fichier `.env` à la racine du projet (si développement local) :
+
+```env
+VITE_API_URL=http://localhost:1400
+```
+
+<Info>
+**Note** : En production avec Docker, le frontend utilise le proxy Nginx vers `/api`, donc cette variable n'est généralement pas nécessaire.
+</Info>
+
+### Base de données
+
+La base de données SQLite est initialisée automatiquement au démarrage du backend.
+
+Pour une migration manuelle :
+
+<CodeGroup>
+```bash Docker
+# Avec Docker
+docker-compose exec backend npm run db:migrate
+```
+
+```bash Local
+# Localement
+cd backend && npm run db:migrate
+```
+</CodeGroup>
+
+### Emplacement de la base de données
+
+- **Docker** : `/app/data/devtoolbox.db` (monté dans `./data/`)
+- **Local** : `./data/devtoolbox.db`
+
+## Vérification de l'installation
+
+### 1. Vérifier le backend
+
+```bash
+# Test de santé
+curl http://localhost:1400/health
+
+# Réponse attendue :
+# {"status":"ok","timestamp":"2024-..."}
+```
+
+### 2. Vérifier le frontend
+
+Ouvrez http://localhost:14001 (Docker) ou http://localhost:8080 (local) dans votre navigateur.
+
+Vous devriez voir :
+- La page d'accueil avec tous les outils
+- La barre de recherche fonctionnelle
+- Les filtres par catégorie
+
+### 3. Tester l'API
+
+```bash
+# Lister les snippets
+curl http://localhost:1400/api/snippets
+
+# Réponse attendue : tableau JSON des snippets
+```
+
+### 4. Vérifier la base de données
+
+<CodeGroup>
+```bash Docker
+# Avec Docker
+docker-compose exec backend sh
+cd /app/data
+sqlite3 devtoolbox.db ".tables"
+```
+
+```bash Local
+# Localement
+cd data
+sqlite3 devtoolbox.db ".tables"
+```
+</CodeGroup>
+
+## Dépannage
+
+### Le backend ne démarre pas
+
+1. **Vérifier le port** : Le port 1400 est-il disponible ?
+   ```bash
+   lsof -i :1400
+   ```
+
+2. **Vérifier les logs** :
+   ```bash
+   # Docker
+   docker-compose logs backend
+   
+   # Local
+   cd backend && npm run dev
+   ```
+
+3. **Vérifier les dépendances** :
+   ```bash
+   cd backend && npm install
+   ```
+
+### Le frontend ne se connecte pas à l'API
+
+1. **Vérifier que le backend est démarré** :
+   ```bash
+   curl http://localhost:1400/health
+   ```
+
+2. **Vérifier la configuration du proxy** dans `vite.config.ts`
+
+3. **Vérifier les variables d'environnement** :
+   ```bash
+   echo $VITE_API_URL
+   ```
+
+### Problèmes de permissions (Docker)
+
+```bash
+# Donner les permissions au dossier data
+chmod -R 755 ./data
+
+# Si nécessaire, changer le propriétaire
+sudo chown -R $USER:$USER ./data
+```
+
+### Erreurs de base de données
+
+```bash
+# Supprimer et recréer la base de données
+rm -rf ./data/devtoolbox.db
+
+# Redémarrer le backend (la base sera recréée automatiquement)
+docker-compose restart backend
+# ou
+cd backend && npm run dev
+```
+
+## Prochaines étapes
+
+Une fois l'installation terminée :
+
+1. Consultez le [Guide Docker](/docker) pour la configuration avancée
+2. Explorez la [Référence API](/api-reference) pour comprendre les endpoints
+3. Lisez le [Guide de développement](/development) pour contribuer
+4. Découvrez les [guides des outils](/tools/image-resizer) pour utiliser chaque fonctionnalité
+
+## Support
+
+Si vous rencontrez des problèmes :
+
+1. Consultez la [FAQ](/troubleshooting)
+2. Vérifiez les [logs Docker](/docker#logs-et-débogage)
+3. Ouvrez une issue sur GitHub
+
