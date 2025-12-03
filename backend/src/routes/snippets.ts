@@ -175,17 +175,41 @@ router.put('/:id', (req, res) => {
     const { title, description, code, language, scope, priority, tags, folder, isFavorite } = req.body;
     const now = new Date().toISOString();
 
-    // Récupérer le snippet actuel pour préserver is_favorite si non fourni
-    const current = db.prepare('SELECT is_favorite FROM code_snippets WHERE id = ?').get(req.params.id) as { is_favorite: number } | undefined;
-    const favoriteValue = isFavorite !== undefined ? (isFavorite ? 1 : 0) : (current ? current.is_favorite : 0);
+    // Récupérer le snippet actuel
+    const current = db.prepare('SELECT * FROM code_snippets WHERE id = ?').get(req.params.id) as {
+      title: string;
+      description: string | null;
+      code: string;
+      language: string;
+      scope: string;
+      priority: number;
+      tags: string | null;
+      folder: string | null;
+      is_favorite: number;
+    } | undefined;
+
+    if (!current) {
+      return res.status(404).json({ error: 'Snippet non trouvé' });
+    }
+
+    // Utiliser les valeurs fournies ou conserver les valeurs actuelles pour une mise à jour partielle
+    const updateTitle = title !== undefined ? title : current.title;
+    const updateDescription = description !== undefined ? description : (current.description || '');
+    const updateCode = code !== undefined ? code : current.code;
+    const updateLanguage = language !== undefined ? language : current.language;
+    const updateScope = scope !== undefined ? scope : current.scope;
+    const updatePriority = priority !== undefined ? (priority || 10) : current.priority;
+    const updateTags = tags !== undefined ? JSON.stringify(tags || []) : (current.tags || '[]');
+    const updateFolder = folder !== undefined ? (folder || null) : current.folder;
+    const updateFavorite = isFavorite !== undefined ? (isFavorite ? 1 : 0) : current.is_favorite;
 
     const result = db.prepare(`
       UPDATE code_snippets
       SET title = ?, description = ?, code = ?, language = ?, scope = ?, priority = ?, tags = ?, folder = ?, is_favorite = ?, updated_at = ?
       WHERE id = ?
     `).run(
-      title, description || '', code, language, scope, priority || 10,
-      JSON.stringify(tags || []), folder || null, favoriteValue, now, req.params.id
+      updateTitle, updateDescription, updateCode, updateLanguage, updateScope, updatePriority,
+      updateTags, updateFolder, updateFavorite, now, req.params.id
     ) as { changes: number };
 
     if (result.changes === 0) {
@@ -194,6 +218,7 @@ router.put('/:id', (req, res) => {
 
     res.json({ updatedAt: now });
   } catch (error) {
+    console.error('Erreur lors de la mise à jour du snippet:', error);
     res.status(500).json({ error: 'Erreur lors de la mise à jour du snippet' });
   }
 });
