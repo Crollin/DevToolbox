@@ -321,6 +321,19 @@ export function initializeDatabase() {
     console.log('Migration ntfy_configs déjà effectuée ou table n\'existe pas encore');
   }
 
+  // Migration : Ajouter notifications_enabled à la table licences si elle n'existe pas
+  try {
+    const licencesTableInfo = db.prepare("PRAGMA table_info(licences)").all() as Array<{ name: string }>;
+    const licencesColumnNames = licencesTableInfo.map((col) => col.name);
+    
+    if (!licencesColumnNames.includes('notifications_enabled')) {
+      db.exec(`ALTER TABLE licences ADD COLUMN notifications_enabled INTEGER NOT NULL DEFAULT 1`);
+      console.log('Colonne notifications_enabled ajoutée à licences');
+    }
+  } catch (error) {
+    console.log('Migration licences (notifications_enabled) déjà effectuée ou table n\'existe pas encore');
+  }
+
   // Migration : Ajouter user_id à la table licences si elle existe déjà sans cette colonne
   try {
     const tableInfo = db.prepare("PRAGMA table_info(licences)").all() as Array<{ name: string }>;

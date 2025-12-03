@@ -8,6 +8,7 @@ export interface Licence {
   isLifetime: boolean;
   renewalDate?: string;
   notes?: string;
+  notificationsEnabled?: boolean;
   createdAt: string;
 }
 

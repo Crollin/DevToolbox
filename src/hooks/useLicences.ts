@@ -173,14 +173,16 @@ export function useLicences() {
     }
 
     try {
-      const updatedConfig = { ...ntfyConfig, ...config };
+      // Fusionner avec la config actuelle pour s'assurer que tous les champs sont présents
+      const updatedConfig = { ...defaultNtfyConfig, ...ntfyConfig, ...config };
       const response = await api.put<NtfyConfig>('/licences/ntfy-config', updatedConfig);
-      setNtfyConfig({ ...defaultNtfyConfig, ...response });
+      // Recharger depuis l'API pour avoir la version à jour
+      await loadNtfyConfig();
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la config de notifications:", error);
       throw error;
     }
-  }, [isAuthenticated, ntfyConfig]);
+  }, [isAuthenticated, ntfyConfig, loadNtfyConfig]);
 
   return {
     licences,

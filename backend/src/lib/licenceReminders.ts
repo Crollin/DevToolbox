@@ -113,16 +113,17 @@ export async function checkAndSendReminders(): Promise<void> {
         }
       }
 
-      // Récupérer les licences de l'utilisateur
+      // Récupérer les licences de l'utilisateur (uniquement celles avec notifications activées)
       const licences = db.prepare(`
-        SELECT id, name, expires_at, status
+        SELECT id, name, expires_at, status, notifications_enabled
         FROM licences
-        WHERE user_id = ? AND status != 'lifetime'
+        WHERE user_id = ? AND status != 'lifetime' AND (notifications_enabled IS NULL OR notifications_enabled = 1)
       `).all(user.id) as Array<{
         id: string;
         name: string;
         expires_at: string | null;
         status: string;
+        notifications_enabled: number | null;
       }>;
 
       // Filtrer les licences nécessitant un rappel

@@ -17,6 +17,7 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
   const [isLifetime, setIsLifetime] = useState(false);
   const [renewalDate, setRenewalDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     if (editLicence) {
@@ -26,6 +27,7 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
       setIsLifetime(editLicence.isLifetime);
       setRenewalDate(editLicence.renewalDate || "");
       setNotes(editLicence.notes || "");
+      setNotificationsEnabled(editLicence.notificationsEnabled !== false);
     } else {
       setName("");
       setKey("");
@@ -33,6 +35,7 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
       setIsLifetime(false);
       setRenewalDate("");
       setNotes("");
+      setNotificationsEnabled(true);
     }
   }, [editLicence, isOpen]);
 
@@ -45,6 +48,7 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
       isLifetime,
       renewalDate: isLifetime ? undefined : renewalDate || undefined,
       notes: notes || undefined,
+      notificationsEnabled,
     });
     onClose();
   };
@@ -169,6 +173,23 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
               placeholder="Informations supplémentaires..."
               className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             />
+          </div>
+
+          {/* Notifications */}
+          <div className="flex items-center gap-3">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={notificationsEnabled}
+                onChange={(e) => setNotificationsEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+            <div>
+              <span className="text-sm text-foreground">Activer les notifications d'expiration</span>
+              <p className="text-xs text-muted-foreground">Recevoir des alertes pour cette licence</p>
+            </div>
           </div>
 
           {/* Actions */}

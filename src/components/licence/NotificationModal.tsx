@@ -27,6 +27,8 @@ const NotificationModal = ({ isOpen, onClose, config, onSave, licences }: Notifi
     config.reminderFrequency || 'daily'
   );
   const [isSending, setIsSending] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResults, setTestResults] = useState<{ ntfy?: boolean; email?: boolean; errors?: { ntfy?: string; email?: string } } | null>(null);
 
   useEffect(() => {
     setServerUrl(config.serverUrl || "https://ntfy.sh");
@@ -42,20 +44,67 @@ const NotificationModal = ({ isOpen, onClose, config, onSave, licences }: Notifi
     return status === "expired" || status === "warning";
   });
 
-  const handleSave = () => {
-    onSave({
-      serverUrl,
-      topic,
-      token: token || undefined,
-      enabled: true,
-      notificationType,
-      autoRemindersEnabled,
-      reminderFrequency,
-    });
-    toast({
-      title: "Configuration sauvegardée",
-      description: "Les paramètres de notifications ont été mis à jour.",
-    });
+  const handleSave = async () => {
+    try {
+      await onSave({
+        serverUrl,
+        topic,
+        token: token || undefined,
+        enabled: true,
+        notificationType,
+        autoRemindersEnabled,
+        reminderFrequency,
+      });
+      toast({
+        title: "Configuration sauvegardée",
+        description: "Les paramètres de notifications ont été mis à jour.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder la configuration.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const testNotifications = async () => {
+    setIsTesting(true);
+    setTestResults(null);
+
+    try {
+      const response = await api.post('/licences/test-notifications');
+      setTestResults(response);
+      
+      const messages: string[] = [];
+      if (response.results?.ntfy === true) {
+        messages.push("✅ Test Ntfy réussi");
+      } else if (response.results?.ntfy === false) {
+        messages.push(`❌ Test Ntfy échoué${response.errors?.ntfy ? `: ${response.errors.ntfy}` : ''}`);
+      }
+      
+      if (response.results?.email === true) {
+        messages.push("✅ Test Email réussi");
+      } else if (response.results?.email === false) {
+        messages.push(`❌ Test Email échoué${response.errors?.email ? `: ${response.errors.email}` : ''}`);
+      }
+
+      if (messages.length > 0) {
+        toast({
+          title: messages.some(m => m.includes("✅")) ? "Test effectué" : "Test échoué",
+          description: messages.join(", "),
+          variant: messages.some(m => m.includes("❌")) ? "destructive" : "default",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur de test",
+        description: "Impossible d'effectuer le test. Vérifiez votre configuration.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const sendNotification = async () => {
@@ -349,28 +398,65 @@ const NotificationModal = ({ isOpen, onClose, config, onSave, licences }: Notifi
             )}
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              className="flex-1 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
-            >
-              Sauvegarder
-            </button>
-            <button
-              type="button"
-              onClick={sendNotification}
-              disabled={isSending || ((notificationType === 'ntfy' || notificationType === 'both') && !topic)}
-              className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
+          {/* Résultats du test */}
+          {testResults && (
+            <div className="p-4 rounded-lg border border-border space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Résultats du test</h4>
+              {testResults.results?.ntfy !== undefined && (
+                <div className={`flex items-center gap-2 text-sm ${testResults.results.ntfy ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {testResults.results.ntfy ? '✅' : '❌'} Ntfy: {testResults.results.ntfy ? 'Succès' : testResults.errors?.ntfy || 'Échec'}
+                </div>
               )}
-              Envoyer maintenant
+              {testResults.results?.email !== undefined && (
+                <div className={`flex items-center gap-2 text-sm ${testResults.results.email ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {testResults.results.email ? '✅' : '❌'} Email: {testResults.results.email ? 'Succès' : testResults.errors?.email || 'Échec'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="space-y-3 pt-2">
+            <button
+              type="button"
+              onClick={testNotifications}
+              disabled={isTesting || ((notificationType === 'ntfy' || notificationType === 'both') && !topic)}
+              className="w-full px-4 py-2 rounded-lg bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isTesting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Test en cours...
+                </>
+              ) : (
+                <>
+                  <Bell className="w-4 h-4" />
+                  Tester les notifications
+                </>
+              )}
             </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleSave}
+                className="flex-1 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+              >
+                Sauvegarder
+              </button>
+              <button
+                type="button"
+                onClick={sendNotification}
+                disabled={isSending || ((notificationType === 'ntfy' || notificationType === 'both') && !topic)}
+                className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                Envoyer maintenant
+              </button>
+            </div>
           </div>
         </div>
       </div>

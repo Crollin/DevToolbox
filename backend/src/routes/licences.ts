@@ -20,6 +20,7 @@ function convertBackendToFrontend(licence: {
   status: string;
   expires_at: string | null;
   notes: string | null;
+  notifications_enabled: number | null;
   created_at: string;
   updated_at: string;
 }) {
@@ -34,6 +35,7 @@ function convertBackendToFrontend(licence: {
     isLifetime,
     renewalDate,
     notes: licence.notes || undefined,
+    notificationsEnabled: licence.notifications_enabled === null || licence.notifications_enabled === 1,
     createdAt: licence.created_at,
   };
 }
@@ -46,13 +48,16 @@ function convertFrontendToBackend(data: {
   isLifetime: boolean;
   renewalDate?: string;
   notes?: string;
+  notificationsEnabled?: boolean;
 }) {
   const status = data.isLifetime ? 'lifetime' : (data.renewalDate ? 'active' : 'active');
   const expiresAt = data.isLifetime ? null : (data.renewalDate || null);
+  const notificationsEnabled = data.notificationsEnabled !== false ? 1 : 0;
 
   return {
     status,
     expiresAt,
+    notificationsEnabled,
   };
 }
 
@@ -68,6 +73,7 @@ router.get('/', (req, res) => {
       status: string;
       expires_at: string | null;
       notes: string | null;
+      notifications_enabled: number | null;
       created_at: string;
       updated_at: string;
     }[];
@@ -85,21 +91,21 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { name, key, type, isLifetime, renewalDate, notes } = req.body;
+    const { name, key, type, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
 
     if (!name || !key || !type) {
       return res.status(400).json({ error: 'Nom, clé et type sont requis' });
     }
 
-    const { status, expiresAt } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes });
+    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes, notificationsEnabled });
     const id = uuidv4();
     const now = new Date().toISOString();
 
     db.prepare(`
-      INSERT INTO licences (id, user_id, name, key, type, status, expires_at, notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO licences (id, user_id, name, key, type, status, expires_at, notes, notifications_enabled, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      id, userId, name, key, type, status, expiresAt, notes || null, now, now
+      id, userId, name, key, type, status, expiresAt, notes || null, notificationsEnabledValue, now, now
     );
 
     const licence = db.prepare('SELECT * FROM licences WHERE id = ?').get(id) as {
@@ -125,7 +131,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { name, key, type, isLifetime, renewalDate, notes } = req.body;
+    const { name, key, type, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
 
     // Vérifier que la licence appartient à l'utilisateur
     const existing = db.prepare('SELECT * FROM licences WHERE id = ? AND user_id = ?').get(req.params.id, userId) as {
@@ -136,15 +142,15 @@ router.put('/:id', (req, res) => {
       return res.status(404).json({ error: 'Licence non trouvée' });
     }
 
-    const { status, expiresAt } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes });
+    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes, notificationsEnabled });
     const now = new Date().toISOString();
 
     const result = db.prepare(`
       UPDATE licences
-      SET name = ?, key = ?, type = ?, status = ?, expires_at = ?, notes = ?, updated_at = ?
+      SET name = ?, key = ?, type = ?, status = ?, expires_at = ?, notes = ?, notifications_enabled = ?, updated_at = ?
       WHERE id = ? AND user_id = ?
     `).run(
-      name, key, type, status, expiresAt, notes || null, now, req.params.id, userId
+      name, key, type, status, expiresAt, notes || null, notificationsEnabledValue, now, req.params.id, userId
     ) as { changes: number };
 
     if (result.changes === 0) {
@@ -335,16 +341,17 @@ router.post('/send-notifications', async (req, res) => {
       return res.status(404).json({ error: 'Utilisateur non trouvé' });
     }
 
-    // Récupérer les licences expirantes
+    // Récupérer les licences expirantes (uniquement celles avec notifications activées)
     const licences = db.prepare(`
-      SELECT id, name, expires_at, status
+      SELECT id, name, expires_at, status, notifications_enabled
       FROM licences
-      WHERE user_id = ? AND status != 'lifetime'
+      WHERE user_id = ? AND status != 'lifetime' AND (notifications_enabled IS NULL OR notifications_enabled = 1)
     `).all(userId) as Array<{
       id: string;
       name: string;
       expires_at: string | null;
       status: string;
+      notifications_enabled: number | null;
     }>;
 
     // Calculer les jours jusqu'à expiration
@@ -429,6 +436,98 @@ router.post('/send-notifications', async (req, res) => {
   } catch (error) {
     console.error('Erreur lors de l\'envoi des notifications:', error);
     res.status(500).json({ error: 'Erreur lors de l\'envoi des notifications' });
+  }
+});
+
+// POST /api/licences/test-notifications - Tester les configurations de notifications
+router.post('/test-notifications', async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    
+    // Récupérer la configuration
+    const config = db.prepare('SELECT * FROM ntfy_configs WHERE user_id = ?').get(userId) as {
+      notification_type: string;
+      server_url: string;
+      topic: string;
+      token: string | null;
+    } | undefined;
+
+    if (!config) {
+      return res.status(400).json({ error: 'Configuration de notifications non trouvée' });
+    }
+
+    // Récupérer l'utilisateur
+    const user = db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId) as {
+      email: string;
+      name: string;
+    } | undefined;
+
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    const results: { ntfy?: boolean; email?: boolean; errors?: { ntfy?: string; email?: string } } = {};
+    const errors: { ntfy?: string; email?: string } = {};
+
+    // Tester Ntfy si configuré
+    if (config.notification_type === 'ntfy' || config.notification_type === 'both') {
+      if (!config.topic) {
+        results.ntfy = false;
+        errors.ntfy = 'Topic non configuré';
+      } else {
+        try {
+          const headers: Record<string, string> = {
+            'Content-Type': 'text/plain',
+            Title: '🔔 Test de notification DevToolbox',
+            Priority: 'default',
+            Tags: 'test,devtoolbox',
+          };
+
+          if (config.token) {
+            headers['Authorization'] = `Bearer ${config.token}`;
+          }
+
+          const response = await fetch(`${config.server_url}/${config.topic}`, {
+            method: 'POST',
+            headers,
+            body: 'Ceci est un message de test depuis DevToolbox. Si vous recevez ce message, votre configuration Ntfy fonctionne correctement ! ✅',
+          });
+
+          results.ntfy = response.ok;
+          if (!response.ok) {
+            errors.ntfy = `Erreur HTTP ${response.status}`;
+          }
+        } catch (error: any) {
+          console.error('Erreur lors du test Ntfy:', error);
+          results.ntfy = false;
+          errors.ntfy = error.message || 'Erreur de connexion';
+        }
+      }
+    }
+
+    // Tester Email si configuré
+    if (config.notification_type === 'email' || config.notification_type === 'both') {
+      try {
+        const { sendTestEmail } = await import('../lib/email');
+        results.email = await sendTestEmail(user.email, user.name);
+        if (!results.email) {
+          errors.email = 'SMTP non configuré ou erreur d\'envoi';
+        }
+      } catch (error: any) {
+        console.error('Erreur lors du test Email:', error);
+        results.email = false;
+        errors.email = error.message || 'Erreur d\'envoi';
+      }
+    }
+
+    res.json({
+      message: 'Test de notifications effectué',
+      results,
+      errors: Object.keys(errors).length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error('Erreur lors du test des notifications:', error);
+    res.status(500).json({ error: 'Erreur lors du test des notifications' });
   }
 });
 
