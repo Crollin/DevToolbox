@@ -68,3 +68,4 @@ export const getPresetLabel = (id: string): string => {
   return preset ? `${preset.name} (${preset.width}x${preset.height})` : id;
 };
 
+

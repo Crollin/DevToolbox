@@ -449,7 +449,7 @@ Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou un
 
 ## Licence
 
-Ce projet est distribué sous la licence **GNU General Public License v3.0 (GPL-3.0)**.
+Ce projet est distribué sous la licence **GNU General Public License v3.0 (GPL-3.0) avec clause additionnelle non-commerciale**.
 
 Voir le fichier [LICENSE](LICENSE) pour le texte complet de la licence.
 
@@ -459,12 +459,22 @@ Cette licence vous permet de :
 - **Forker** le projet sur GitHub
 - **Modifier** le code source
 - **Distribuer** le code original ou modifié
-- **Utiliser** le projet à des fins commerciales ou non commerciales
+- **Utiliser** le projet à des fins **non commerciales** (usage personnel, éducatif, ou par des organisations à but non lucratif)
+
+### Restrictions
+
+**Usage commercial interdit** : L'utilisation de ce projet à des fins commerciales est strictement interdite sans autorisation écrite explicite du détenteur du copyright. Cela inclut :
+- Toute utilisation pour laquelle des frais sont facturés ou reçus
+- Toute utilisation par une entité ou organisation commerciale
+- Toute utilisation qui génère des revenus ou des profits
+- Toute utilisation dans un produit ou service vendu
+
+Pour obtenir une licence commerciale, veuillez contacter le détenteur du copyright.
 
 ### Conditions (Copyleft)
 
 La GPL v3 est une licence copyleft, ce qui signifie que :
-- Toute modification ou distribution du code doit également être sous licence GPL v3
+- Toute modification ou distribution du code doit également être sous licence GPL v3 (avec la même clause non-commerciale)
 - Vous devez fournir le code source avec toute distribution
 - Vous devez conserver les notices de copyright et de licence
 
