@@ -66,9 +66,6 @@ const SnippetViewer = ({ snippet, isOpen, onClose }: SnippetViewerProps) => {
                   {snippet.folder}
                 </Badge>
               )}
-              <Badge variant={snippet.active ? "default" : "outline"} className="text-xs">
-                {snippet.active ? "Actif" : "Inactif"}
-              </Badge>
             </div>
           </div>
           <SheetTitle className="text-left">{snippet.title}</SheetTitle>
@@ -85,7 +82,7 @@ const SnippetViewer = ({ snippet, isOpen, onClose }: SnippetViewerProps) => {
             )}
 
             {/* Metadata */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <h4 className="text-xs font-medium text-muted-foreground mb-1">Scope</h4>
                 <p className="text-sm text-foreground">{scopeLabels[snippet.scope]}</p>
@@ -94,12 +91,6 @@ const SnippetViewer = ({ snippet, isOpen, onClose }: SnippetViewerProps) => {
                 <h4 className="text-xs font-medium text-muted-foreground mb-1">Priorité</h4>
                 <p className="text-sm text-foreground">{snippet.priority}</p>
               </div>
-              {snippet.runOnce && (
-                <div>
-                  <h4 className="text-xs font-medium text-muted-foreground mb-1">Mode</h4>
-                  <p className="text-sm text-amber-400">Exécution unique</p>
-                </div>
-              )}
             </div>
 
             {/* Tags */}

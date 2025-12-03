@@ -16,8 +16,8 @@ router.post('/init', (req, res) => {
     const now = new Date().toISOString();
     const insertSnippet = db.prepare(`
       INSERT OR IGNORE INTO code_snippets 
-      (id, title, description, code, language, scope, priority, tags, folder, active, run_once, wp_code_box_id, cloud_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, title, description, code, language, scope, priority, tags, folder, is_favorite, wp_code_box_id, cloud_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     let inserted = 0;
@@ -33,8 +33,7 @@ router.post('/init', (req, res) => {
           snippet.priority || 10,
           JSON.stringify(snippet.tags || []),
           snippet.folder || null,
-          snippet.active ? 1 : 0,
-          snippet.runOnce ? 1 : 0,
+          snippet.isFavorite ? 1 : 0,
           snippet.wpCodeBoxId || null,
           snippet.cloudId || null,
           snippet.createdAt || now,
@@ -67,8 +66,7 @@ router.get('/', (req, res) => {
       priority: number;
       tags: string | null;
       folder: string | null;
-      active: number;
-      run_once: number;
+      is_favorite: number;
       wp_code_box_id: number | null;
       cloud_id: string | null;
       created_at: string;
@@ -88,8 +86,7 @@ router.get('/', (req, res) => {
       priority: s.priority,
       tags: s.tags ? JSON.parse(s.tags) : [],
       folder: s.folder,
-      active: Boolean(s.active),
-      runOnce: Boolean(s.run_once),
+      isFavorite: Boolean(s.is_favorite),
       wpCodeBoxId: s.wp_code_box_id,
       cloudId: s.cloud_id,
       createdAt: s.created_at,
@@ -119,8 +116,7 @@ router.get('/:id', (req, res) => {
       priority: number;
       tags: string | null;
       folder: string | null;
-      active: number;
-      run_once: number;
+      is_favorite: number;
       wp_code_box_id: number | null;
       cloud_id: string | null;
       created_at: string;
@@ -140,8 +136,7 @@ router.get('/:id', (req, res) => {
       priority: snippet.priority,
       tags: snippet.tags ? JSON.parse(snippet.tags) : [],
       folder: snippet.folder,
-      active: Boolean(snippet.active),
-      runOnce: Boolean(snippet.run_once),
+      isFavorite: Boolean(snippet.is_favorite),
       wpCodeBoxId: snippet.wp_code_box_id,
       cloudId: snippet.cloud_id,
       createdAt: snippet.created_at,
@@ -155,16 +150,16 @@ router.get('/:id', (req, res) => {
 // POST /api/snippets - Créer un snippet
 router.post('/', (req, res) => {
   try {
-    const { title, description, code, language, scope, priority, tags, folder, active, runOnce, wpCodeBoxId, cloudId } = req.body;
+    const { title, description, code, language, scope, priority, tags, folder, isFavorite, wpCodeBoxId, cloudId } = req.body;
     const id = uuidv4();
     const now = new Date().toISOString();
 
     db.prepare(`
-      INSERT INTO code_snippets (id, title, description, code, language, scope, priority, tags, folder, active, run_once, wp_code_box_id, cloud_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO code_snippets (id, title, description, code, language, scope, priority, tags, folder, is_favorite, wp_code_box_id, cloud_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id, title, description || '', code, language, scope, priority || 10,
-      JSON.stringify(tags || []), folder || null, active ? 1 : 0, runOnce ? 1 : 0,
+      JSON.stringify(tags || []), folder || null, isFavorite ? 1 : 0,
       wpCodeBoxId || null, cloudId || null, now, now
     );
 
@@ -177,16 +172,20 @@ router.post('/', (req, res) => {
 // PUT /api/snippets/:id - Mettre à jour un snippet
 router.put('/:id', (req, res) => {
   try {
-    const { title, description, code, language, scope, priority, tags, folder, active, runOnce } = req.body;
+    const { title, description, code, language, scope, priority, tags, folder, isFavorite } = req.body;
     const now = new Date().toISOString();
+
+    // Récupérer le snippet actuel pour préserver is_favorite si non fourni
+    const current = db.prepare('SELECT is_favorite FROM code_snippets WHERE id = ?').get(req.params.id) as { is_favorite: number } | undefined;
+    const favoriteValue = isFavorite !== undefined ? (isFavorite ? 1 : 0) : (current ? current.is_favorite : 0);
 
     const result = db.prepare(`
       UPDATE code_snippets
-      SET title = ?, description = ?, code = ?, language = ?, scope = ?, priority = ?, tags = ?, folder = ?, active = ?, run_once = ?, updated_at = ?
+      SET title = ?, description = ?, code = ?, language = ?, scope = ?, priority = ?, tags = ?, folder = ?, is_favorite = ?, updated_at = ?
       WHERE id = ?
     `).run(
       title, description || '', code, language, scope, priority || 10,
-      JSON.stringify(tags || []), folder || null, active ? 1 : 0, runOnce ? 1 : 0, now, req.params.id
+      JSON.stringify(tags || []), folder || null, favoriteValue, now, req.params.id
     ) as { changes: number };
 
     if (result.changes === 0) {

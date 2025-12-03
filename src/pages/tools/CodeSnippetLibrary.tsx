@@ -43,7 +43,7 @@ const CodeSnippetLibrary = () => {
     addSnippet,
     updateSnippet,
     deleteSnippet,
-    toggleSnippetActive,
+    toggleFavorite,
     importSnippets,
     exportToWPCodeBox,
     exportNative,
@@ -55,7 +55,7 @@ const CodeSnippetLibrary = () => {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<SnippetLanguage | null>(null);
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
@@ -100,14 +100,14 @@ const CodeSnippetLibrary = () => {
         return false;
       }
 
-      // Active filter
-      if (showActiveOnly && !snippet.active) {
+      // Favorites filter
+      if (showFavoritesOnly && !snippet.isFavorite) {
         return false;
       }
 
       return true;
     });
-  }, [snippets, searchQuery, selectedFolder, selectedLanguage, selectedTags, showActiveOnly]);
+  }, [snippets, searchQuery, selectedFolder, selectedLanguage, selectedTags, showFavoritesOnly]);
 
   const handleEdit = (snippet: CodeSnippet) => {
     setEditingSnippet(snippet);
@@ -154,25 +154,25 @@ const CodeSnippetLibrary = () => {
     setSelectedFolder(null);
     setSelectedTags([]);
     setSelectedLanguage(null);
-    setShowActiveOnly(false);
+    setShowFavoritesOnly(false);
     setSearchQuery("");
   };
 
-  const hasActiveFilters = selectedFolder || selectedTags.length > 0 || selectedLanguage || showActiveOnly || searchQuery;
-  const activeFiltersCount = [selectedFolder, selectedLanguage, showActiveOnly].filter(Boolean).length + selectedTags.length;
+  const hasActiveFilters = selectedFolder || selectedTags.length > 0 || selectedLanguage || showFavoritesOnly || searchQuery;
+  const activeFiltersCount = [selectedFolder, selectedLanguage, showFavoritesOnly].filter(Boolean).length + selectedTags.length;
 
   // Filter sidebar content
   const FilterContent = () => (
     <div className="space-y-6">
-      {/* Active Filter */}
+      {/* Favorites Filter */}
       <div>
         <Button
-          variant={showActiveOnly ? "default" : "outline"}
+          variant={showFavoritesOnly ? "default" : "outline"}
           size="sm"
           className="w-full justify-start"
-          onClick={() => setShowActiveOnly(!showActiveOnly)}
+          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
         >
-          Actifs uniquement
+          Favoris uniquement
         </Button>
       </div>
 
@@ -334,9 +334,9 @@ const CodeSnippetLibrary = () => {
           <div className="text-sm text-muted-foreground">
             {filteredSnippets.length} snippet{filteredSnippets.length !== 1 ? "s" : ""} trouvé
             {filteredSnippets.length !== 1 ? "s" : ""}
-            {snippets.filter(s => s.active).length > 0 && (
+            {snippets.filter(s => s.isFavorite).length > 0 && (
               <span className="ml-2">
-                ({snippets.filter(s => s.active).length} actif{snippets.filter(s => s.active).length !== 1 ? "s" : ""})
+                ({snippets.filter(s => s.isFavorite).length} favori{snippets.filter(s => s.isFavorite).length !== 1 ? "s" : ""})
               </span>
             )}
           </div>
@@ -351,7 +351,7 @@ const CodeSnippetLibrary = () => {
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   onView={handleView}
-                  onToggleActive={toggleSnippetActive}
+                  onToggleFavorite={toggleFavorite}
                 />
               ))}
             </div>

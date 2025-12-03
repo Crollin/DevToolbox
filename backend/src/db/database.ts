@@ -375,6 +375,19 @@ export function initializeDatabase() {
     console.log('Table licences n\'existe pas encore ou migration déjà effectuée');
   }
 
+  // Migration : Ajouter is_favorite à la table code_snippets si elle n'existe pas
+  try {
+    const snippetsTableInfo = db.prepare("PRAGMA table_info(code_snippets)").all() as Array<{ name: string }>;
+    const snippetsColumnNames = snippetsTableInfo.map((col) => col.name);
+    
+    if (!snippetsColumnNames.includes('is_favorite')) {
+      db.exec(`ALTER TABLE code_snippets ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0`);
+      console.log('Colonne is_favorite ajoutée à code_snippets');
+    }
+  } catch (error) {
+    console.log('Migration code_snippets (is_favorite) déjà effectuée ou table n\'existe pas encore');
+  }
+
   // Table pour les calculs électriques
   db.exec(`
     CREATE TABLE IF NOT EXISTS electricalc_settings (
