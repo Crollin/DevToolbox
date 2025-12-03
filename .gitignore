@@ -26,3 +26,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Database files
+data/
+!data/.gitkeep
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Docker temporary files
+.docker/
+docker-compose.override.yml
