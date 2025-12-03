@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -42,8 +41,7 @@ const defaultSnippet: Omit<CodeSnippet, "id" | "createdAt" | "updatedAt"> = {
   priority: 10,
   tags: [],
   folder: "",
-  active: true,
-  runOnce: false,
+  isFavorite: false,
 };
 
 const SnippetEditor = ({
@@ -72,9 +70,8 @@ const SnippetEditor = ({
         scope: snippet.scope,
         priority: snippet.priority,
         tags: snippet.tags,
-        folder: snippet.folder || "",
-        active: snippet.active,
-        runOnce: snippet.runOnce,
+        folder: snippet.folder || "__none__",
+        isFavorite: snippet.isFavorite || false,
       });
     } else {
       setFormData(defaultSnippet);
@@ -84,7 +81,12 @@ const SnippetEditor = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.code.trim()) return;
-    onSave(formData);
+    // Convertir "__none__" en chaîne vide pour le dossier
+    const dataToSave = {
+      ...formData,
+      folder: formData.folder === "__none__" ? "" : formData.folder,
+    };
+    onSave(dataToSave);
     onClose();
   };
 
@@ -233,16 +235,16 @@ const SnippetEditor = ({
                 ) : (
                   <div className="flex gap-2">
                     <Select
-                      value={formData.folder}
+                      value={formData.folder || "__none__"}
                       onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, folder: value }))
+                        setFormData((prev) => ({ ...prev, folder: value === "__none__" ? "" : value }))
                       }
                     >
                       <SelectTrigger className="flex-1">
                         <SelectValue placeholder="Aucun" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Aucun</SelectItem>
+                        <SelectItem value="__none__">Aucun</SelectItem>
                         {folders.map((folder) => (
                           <SelectItem key={folder} value={folder}>
                             {folder}
@@ -309,31 +311,6 @@ const SnippetEditor = ({
               )}
             </div>
 
-            {/* Options */}
-            <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="active">Actif</Label>
-                  <p className="text-xs text-muted-foreground">Le snippet sera exécuté</p>
-                </div>
-                <Switch
-                  id="active"
-                  checked={formData.active}
-                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, active: checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="runOnce">Exécution unique</Label>
-                  <p className="text-xs text-muted-foreground">S'exécute une seule fois puis se désactive</p>
-                </div>
-                <Switch
-                  id="runOnce"
-                  checked={formData.runOnce}
-                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, runOnce: checked }))}
-                />
-              </div>
-            </div>
 
             {/* Submit */}
             <div className="flex gap-3 pt-4">

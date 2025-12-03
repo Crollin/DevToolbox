@@ -1,4 +1,4 @@
-import { Copy, Edit, Trash2, Eye, Power, Download } from "lucide-react";
+import { Copy, Edit, Trash2, Eye, Star, Download } from "lucide-react";
 import { CodeSnippet, languageLabels, scopeLabels } from "@/types/codesnippet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,13 +10,14 @@ interface SnippetCardProps {
   onEdit: (snippet: CodeSnippet) => void;
   onDelete: (id: string) => void;
   onView: (snippet: CodeSnippet) => void;
-  onToggleActive: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
 }
 
 const languageColors: Record<string, string> = {
   php: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
   javascript: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
   css: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  scss: "bg-purple-500/20 text-purple-300 border-purple-500/30",
   html: "bg-orange-500/20 text-orange-300 border-orange-500/30",
   sql: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
   bash: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
@@ -24,7 +25,7 @@ const languageColors: Record<string, string> = {
   json: "bg-gray-500/20 text-gray-300 border-gray-500/30",
 };
 
-const SnippetCard = ({ snippet, onEdit, onDelete, onView, onToggleActive }: SnippetCardProps) => {
+const SnippetCard = ({ snippet, onEdit, onDelete, onView, onToggleFavorite }: SnippetCardProps) => {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(snippet.code);
@@ -49,7 +50,7 @@ const SnippetCard = ({ snippet, onEdit, onDelete, onView, onToggleActive }: Snip
     <div
       className={cn(
         "group p-3 sm:p-4 rounded-xl bg-card border transition-all hover:shadow-lg hover:border-primary/30",
-        snippet.active ? "border-border" : "border-border/50 opacity-70"
+        snippet.isFavorite && "border-yellow-500/30"
       )}
     >
       {/* Header */}
@@ -73,15 +74,15 @@ const SnippetCard = ({ snippet, onEdit, onDelete, onView, onToggleActive }: Snip
           </h3>
         </div>
         <Button
-          variant={snippet.active ? "default" : "outline"}
+          variant="ghost"
           size="icon"
           className={cn(
             "h-7 w-7 sm:h-8 sm:w-8 shrink-0",
-            snippet.active && "bg-emerald-500 hover:bg-emerald-600"
+            snippet.isFavorite && "text-yellow-500 hover:text-yellow-600"
           )}
-          onClick={() => onToggleActive(snippet.id)}
+          onClick={() => onToggleFavorite(snippet.id)}
         >
-          <Power className="w-3 h-3 sm:w-4 sm:h-4" />
+          <Star className={cn("w-3 h-3 sm:w-4 sm:h-4", snippet.isFavorite && "fill-current")} />
         </Button>
       </div>
 
@@ -105,12 +106,6 @@ const SnippetCard = ({ snippet, onEdit, onDelete, onView, onToggleActive }: Snip
         <span>{scopeLabels[snippet.scope]}</span>
         <span>•</span>
         <span>Priorité: {snippet.priority}</span>
-        {snippet.runOnce && (
-          <>
-            <span>•</span>
-            <span className="text-amber-400">Exécution unique</span>
-          </>
-        )}
       </div>
 
       {/* Tags - Fewer on mobile */}

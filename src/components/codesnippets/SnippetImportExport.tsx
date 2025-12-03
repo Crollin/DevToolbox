@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -89,6 +90,9 @@ const SnippetImportExport = ({ onImport, onExportWPCodeBox, onExportNative }: Sn
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Importer des snippets</DialogTitle>
+            <DialogDescription>
+              Importez des snippets depuis un fichier JSON ou collez directement le contenu JSON.
+            </DialogDescription>
           </DialogHeader>
           
           <Tabs defaultValue="file" className="w-full">

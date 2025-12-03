@@ -26,6 +26,7 @@ function convertLanguage(type?: string): SnippetLanguage {
   const mapping: Record<string, SnippetLanguage> = {
     php: "php",
     css: "css",
+    scss: "scss",
     js: "javascript",
     javascript: "javascript",
     html: "html",
@@ -44,6 +45,7 @@ function toWPCodeBoxType(language: SnippetLanguage): string {
     php: "php",
     javascript: "js",
     css: "css",
+    scss: "css", // WPCodeBox doesn't support SCSS, export as CSS
     html: "html",
     sql: "sql",
     bash: "bash",
@@ -274,15 +276,35 @@ export function useCodeSnippets() {
     }
   }, []);
 
-  // Toggle snippet active state
-  const toggleSnippetActive = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      snippets: prev.snippets.map((s) =>
-        s.id === id ? { ...s, active: !s.active, updatedAt: new Date().toISOString() } : s
-      ),
-    }));
-  }, []);
+  // Toggle snippet favorite state
+  const toggleFavorite = useCallback(async (id: string) => {
+    const snippet = state.snippets.find((s) => s.id === id);
+    if (!snippet) return;
+
+    const newFavoriteState = !snippet.isFavorite;
+
+    if (USE_API) {
+      try {
+        await api.put(`/snippets/${id}`, { isFavorite: newFavoriteState });
+        setState((prev) => ({
+          ...prev,
+          snippets: prev.snippets.map((s) =>
+            s.id === id ? { ...s, isFavorite: newFavoriteState, updatedAt: new Date().toISOString() } : s
+          ),
+        }));
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour du favori:', error);
+        throw error;
+      }
+    } else {
+      setState((prev) => ({
+        ...prev,
+        snippets: prev.snippets.map((s) =>
+          s.id === id ? { ...s, isFavorite: newFavoriteState, updatedAt: new Date().toISOString() } : s
+        ),
+      }));
+    }
+  }, [state.snippets]);
 
   // Import from WPCodeBox format
   const importFromWPCodeBox = useCallback((data: WPCodeBoxExport | WPCodeBoxSnippet[]): number => {
@@ -308,8 +330,7 @@ export function useCodeSnippets() {
       priority: (Math.min(Math.max(s.priority || 10, 1), 10)) as SnippetPriority,
       tags: s.tags || [],
       folder: s.folder,
-      active: s.active === true || s.active === 1,
-      runOnce: s.run_once === true || s.run_once === 1,
+      isFavorite: false,
       createdAt: s.created || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       wpCodeBoxId: s.id,
@@ -388,11 +409,11 @@ export function useCodeSnippets() {
       type: toWPCodeBoxType(s.language),
       scope: s.scope,
       priority: s.priority,
-      active: s.active ? 1 : 0,
+      active: 1, // WPCodeBox format requires active, always set to 1
       tags: s.tags,
       folder: s.folder,
       cloud_id: s.cloudId,
-      run_once: s.runOnce ? 1 : 0,
+      run_once: 0, // WPCodeBox format requires run_once, always set to 0
       modified: s.updatedAt,
       created: s.createdAt,
     }));
@@ -490,7 +511,7 @@ export function useCodeSnippets() {
     addSnippet,
     updateSnippet,
     deleteSnippet,
-    toggleSnippetActive,
+    toggleFavorite,
     importSnippets,
     importFromWPCodeBox,
     exportToWPCodeBox,
