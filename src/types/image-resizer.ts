@@ -50,3 +50,4 @@ export interface ImageResizerState {
   settings: ImageResizeSettings;
 }
 
+

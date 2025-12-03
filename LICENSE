@@ -8,6 +8,28 @@
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
 
+ ADDITIONAL PERMISSION UNDER SECTION 7 OF GPL V3:
+
+ As a special exception to the GNU General Public License version 3,
+ you may not use this file or any part of it for commercial purposes
+ without explicit written permission from the copyright holder.
+
+ For the purposes of this exception, "commercial purposes" means:
+ - Any use of this software for which a fee is charged or received
+ - Any use of this software by a commercial entity or organization
+ - Any use of this software that generates revenue or profit
+ - Any use of this software in a product or service that is sold
+
+ This exception does not apply to:
+ - Personal, non-commercial use
+ - Educational use
+ - Use by non-profit organizations
+ - Use for internal purposes within an organization (not for resale)
+
+ If you wish to use this software for commercial purposes, please
+ contact the copyright holder at the address provided in the source
+ code or documentation to obtain a commercial license.
+
  This program is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -644,4 +666,5 @@ make the output comply with the terms of this License.
 if any, to sign a "copyright disclaimer" for the program, if necessary.
 For more information on this and other topics, contact the Free Software
 Foundation at gnu@gnu.org.
+
 

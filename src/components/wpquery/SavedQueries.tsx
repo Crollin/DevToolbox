@@ -109,3 +109,4 @@ const SavedQueries = ({ queries, onLoad, onDelete }: SavedQueriesProps) => {
 export default SavedQueries;
 
 
+
