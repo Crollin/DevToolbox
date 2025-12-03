@@ -153,6 +153,11 @@ DevToolbox/
   - Prévisualisation avant/après avec statistiques
   - Traitement 100% côté client (pas de backend requis)
 - **Licence Key Hub** - Gestionnaire centralisé de clés de licence
+  - Gestion complète des licences (WordPress, SaaS, API, etc.)
+  - Notifications d'expiration via Ntfy et/ou Email (SMTP)
+  - Rappels automatiques configurable (quotidien/hebdomadaire)
+  - Toggle par licence pour activer/désactiver les notifications
+  - Test de notifications pour valider les configurations
 - **Mon Calcul Énergie** - Calculateur de consommation énergétique
 - **SVG Icon Library** - Bibliothèque d'icônes SVG
 - **WP Hook Reference** - Référence complète des hooks WordPress
@@ -196,7 +201,7 @@ Le backend expose une API REST complète pour tous les modules. Consultez le [RE
 - `/api/docker` - Gestion des commandes Docker (authentification requise)
 - `/api/git` - Gestion des commandes Git (authentification requise)
 - `/api/icons` - Gestion des icônes SVG (authentification requise)
-- `/api/licences` - Gestion des licences (authentification requise)
+- `/api/licences` - Gestion des licences et notifications (authentification requise)
 - `/api/electricalc` - Calculateur électrique (authentification requise)
 - `/health` - Health check (public)
 
@@ -391,7 +396,22 @@ cd backend && npm run db:migrate
 
 ## Fonctionnalités récentes
 
-### Système d'authentification (Nouveau)
+### Licence Key Hub - Notifications améliorées (Nouveau)
+Système complet de notifications pour les licences expirantes :
+
+- **Types de notifications** : Choix entre Ntfy uniquement, Email uniquement (SMTP), ou les deux
+- **Rappels automatiques** : Notifications automatiques à 30 jours, 7 jours et 1 jour avant expiration
+- **Fréquence configurable** : Rappels quotidiens ou hebdomadaires
+- **Toggle par licence** : Activer/désactiver les notifications individuellement pour chaque licence
+- **Test de notifications** : Validation des configurations Ntfy et SMTP avant utilisation
+- **Envoi manuel** : Possibilité d'envoyer immédiatement les notifications pour les licences expirantes
+- **Configuration flexible** : Test et envoi utilisent les valeurs du formulaire sans nécessiter de sauvegarde préalable
+
+**Configuration requise** :
+- Pour Ntfy : Serveur Ntfy (par défaut https://ntfy.sh), topic et optionnellement un token d'authentification
+- Pour Email : Configuration SMTP dans les variables d'environnement (voir section Configuration Email)
+
+### Système d'authentification
 Système complet de gestion des utilisateurs avec synchronisation multi-appareils :
 
 - **Comptes utilisateurs** : Création de compte obligatoire pour accéder aux outils

@@ -132,10 +132,24 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 ### Licences (Authentification requise)
 - `GET /api/licences` - Liste toutes les licences de l'utilisateur connecté
 - `POST /api/licences` - Crée une licence pour l'utilisateur connecté
+  - Body: `{ name: string, key: string, type: string, isLifetime: boolean, renewalDate?: string, notes?: string, notificationsEnabled?: boolean }`
 - `PUT /api/licences/:id` - Met à jour une licence (si elle appartient à l'utilisateur)
+  - Body: `{ name: string, key: string, type: string, isLifetime: boolean, renewalDate?: string, notes?: string, notificationsEnabled?: boolean }`
 - `DELETE /api/licences/:id` - Supprime une licence (si elle appartient à l'utilisateur)
-- `GET /api/licences/ntfy-config` - Récupère la configuration Ntfy de l'utilisateur
-- `PUT /api/licences/ntfy-config` - Met à jour la configuration Ntfy de l'utilisateur
+- `GET /api/licences/ntfy-config` - Récupère la configuration de notifications de l'utilisateur
+  - Retourne: `{ enabled: boolean, serverUrl: string, topic: string, token?: string, notificationType: 'ntfy'|'email'|'both', autoRemindersEnabled: boolean, reminderFrequency: 'daily'|'weekly', lastReminderSentAt?: string, emailConfigured: boolean }`
+- `PUT /api/licences/ntfy-config` - Met à jour la configuration de notifications
+  - Body: `{ enabled: boolean, serverUrl: string, topic: string, token?: string, notificationType: 'ntfy'|'email'|'both', autoRemindersEnabled: boolean, reminderFrequency: 'daily'|'weekly' }`
+- `POST /api/licences/test-notifications` - Teste les configurations de notifications (Ntfy et/ou Email)
+  - Body (optionnel): `{ notificationType?: 'ntfy'|'email'|'both', serverUrl?: string, topic?: string, token?: string }`
+  - Si les paramètres sont fournis, utilise ceux-ci pour le test, sinon utilise la config sauvegardée
+  - Retourne: `{ message: string, results: { ntfy?: boolean, email?: boolean }, errors?: { ntfy?: string, email?: string } }`
+- `POST /api/licences/send-notifications` - Envoie manuellement les notifications pour les licences expirantes
+  - Body (optionnel): `{ notificationType?: 'ntfy'|'email'|'both', serverUrl?: string, topic?: string, token?: string }`
+  - Si les paramètres sont fournis, utilise ceux-ci pour l'envoi, sinon utilise la config sauvegardée
+  - Retourne: `{ message: string, sent: boolean, results: { ntfy?: boolean, email?: boolean }, licencesCount: number }`
+- `POST /api/licences/check-expiring` - Déclenche manuellement la vérification et l'envoi des rappels automatiques
+  - Retourne: `{ message: string }`
 
 ### Calculateur électrique
 - `GET /api/electricalc/settings` - Récupère les paramètres
@@ -196,7 +210,11 @@ backend/
 │   │   ├── docker.ts         # Routes pour Docker
 │   │   ├── git.ts            # Routes pour Git
 │   │   ├── icons.ts          # Routes pour les icônes
-│   │   ├── licences.ts       # Routes pour les licences (authentification requise)
+│   │   ├── licences.ts       # Routes pour les licences et notifications (authentification requise)
+│   │   └── ...
+│   ├── lib/
+│   │   ├── email.ts          # Service d'envoi d'emails (Nodemailer) et notifications de licences
+│   │   └── licenceReminders.ts  # Logique de vérification et envoi des rappels automatiques
 │   │   └── electricalc.ts    # Routes pour le calculateur
 │   └── index.ts              # Point d'entrée du serveur
 ├── data/                     # Dossier pour la base de données
@@ -222,8 +240,10 @@ Le système d'authentification utilise les tables suivantes :
 
 - `users` - Comptes utilisateurs (id, email, password_hash, name)
 - `sessions` - Blacklist de tokens (optionnel)
-- `ntfy_configs` - Configurations Ntfy par utilisateur
-- `licences` - Modifiée pour inclure `user_id` (association aux utilisateurs)
+- `ntfy_configs` - Configurations de notifications par utilisateur
+  - Colonnes: `id`, `user_id`, `enabled`, `server_url`, `topic`, `token`, `notification_type` ('ntfy'|'email'|'both'), `auto_reminders_enabled`, `reminder_frequency` ('daily'|'weekly'), `last_reminder_sent_at`, `created_at`, `updated_at`
+- `licences` - Licences associées aux utilisateurs
+  - Colonnes: `id`, `user_id`, `name`, `key`, `type`, `status`, `expires_at`, `notes`, `notifications_enabled` (toggle par licence), `created_at`, `updated_at`
 
 ### Middleware d'authentification
 
