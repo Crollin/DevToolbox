@@ -47,7 +47,12 @@ echo -e "${GREEN}✓ Fichiers ignorés retirés du suivi${NC}"
 
 # Récupérer les modifications distantes
 echo -e "${YELLOW}⬇️  Récupération des modifications distantes...${NC}"
-BRANCH=$(git branch --show-current)
+# Détecter la branche actuelle (compatible avec toutes les versions de Git)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ -z "$BRANCH" ] || [ "$BRANCH" = "HEAD" ]; then
+    # Fallback si on est en état détaché
+    BRANCH=$(git branch | grep '^\*' | sed 's/^\* //')
+fi
 echo "Branche actuelle : $BRANCH"
 
 # Faire le pull
