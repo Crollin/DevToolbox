@@ -2,6 +2,9 @@ import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
+import { sendLicenceExpirationEmail, ExpiringLicence } from '../lib/email';
+import { checkAndSendReminders } from '../lib/licenceReminders';
+import { isEmailConfigured } from '../lib/email';
 
 const router = express.Router();
 
@@ -182,7 +185,7 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-// GET /api/licences/ntfy-config - Récupérer la configuration Ntfy de l'utilisateur
+// GET /api/licences/ntfy-config - Récupérer la configuration de notifications de l'utilisateur
 router.get('/ntfy-config', (req, res) => {
   try {
     const userId = req.user!.id;
@@ -191,6 +194,10 @@ router.get('/ntfy-config', (req, res) => {
       server_url: string;
       topic: string;
       token: string | null;
+      notification_type: string | null;
+      auto_reminders_enabled: number | null;
+      reminder_frequency: string | null;
+      last_reminder_sent_at: string | null;
     } | undefined;
 
     if (!config) {
@@ -198,15 +205,20 @@ router.get('/ntfy-config', (req, res) => {
       const id = uuidv4();
       const now = new Date().toISOString();
       db.prepare(`
-        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, userId, 0, 'https://ntfy.sh', '', null, now, now);
+        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, notification_type, auto_reminders_enabled, reminder_frequency, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, userId, 0, 'https://ntfy.sh', '', null, 'ntfy', 0, 'daily', now, now);
 
       return res.json({
         enabled: false,
         serverUrl: 'https://ntfy.sh',
         topic: '',
         token: undefined,
+        notificationType: 'ntfy',
+        autoRemindersEnabled: false,
+        reminderFrequency: 'daily',
+        lastReminderSentAt: undefined,
+        emailConfigured: isEmailConfigured(),
       });
     }
 
@@ -215,18 +227,31 @@ router.get('/ntfy-config', (req, res) => {
       serverUrl: config.server_url,
       topic: config.topic,
       token: config.token || undefined,
+      notificationType: config.notification_type || 'ntfy',
+      autoRemindersEnabled: config.auto_reminders_enabled === 1,
+      reminderFrequency: config.reminder_frequency || 'daily',
+      lastReminderSentAt: config.last_reminder_sent_at || undefined,
+      emailConfigured: isEmailConfigured(),
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération de la config Ntfy:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération de la configuration Ntfy' });
+    console.error('Erreur lors de la récupération de la config de notifications:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération de la configuration de notifications' });
   }
 });
 
-// PUT /api/licences/ntfy-config - Mettre à jour la configuration Ntfy
+// PUT /api/licences/ntfy-config - Mettre à jour la configuration de notifications
 router.put('/ntfy-config', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { enabled, serverUrl, topic, token } = req.body;
+    const {
+      enabled,
+      serverUrl,
+      topic,
+      token,
+      notificationType,
+      autoRemindersEnabled,
+      reminderFrequency,
+    } = req.body;
 
     const existing = db.prepare('SELECT id FROM ntfy_configs WHERE user_id = ?').get(userId) as { id: string } | undefined;
     const now = new Date().toISOString();
@@ -234,21 +259,24 @@ router.put('/ntfy-config', (req, res) => {
     if (existing) {
       db.prepare(`
         UPDATE ntfy_configs
-        SET enabled = ?, server_url = ?, topic = ?, token = ?, updated_at = ?
+        SET enabled = ?, server_url = ?, topic = ?, token = ?, notification_type = ?, auto_reminders_enabled = ?, reminder_frequency = ?, updated_at = ?
         WHERE user_id = ?
       `).run(
         enabled ? 1 : 0,
         serverUrl || 'https://ntfy.sh',
         topic || '',
         token || null,
+        notificationType || 'ntfy',
+        autoRemindersEnabled ? 1 : 0,
+        reminderFrequency || 'daily',
         now,
         userId
       );
     } else {
       const id = uuidv4();
       db.prepare(`
-        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, notification_type, auto_reminders_enabled, reminder_frequency, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id,
         userId,
@@ -256,6 +284,9 @@ router.put('/ntfy-config', (req, res) => {
         serverUrl || 'https://ntfy.sh',
         topic || '',
         token || null,
+        notificationType || 'ntfy',
+        autoRemindersEnabled ? 1 : 0,
+        reminderFrequency || 'daily',
         now,
         now
       );
@@ -266,10 +297,149 @@ router.put('/ntfy-config', (req, res) => {
       serverUrl: serverUrl || 'https://ntfy.sh',
       topic: topic || '',
       token: token || undefined,
+      notificationType: notificationType || 'ntfy',
+      autoRemindersEnabled: autoRemindersEnabled || false,
+      reminderFrequency: reminderFrequency || 'daily',
+      emailConfigured: isEmailConfigured(),
     });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour de la config Ntfy:', error);
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la configuration Ntfy' });
+    console.error('Erreur lors de la mise à jour de la config de notifications:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de la configuration de notifications' });
+  }
+});
+
+// POST /api/licences/send-notifications - Envoyer manuellement les notifications
+router.post('/send-notifications', async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    
+    // Récupérer la configuration
+    const config = db.prepare('SELECT * FROM ntfy_configs WHERE user_id = ?').get(userId) as {
+      notification_type: string;
+      server_url: string;
+      topic: string;
+      token: string | null;
+    } | undefined;
+
+    if (!config) {
+      return res.status(400).json({ error: 'Configuration de notifications non trouvée' });
+    }
+
+    // Récupérer l'utilisateur
+    const user = db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId) as {
+      email: string;
+      name: string;
+    } | undefined;
+
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    // Récupérer les licences expirantes
+    const licences = db.prepare(`
+      SELECT id, name, expires_at, status
+      FROM licences
+      WHERE user_id = ? AND status != 'lifetime'
+    `).all(userId) as Array<{
+      id: string;
+      name: string;
+      expires_at: string | null;
+      status: string;
+    }>;
+
+    // Calculer les jours jusqu'à expiration
+    const licencesToNotify: ExpiringLicence[] = [];
+    for (const licence of licences) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expiry = licence.expires_at ? new Date(licence.expires_at) : null;
+      if (expiry) {
+        expiry.setHours(0, 0, 0, 0);
+        const diffTime = expiry.getTime() - today.getTime();
+        const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Inclure les licences expirées ou expirant dans moins de 30 jours
+        if (daysUntilExpiry <= 30) {
+          licencesToNotify.push({
+            name: licence.name,
+            daysUntilExpiry,
+            isExpired: daysUntilExpiry < 0,
+          });
+        }
+      }
+    }
+
+    if (licencesToNotify.length === 0) {
+      return res.json({ message: 'Aucune licence nécessitant une notification', sent: false });
+    }
+
+    const results: { ntfy?: boolean; email?: boolean } = {};
+
+    // Envoyer Ntfy si configuré
+    if (config.notification_type === 'ntfy' || config.notification_type === 'both') {
+      if (!config.topic) {
+        results.ntfy = false;
+      } else {
+        try {
+          const headers: Record<string, string> = {
+            'Content-Type': 'text/plain',
+            Title: `🔑 Licences à renouveler (${licencesToNotify.length})`,
+            Priority: licencesToNotify.some((l) => l.isExpired) ? 'high' : 'default',
+            Tags: licencesToNotify.some((l) => l.isExpired) ? 'warning,key' : 'key',
+          };
+
+          if (config.token) {
+            headers['Authorization'] = `Bearer ${config.token}`;
+          }
+
+          const message = licencesToNotify
+            .map((l) => {
+              if (l.isExpired) {
+                return `❌ ${l.name} - Expirée depuis ${Math.abs(l.daysUntilExpiry)} jours`;
+              }
+              return `⚠️ ${l.name} - ${l.daysUntilExpiry} jours restants`;
+            })
+            .join('\n');
+
+          const response = await fetch(`${config.server_url}/${config.topic}`, {
+            method: 'POST',
+            headers,
+            body: message,
+          });
+
+          results.ntfy = response.ok;
+        } catch (error) {
+          console.error('Erreur lors de l\'envoi Ntfy:', error);
+          results.ntfy = false;
+        }
+      }
+    }
+
+    // Envoyer Email si configuré
+    if (config.notification_type === 'email' || config.notification_type === 'both') {
+      results.email = await sendLicenceExpirationEmail(user.email, user.name, licencesToNotify);
+    }
+
+    res.json({
+      message: 'Notifications envoyées',
+      sent: true,
+      results,
+      licencesCount: licencesToNotify.length,
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi des notifications:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'envoi des notifications' });
+  }
+});
+
+// POST /api/licences/check-expiring - Vérifier et envoyer les rappels automatiques
+router.post('/check-expiring', async (req, res) => {
+  try {
+    await checkAndSendReminders();
+    res.json({ message: 'Vérification des rappels effectuée' });
+  } catch (error) {
+    console.error('Erreur lors de la vérification des rappels:', error);
+    res.status(500).json({ error: 'Erreur lors de la vérification des rappels' });
   }
 });
 

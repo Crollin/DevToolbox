@@ -14,6 +14,7 @@ import iconsRoutes from './routes/icons';
 import licencesRoutes from './routes/licences';
 import electricalcRoutes from './routes/electricalc';
 import authRoutes from './routes/auth';
+import { checkAndSendReminders } from './lib/licenceReminders';
 
 const app = express();
 const PORT = process.env.PORT || 1400;
@@ -48,5 +49,27 @@ app.get('/health', (req, res) => {
 // Démarrage du serveur
 app.listen(PORT, () => {
   console.log(`🚀 Serveur backend démarré sur le port ${PORT}`);
+  
+  // Démarrer le système de rappels automatiques pour les licences
+  // Vérification toutes les heures (3600000 ms)
+  const REMINDER_CHECK_INTERVAL = 60 * 60 * 1000; // 1 heure
+  
+  // Exécuter immédiatement au démarrage (après un court délai pour laisser la DB s'initialiser)
+  setTimeout(() => {
+    console.log('🔔 Vérification initiale des rappels de licences...');
+    checkAndSendReminders().catch((error) => {
+      console.error('Erreur lors de la vérification initiale des rappels:', error);
+    });
+  }, 5000); // 5 secondes après le démarrage
+  
+  // Puis exécuter périodiquement
+  setInterval(() => {
+    console.log('🔔 Vérification périodique des rappels de licences...');
+    checkAndSendReminders().catch((error) => {
+      console.error('Erreur lors de la vérification périodique des rappels:', error);
+    });
+  }, REMINDER_CHECK_INTERVAL);
+  
+  console.log(`⏰ Système de rappels automatiques activé (vérification toutes les heures)`);
 });
 

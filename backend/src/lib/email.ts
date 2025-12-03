@@ -130,6 +130,175 @@ export async function sendConfirmationEmail(email: string, name: string): Promis
 }
 
 /**
+ * Interface pour une licence expirante
+ */
+export interface ExpiringLicence {
+  name: string;
+  daysUntilExpiry: number;
+  isExpired: boolean;
+}
+
+/**
+ * Envoie un email de notification d'expiration de licences
+ */
+export async function sendLicenceExpirationEmail(
+  email: string,
+  name: string,
+  licences: ExpiringLicence[]
+): Promise<boolean> {
+  // Si le transporteur n'est pas configuré, on retourne false sans erreur
+  if (!transporter) {
+    console.warn('SMTP non configuré - email de notification de licences non envoyé');
+    return false;
+  }
+
+  if (licences.length === 0) {
+    return false;
+  }
+
+  const expiredCount = licences.filter((l) => l.isExpired).length;
+  const warningCount = licences.length - expiredCount;
+
+  const licencesListHtml = licences
+    .map((licence) => {
+      const status = licence.isExpired
+        ? `<span style="color: #dc2626; font-weight: bold;">❌ Expirée depuis ${Math.abs(licence.daysUntilExpiry)} jours</span>`
+        : `<span style="color: #f59e0b; font-weight: bold;">⚠️ ${licence.daysUntilExpiry} jours restants</span>`;
+      return `<li style="margin-bottom: 12px; padding: 12px; background: #fff; border-left: 3px solid ${licence.isExpired ? '#dc2626' : '#f59e0b'}; border-radius: 4px;">
+        <strong>${licence.name}</strong><br>
+        ${status}
+      </li>`;
+    })
+    .join('');
+
+  const licencesListText = licences
+    .map((licence) => {
+      const status = licence.isExpired
+        ? `❌ Expirée depuis ${Math.abs(licence.daysUntilExpiry)} jours`
+        : `⚠️ ${licence.daysUntilExpiry} jours restants`;
+      return `- ${licence.name} - ${status}`;
+    })
+    .join('\n');
+
+  try {
+    const mailOptions = {
+      from: `"DevToolbox" <${SMTP_FROM}>`,
+      to: email,
+      subject: `🔑 Licences à renouveler (${licences.length})`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background: linear-gradient(135deg, #0066CC 0%, #004499 100%);
+              color: white;
+              padding: 30px;
+              text-align: center;
+              border-radius: 8px 8px 0 0;
+            }
+            .content {
+              background: #f9fafb;
+              padding: 30px;
+              border-radius: 0 0 8px 8px;
+            }
+            .licences-list {
+              list-style: none;
+              padding: 0;
+              margin: 20px 0;
+            }
+            .button {
+              display: inline-block;
+              padding: 12px 24px;
+              background: #0066CC;
+              color: white;
+              text-decoration: none;
+              border-radius: 6px;
+              margin-top: 20px;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              color: #6b7280;
+              font-size: 14px;
+            }
+            .summary {
+              background: ${expiredCount > 0 ? '#fee2e2' : '#fef3c7'};
+              padding: 15px;
+              border-radius: 6px;
+              margin: 20px 0;
+              border-left: 4px solid ${expiredCount > 0 ? '#dc2626' : '#f59e0b'};
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>🔑 Licences à renouveler</h1>
+          </div>
+          <div class="content">
+            <p>Bonjour <strong>${name}</strong>,</p>
+            <p>Vous avez <strong>${licences.length} licence(s)</strong> nécessitant votre attention :</p>
+            <div class="summary">
+              ${expiredCount > 0 ? `<strong>${expiredCount} licence(s) expirée(s)</strong>` : ''}
+              ${warningCount > 0 ? `<strong>${warningCount} licence(s) expirant bientôt</strong>` : ''}
+            </div>
+            <ul class="licences-list">
+              ${licencesListHtml}
+            </ul>
+            <p style="text-align: center;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/licence-key-hub" class="button">Gérer mes licences</a>
+            </p>
+            <p>N'oubliez pas de renouveler vos licences avant leur expiration pour éviter toute interruption de service.</p>
+            <p>Cordialement,<br>L'équipe DevToolbox</p>
+          </div>
+          <div class="footer">
+            <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Licences à renouveler
+        
+        Bonjour ${name},
+        
+        Vous avez ${licences.length} licence(s) nécessitant votre attention :
+        
+        ${licencesListText}
+        
+        ${expiredCount > 0 ? `${expiredCount} licence(s) expirée(s)` : ''}
+        ${warningCount > 0 ? `${warningCount} licence(s) expirant bientôt` : ''}
+        
+        Gérer mes licences : ${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/licence-key-hub
+        
+        N'oubliez pas de renouveler vos licences avant leur expiration pour éviter toute interruption de service.
+        
+        Cordialement,
+        L'équipe DevToolbox
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email de notification de licences envoyé à ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi de l\'email de notification de licences:', error);
+    return false;
+  }
+}
+
+/**
  * Vérifie si le service email est configuré
  */
 export function isEmailConfigured(): boolean {
