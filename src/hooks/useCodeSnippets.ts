@@ -26,6 +26,7 @@ function convertLanguage(type?: string): SnippetLanguage {
   const mapping: Record<string, SnippetLanguage> = {
     php: "php",
     css: "css",
+    scss: "scss",
     js: "javascript",
     javascript: "javascript",
     html: "html",
@@ -44,6 +45,7 @@ function toWPCodeBoxType(language: SnippetLanguage): string {
     php: "php",
     javascript: "js",
     css: "css",
+    scss: "css", // WPCodeBox doesn't support SCSS, export as CSS
     html: "html",
     sql: "sql",
     bash: "bash",

@@ -1,4 +1,4 @@
-export type SnippetLanguage = "php" | "javascript" | "css" | "html" | "sql" | "bash" | "python" | "json";
+export type SnippetLanguage = "php" | "javascript" | "css" | "scss" | "html" | "sql" | "bash" | "python" | "json";
 export type SnippetScope = "global" | "admin" | "frontend" | "single-use";
 export type SnippetPriority = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
@@ -80,6 +80,7 @@ export const languageLabels: Record<SnippetLanguage, string> = {
   php: "PHP",
   javascript: "JavaScript",
   css: "CSS",
+  scss: "SCSS",
   html: "HTML",
   sql: "SQL",
   bash: "Bash/Shell",
