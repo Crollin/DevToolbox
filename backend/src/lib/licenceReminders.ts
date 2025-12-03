@@ -49,8 +49,8 @@ async function sendNtfyNotification(
 
   try {
     const headers: Record<string, string> = {
-      'Content-Type': 'text/plain',
-      Title: `🔑 Licences à renouveler (${licences.length})`,
+      'Content-Type': 'text/plain; charset=utf-8',
+      Title: `Licences à renouveler (${licences.length})`,
       Priority: expiredCount > 0 ? 'high' : 'default',
       Tags: expiredCount > 0 ? 'warning,key' : 'key',
     };

@@ -353,8 +353,8 @@ router.post('/send-notifications', async (req, res) => {
       } else {
         try {
           const headers: Record<string, string> = {
-            'Content-Type': 'text/plain',
-            Title: `🔑 Licences à renouveler (${licencesToNotify.length})`,
+            'Content-Type': 'text/plain; charset=utf-8',
+            Title: `Licences à renouveler (${licencesToNotify.length})`,
             Priority: licencesToNotify.some((l) => l.isExpired) ? 'high' : 'default',
             Tags: licencesToNotify.some((l) => l.isExpired) ? 'warning,key' : 'key',
           };
@@ -468,8 +468,8 @@ router.post('/test-notifications', async (req, res) => {
       } else {
         try {
           const headers: Record<string, string> = {
-            'Content-Type': 'text/plain',
-            Title: '🔔 Test de notification DevToolbox',
+            'Content-Type': 'text/plain; charset=utf-8',
+            Title: 'Test de notification DevToolbox',
             Priority: 'default',
             Tags: 'test,devtoolbox',
           };
