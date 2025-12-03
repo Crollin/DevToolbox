@@ -128,71 +128,6 @@ router.post('/', (req, res) => {
   }
 });
 
-// PUT /api/licences/:id - Mettre à jour une licence
-router.put('/:id', (req, res) => {
-  try {
-    const userId = req.user!.id;
-    const { name, key, type, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
-
-    // Vérifier que la licence appartient à l'utilisateur
-    const existing = db.prepare('SELECT * FROM licences WHERE id = ? AND user_id = ?').get(req.params.id, userId) as {
-      id: string;
-    } | undefined;
-
-    if (!existing) {
-      return res.status(404).json({ error: 'Licence non trouvée' });
-    }
-
-    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes, notificationsEnabled });
-    const now = new Date().toISOString();
-
-    const result = db.prepare(`
-      UPDATE licences
-      SET name = ?, key = ?, type = ?, status = ?, expires_at = ?, notes = ?, notifications_enabled = ?, updated_at = ?
-      WHERE id = ? AND user_id = ?
-    `).run(
-      name, key, type, status, expiresAt, notes || null, notificationsEnabledValue, now, req.params.id, userId
-    ) as { changes: number };
-
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Licence non trouvée' });
-    }
-
-    const updated = db.prepare('SELECT * FROM licences WHERE id = ?').get(req.params.id) as {
-      id: string;
-      name: string;
-      key: string;
-      type: string;
-      status: string;
-      expires_at: string | null;
-      notes: string | null;
-      notifications_enabled: number | null;
-      created_at: string;
-      updated_at: string;
-    };
-
-    res.json(convertBackendToFrontend(updated));
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour de la licence:', error);
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la licence' });
-  }
-});
-
-// DELETE /api/licences/:id - Supprimer une licence
-router.delete('/:id', (req, res) => {
-  try {
-    const userId = req.user!.id;
-    const result = db.prepare('DELETE FROM licences WHERE id = ? AND user_id = ?').run(req.params.id, userId) as { changes: number };
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Licence non trouvée' });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erreur lors de la suppression de la licence:', error);
-    res.status(500).json({ error: 'Erreur lors de la suppression de la licence' });
-  }
-});
-
 // GET /api/licences/ntfy-config - Récupérer la configuration de notifications de l'utilisateur
 router.get('/ntfy-config', (req, res) => {
   try {
@@ -321,16 +256,43 @@ router.post('/send-notifications', async (req, res) => {
   try {
     const userId = req.user!.id;
     
-    // Récupérer la configuration
-    const config = db.prepare('SELECT * FROM ntfy_configs WHERE user_id = ?').get(userId) as {
+    // Accepter les paramètres en body (optionnel) ou utiliser la config sauvegardée
+    const {
+      notificationType,
+      serverUrl,
+      topic,
+      token,
+    } = req.body;
+
+    let config: {
       notification_type: string;
       server_url: string;
       topic: string;
       token: string | null;
-    } | undefined;
+    };
 
-    if (!config) {
-      return res.status(400).json({ error: 'Configuration de notifications non trouvée' });
+    // Si des paramètres sont fournis, les utiliser, sinon récupérer la config sauvegardée
+    if (notificationType !== undefined) {
+      config = {
+        notification_type: notificationType,
+        server_url: serverUrl || 'https://ntfy.sh',
+        topic: topic || '',
+        token: token || null,
+      };
+    } else {
+      // Récupérer la configuration sauvegardée
+      const savedConfig = db.prepare('SELECT * FROM ntfy_configs WHERE user_id = ?').get(userId) as {
+        notification_type: string;
+        server_url: string;
+        topic: string;
+        token: string | null;
+      } | undefined;
+
+      if (!savedConfig) {
+        return res.status(400).json({ error: 'Configuration de notifications non trouvée' });
+      }
+
+      config = savedConfig;
     }
 
     // Récupérer l'utilisateur
@@ -446,16 +408,43 @@ router.post('/test-notifications', async (req, res) => {
   try {
     const userId = req.user!.id;
     
-    // Récupérer la configuration
-    const config = db.prepare('SELECT * FROM ntfy_configs WHERE user_id = ?').get(userId) as {
+    // Accepter les paramètres en body (optionnel) ou utiliser la config sauvegardée
+    const {
+      notificationType,
+      serverUrl,
+      topic,
+      token,
+    } = req.body;
+
+    let config: {
       notification_type: string;
       server_url: string;
       topic: string;
       token: string | null;
-    } | undefined;
+    };
 
-    if (!config) {
-      return res.status(400).json({ error: 'Configuration de notifications non trouvée' });
+    // Si des paramètres sont fournis, les utiliser, sinon récupérer la config sauvegardée
+    if (notificationType !== undefined) {
+      config = {
+        notification_type: notificationType,
+        server_url: serverUrl || 'https://ntfy.sh',
+        topic: topic || '',
+        token: token || null,
+      };
+    } else {
+      // Récupérer la configuration sauvegardée
+      const savedConfig = db.prepare('SELECT * FROM ntfy_configs WHERE user_id = ?').get(userId) as {
+        notification_type: string;
+        server_url: string;
+        topic: string;
+        token: string | null;
+      } | undefined;
+
+      if (!savedConfig) {
+        return res.status(400).json({ error: 'Configuration de notifications non trouvée' });
+      }
+
+      config = savedConfig;
     }
 
     // Récupérer l'utilisateur
@@ -541,6 +530,71 @@ router.post('/check-expiring', async (req, res) => {
   } catch (error) {
     console.error('Erreur lors de la vérification des rappels:', error);
     res.status(500).json({ error: 'Erreur lors de la vérification des rappels' });
+  }
+});
+
+// PUT /api/licences/:id - Mettre à jour une licence
+router.put('/:id', (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { name, key, type, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
+
+    // Vérifier que la licence appartient à l'utilisateur
+    const existing = db.prepare('SELECT * FROM licences WHERE id = ? AND user_id = ?').get(req.params.id, userId) as {
+      id: string;
+    } | undefined;
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Licence non trouvée' });
+    }
+
+    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes, notificationsEnabled });
+    const now = new Date().toISOString();
+
+    const result = db.prepare(`
+      UPDATE licences
+      SET name = ?, key = ?, type = ?, status = ?, expires_at = ?, notes = ?, notifications_enabled = ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    `).run(
+      name, key, type, status, expiresAt, notes || null, notificationsEnabledValue, now, req.params.id, userId
+    ) as { changes: number };
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Licence non trouvée' });
+    }
+
+    const updated = db.prepare('SELECT * FROM licences WHERE id = ?').get(req.params.id) as {
+      id: string;
+      name: string;
+      key: string;
+      type: string;
+      status: string;
+      expires_at: string | null;
+      notes: string | null;
+      notifications_enabled: number | null;
+      created_at: string;
+      updated_at: string;
+    };
+
+    res.json(convertBackendToFrontend(updated));
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la licence:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de la licence' });
+  }
+});
+
+// DELETE /api/licences/:id - Supprimer une licence
+router.delete('/:id', (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const result = db.prepare('DELETE FROM licences WHERE id = ? AND user_id = ?').run(req.params.id, userId) as { changes: number };
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Licence non trouvée' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la licence:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression de la licence' });
   }
 });
 

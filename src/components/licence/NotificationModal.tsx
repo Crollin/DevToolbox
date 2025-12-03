@@ -28,7 +28,11 @@ const NotificationModal = ({ isOpen, onClose, config, onSave, licences }: Notifi
   );
   const [isSending, setIsSending] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [testResults, setTestResults] = useState<{ ntfy?: boolean; email?: boolean; errors?: { ntfy?: string; email?: string } } | null>(null);
+  const [testResults, setTestResults] = useState<{
+    message?: string;
+    results?: { ntfy?: boolean; email?: boolean };
+    errors?: { ntfy?: string; email?: string };
+  } | null>(null);
 
   useEffect(() => {
     setServerUrl(config.serverUrl || "https://ntfy.sh");
@@ -73,7 +77,17 @@ const NotificationModal = ({ isOpen, onClose, config, onSave, licences }: Notifi
     setTestResults(null);
 
     try {
-      const response = await api.post('/licences/test-notifications');
+      // Envoyer les valeurs du formulaire pour tester sans sauvegarder
+      const response = await api.post<{
+        message: string;
+        results?: { ntfy?: boolean; email?: boolean };
+        errors?: { ntfy?: string; email?: string };
+      }>('/licences/test-notifications', {
+        notificationType,
+        serverUrl,
+        topic,
+        token: token || undefined,
+      });
       setTestResults(response);
       
       const messages: string[] = [];
@@ -129,7 +143,18 @@ const NotificationModal = ({ isOpen, onClose, config, onSave, licences }: Notifi
     setIsSending(true);
 
     try {
-      const response = await api.post('/licences/send-notifications');
+      // Envoyer les valeurs du formulaire pour utiliser la config actuelle sans sauvegarder
+      const response = await api.post<{
+        message?: string;
+        sent: boolean;
+        results?: { ntfy?: boolean; email?: boolean };
+        licencesCount?: number;
+      }>('/licences/send-notifications', {
+        notificationType,
+        serverUrl,
+        topic,
+        token: token || undefined,
+      });
       
       if (response.sent) {
         const results = response.results || {};
