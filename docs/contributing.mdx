@@ -1,0 +1,356 @@
+---
+title: Guide de contribution
+description: Comment contribuer au projet DevToolbox
+---
+
+# Guide de contribution
+
+Merci de votre intérêt pour contribuer à DevToolbox ! Ce guide vous explique comment contribuer au projet.
+
+## Code de conduite
+
+En participant à ce projet, vous acceptez de respecter notre code de conduite :
+
+- Soyez respectueux et inclusif
+- Acceptez les critiques constructives
+- Focalisez-vous sur ce qui est meilleur pour la communauté
+- Montrez de l'empathie envers les autres membres
+
+## Comment contribuer
+
+### Types de contributions
+
+Nous acceptons différents types de contributions :
+
+- **Rapports de bugs** : Signalez les problèmes que vous rencontrez
+- **Suggestions de fonctionnalités** : Proposez de nouvelles idées
+- **Amélioration de la documentation** : Aidez à améliorer la documentation
+- **Code** : Ajoutez de nouvelles fonctionnalités ou corrigez des bugs
+- **Tests** : Ajoutez ou améliorez les tests
+- **Traductions** : Aidez à traduire l'application
+
+## Processus de contribution
+
+### 1. Fork et clone
+
+```bash
+# Fork le dépôt sur GitHub
+# Puis clonez votre fork
+git clone https://github.com/VOTRE-USERNAME/DevToolbox.git
+cd DevToolbox
+```
+
+### 2. Configurer le dépôt distant
+
+```bash
+# Ajouter le dépôt original comme upstream
+git remote add upstream https://github.com/ORIGINAL-OWNER/DevToolbox.git
+
+# Vérifier les remotes
+git remote -v
+```
+
+### 3. Créer une branche
+
+```bash
+# Créer une branche pour votre contribution
+git checkout -b feature/ma-fonctionnalite
+
+# Ou pour une correction de bug
+git checkout -b fix/mon-bug
+```
+
+### 4. Installer les dépendances
+
+```bash
+# Frontend
+npm install
+
+# Backend
+cd backend && npm install && cd ..
+```
+
+### 5. Développer
+
+- Suivez les [standards de code](#standards-de-code)
+- Consultez le [Guide de développement](/development)
+- Testez votre code localement
+- Faites des commits réguliers
+
+### 6. Synchroniser avec upstream
+
+```bash
+# Récupérer les dernières modifications
+git fetch upstream
+
+# Fusionner dans votre branche
+git merge upstream/main
+# ou
+git merge upstream/master
+```
+
+### 7. Push et Pull Request
+
+```bash
+# Push votre branche
+git push origin feature/ma-fonctionnalite
+
+# Créer une Pull Request sur GitHub
+```
+
+## Standards de code
+
+### TypeScript
+
+- Utilisez TypeScript pour tous les nouveaux fichiers
+- Définissez des interfaces/types pour toutes les structures
+- Évitez `any`, utilisez `unknown` si nécessaire
+- Suivez les conventions de nommage existantes
+
+### React
+
+- Utilisez des composants fonctionnels avec hooks
+- Utilisez `const` pour les composants
+- Nommez les composants en PascalCase
+- Utilisez des props typées
+
+### Formatage
+
+- Utilisez 2 espaces pour l'indentation
+- Utilisez des guillemets simples pour les strings
+- Ajoutez un point-virgule à la fin des instructions
+- Suivez le style existant du projet
+
+### Naming conventions
+
+- **Fichiers** : kebab-case (`mon-composant.tsx`)
+- **Composants** : PascalCase (`MonComposant`)
+- **Fonctions/variables** : camelCase (`maFonction`)
+- **Constantes** : UPPER_SNAKE_CASE (`MA_CONSTANTE`)
+- **Types/interfaces** : PascalCase (`MonType`)
+
+### Commentaires
+
+- Commentez le code complexe
+- Utilisez des commentaires JSDoc pour les fonctions publiques
+- Gardez les commentaires à jour avec le code
+
+## Structure des commits
+
+### Format
+
+Utilisez le format suivant pour vos messages de commit :
+
+```
+<type>(<scope>): <description>
+
+[corps optionnel]
+
+[footer optionnel]
+```
+
+### Types
+
+- `feat:` : Nouvelle fonctionnalité
+- `fix:` : Correction de bug
+- `docs:` : Documentation uniquement
+- `style:` : Changements de formatage (pas de changement de code)
+- `refactor:` : Refactorisation du code
+- `perf:` : Amélioration des performances
+- `test:` : Ajout ou modification de tests
+- `chore:` : Tâches de maintenance (build, config, etc.)
+- `ci:` : Changements de CI/CD
+
+### Exemples
+
+```bash
+feat(snippets): ajout de l'import WPCodeBox
+fix(docker): correction du problème de permissions
+docs(api): mise à jour de la documentation des endpoints
+style(components): formatage du code avec Prettier
+refactor(hooks): simplification de useCodeSnippets
+test(api): ajout de tests pour les routes snippets
+chore(deps): mise à jour des dépendances
+```
+
+### Bonnes pratiques
+
+- Utilisez l'impératif ("ajoute" pas "ajouté")
+- Limitez la première ligne à 50 caractères
+- Ajoutez un corps si nécessaire pour expliquer le "pourquoi"
+- Référencez les issues avec `#123`
+
+## Tests
+
+### Tests manuels
+
+Avant de soumettre une Pull Request, testez :
+
+1. **Installation** : L'application s'installe correctement
+2. **Fonctionnalités** : Vos modifications fonctionnent comme prévu
+3. **Régression** : Vous n'avez pas cassé les fonctionnalités existantes
+4. **Build** : Le build fonctionne sans erreurs
+
+```bash
+# Build frontend
+npm run build
+
+# Build backend
+cd backend && npm run build && cd ..
+
+# Tester avec Docker
+docker-compose up -d --build
+```
+
+### Tests à effectuer
+
+- [ ] L'application démarre sans erreur
+- [ ] Les nouvelles fonctionnalités fonctionnent
+- [ ] Les fonctionnalités existantes fonctionnent toujours
+- [ ] Pas d'erreurs dans la console
+- [ ] Pas d'erreurs TypeScript
+- [ ] Le build fonctionne
+
+## Pull Requests
+
+### Avant de créer une PR
+
+1. **Synchronisez** votre branche avec upstream
+2. **Testez** votre code
+3. **Vérifiez** que tout fonctionne
+4. **Documentez** vos changements si nécessaire
+
+### Créer une Pull Request
+
+1. Allez sur GitHub
+2. Cliquez sur "New Pull Request"
+3. Sélectionnez votre branche
+4. Remplissez le template de PR
+
+### Template de Pull Request
+
+```markdown
+## Description
+Brève description de vos changements
+
+## Type de changement
+- [ ] Bug fix
+- [ ] Nouvelle fonctionnalité
+- [ ] Amélioration de la documentation
+- [ ] Refactorisation
+- [ ] Autre (précisez)
+
+## Comment tester
+Étapes pour tester vos changements :
+1. ...
+2. ...
+
+## Checklist
+- [ ] Mon code suit les standards du projet
+- [ ] J'ai testé mes changements
+- [ ] J'ai mis à jour la documentation si nécessaire
+- [ ] Mes commits suivent le format conventionnel
+- [ ] J'ai vérifié qu'il n'y a pas de régression
+```
+
+### Révision de code
+
+Votre PR sera révisée. Les commentaires sont normaux et font partie du processus. Répondez aux commentaires et faites les modifications demandées.
+
+## Ajout de nouveaux outils
+
+Si vous ajoutez un nouvel outil, consultez le [Guide de développement](/development#ajout-de-nouveaux-outils) pour les étapes détaillées.
+
+### Checklist pour un nouvel outil
+
+- [ ] Ajouté à `src/data/tools.ts`
+- [ ] Créé la page dans `src/pages/tools/`
+- [ ] Ajouté la route dans `src/App.tsx`
+- [ ] Créé les types dans `src/types/`
+- [ ] Créé le hook personnalisé si nécessaire
+- [ ] Créé les routes backend si nécessaire
+- [ ] Créé la table de base de données si nécessaire
+- [ ] Testé l'outil complètement
+- [ ] Documenté l'outil
+
+## Amélioration de la documentation
+
+La documentation est importante ! Vous pouvez contribuer en :
+
+- Corrigeant les erreurs
+- Ajoutant des exemples
+- Améliorant la clarté
+- Ajoutant des sections manquantes
+- Traduisant la documentation
+
+## Signaler des bugs
+
+### Avant de signaler
+
+1. Vérifiez que le bug n'a pas déjà été signalé
+2. Vérifiez que vous utilisez la dernière version
+3. Essayez de reproduire le bug
+
+### Template de bug report
+
+```markdown
+## Description
+Description claire du bug
+
+## Étapes pour reproduire
+1. ...
+2. ...
+3. ...
+
+## Comportement attendu
+Ce qui devrait se passer
+
+## Comportement actuel
+Ce qui se passe réellement
+
+## Environnement
+- OS: [ex: macOS 13.0]
+- Node.js: [ex: 20.10.0]
+- Docker: [ex: 24.0.0] (si applicable)
+- Navigateur: [ex: Chrome 120] (si applicable)
+
+## Logs
+Logs d'erreur pertinents
+
+## Captures d'écran
+Si applicable
+```
+
+## Proposer des fonctionnalités
+
+### Template de feature request
+
+```markdown
+## Description
+Description claire de la fonctionnalité proposée
+
+## Problème résolu
+Quel problème cette fonctionnalité résout-elle ?
+
+## Solution proposée
+Comment cette fonctionnalité devrait fonctionner ?
+
+## Alternatives considérées
+Autres solutions que vous avez envisagées
+
+## Contexte additionnel
+Tout autre contexte pertinent
+```
+
+## Questions
+
+Si vous avez des questions :
+
+1. Consultez la [documentation](/intro)
+2. Vérifiez les [issues existantes](Lien vers les issues)
+3. Ouvrez une [nouvelle issue](Lien vers les issues) avec votre question
+
+## Remerciements
+
+Merci de contribuer à DevToolbox ! Votre aide est précieuse et appréciée.
+
