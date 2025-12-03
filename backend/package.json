@@ -2,6 +2,7 @@
   "name": "devtoolbox-backend",
   "version": "1.0.0",
   "description": "Backend API pour DevToolbox avec SQLite",
+  "license": "GPL-3.0",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
