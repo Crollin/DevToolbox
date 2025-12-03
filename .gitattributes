@@ -1,0 +1,53 @@
+# Configuration Git pour DevToolbox
+
+# Fichiers texte - normaliser les fins de ligne
+* text=auto
+
+# Fichiers source
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Fichiers de configuration
+*.config.js text eol=lf
+*.config.ts text eol=lf
+tsconfig*.json text eol=lf
+package*.json text eol=lf
+
+# Fichiers binaires
+*.db binary
+*.db-journal binary
+*.sqlite binary
+*.sqlite3 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Fichiers Docker
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+
+# Fichiers de documentation
+*.md text eol=lf
+LICENSE text eol=lf
+README* text eol=lf
+
+# Scripts shell
+*.sh text eol=lf
+*.bash text eol=lf
+

@@ -248,6 +248,56 @@ docker-compose exec backend sh
 
 Voir [DOCKER.md](DOCKER.md) pour plus de commandes.
 
+## Mise à jour du projet
+
+### Mise à jour avec le script automatisé (Recommandé)
+
+Pour mettre à jour le projet sans conflits avec les fichiers locaux (base de données, etc.) :
+
+```bash
+# Exécuter le script de mise à jour
+./scripts/git-update.sh
+```
+
+Ce script :
+- Sauvegarde automatiquement la base de données
+- Sauvegarde vos modifications locales (stash)
+- Retire les fichiers ignorés du suivi Git
+- Fait le pull des modifications distantes
+- Récupère vos modifications locales
+- Gère les conflits automatiquement
+
+### Mise à jour manuelle
+
+Si vous préférez mettre à jour manuellement :
+
+```bash
+# 1. Sauvegarder la base de données (optionnel mais recommandé)
+cp data/devtoolbox.db data/devtoolbox.db.backup
+
+# 2. Sauvegarder vos modifications locales
+git stash push -m "Modifications locales avant pull"
+
+# 3. Retirer les fichiers ignorés du suivi Git (si nécessaire)
+git rm -r --cached data/*.db 2>/dev/null || true
+
+# 4. Faire le pull
+git pull origin main  # ou votre branche
+
+# 5. Récupérer vos modifications locales
+git stash pop
+```
+
+### Fichiers ignorés par Git
+
+Les fichiers suivants sont automatiquement ignorés et ne causeront pas de conflits :
+- `data/devtoolbox.db` - Base de données SQLite
+- `data/*.backup` - Fichiers de sauvegarde
+- `*.db`, `*.db-journal` - Tous les fichiers de base de données
+- `.env` - Variables d'environnement (utilisez `.env.example` comme modèle)
+
+**Note** : Le dossier `data/` est conservé dans Git grâce au fichier `data/.gitkeep`, mais les fichiers de base de données ne sont pas versionnés.
+
 ## Technologies utilisées
 
 ### Frontend
@@ -371,6 +421,8 @@ Le fichier `.env.example` contient toutes les variables nécessaires avec des co
 ## Base de données
 
 La base de données SQLite est stockée dans `./data/devtoolbox.db` (ou dans le volume Docker).
+
+**Important** : Le fichier de base de données n'est **pas versionné** dans Git pour éviter les conflits. Chaque environnement (développement, production) a sa propre base de données.
 
 ### Sauvegarde
 
