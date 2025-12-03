@@ -116,6 +116,7 @@ router.post('/', (req, res) => {
       status: string;
       expires_at: string | null;
       notes: string | null;
+      notifications_enabled: number | null;
       created_at: string;
       updated_at: string;
     };
@@ -165,6 +166,7 @@ router.put('/:id', (req, res) => {
       status: string;
       expires_at: string | null;
       notes: string | null;
+      notifications_enabled: number | null;
       created_at: string;
       updated_at: string;
     };
