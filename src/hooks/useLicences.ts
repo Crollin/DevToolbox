@@ -12,6 +12,9 @@ const defaultNtfyConfig: NtfyConfig = {
   serverUrl: "https://ntfy.sh",
   topic: "",
   token: "",
+  notificationType: "ntfy",
+  autoRemindersEnabled: false,
+  reminderFrequency: "daily",
 };
 
 export function useLicences() {
@@ -44,9 +47,9 @@ export function useLicences() {
 
     try {
       const data = await api.get<NtfyConfig>('/licences/ntfy-config');
-      setNtfyConfig(data || defaultNtfyConfig);
+      setNtfyConfig({ ...defaultNtfyConfig, ...data });
     } catch (error) {
-      console.error("Erreur lors du chargement de la config Ntfy:", error);
+      console.error("Erreur lors du chargement de la config de notifications:", error);
       setNtfyConfig(defaultNtfyConfig);
     }
   }, [isAuthenticated]);
@@ -166,18 +169,20 @@ export function useLicences() {
 
   const updateNtfyConfig = useCallback(async (config: Partial<NtfyConfig>) => {
     if (!isAuthenticated) {
-      throw new Error("Vous devez être connecté pour modifier la configuration Ntfy");
+      throw new Error("Vous devez être connecté pour modifier la configuration de notifications");
     }
 
     try {
-      const updatedConfig = { ...ntfyConfig, ...config };
-      await api.put('/licences/ntfy-config', updatedConfig);
-      setNtfyConfig(updatedConfig);
+      // Fusionner avec la config actuelle pour s'assurer que tous les champs sont présents
+      const updatedConfig = { ...defaultNtfyConfig, ...ntfyConfig, ...config };
+      const response = await api.put<NtfyConfig>('/licences/ntfy-config', updatedConfig);
+      // Recharger depuis l'API pour avoir la version à jour
+      await loadNtfyConfig();
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de la config Ntfy:", error);
+      console.error("Erreur lors de la mise à jour de la config de notifications:", error);
       throw error;
     }
-  }, [isAuthenticated, ntfyConfig]);
+  }, [isAuthenticated, ntfyConfig, loadNtfyConfig]);
 
   return {
     licences,

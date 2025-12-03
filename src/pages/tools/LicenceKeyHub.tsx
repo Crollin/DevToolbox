@@ -7,7 +7,7 @@ import { Licence, LicenceType, licenceTypeLabels, licenceTypeColors } from "@/ty
 import { getLicenceStatus } from "@/components/licence/LicenceStatusBadge";
 import LicenceCard from "@/components/licence/LicenceCard";
 import LicenceModal from "@/components/licence/LicenceModal";
-import NtfyModal from "@/components/licence/NtfyModal";
+import NotificationModal from "@/components/licence/NotificationModal";
 import { cn } from "@/lib/utils";
 
 const LicenceKeyHub = () => {
@@ -176,7 +176,7 @@ const LicenceKeyHub = () => {
         editLicence={editingLicence}
       />
 
-      <NtfyModal
+      <NotificationModal
         isOpen={isNtfyModalOpen}
         onClose={() => setIsNtfyModalOpen(false)}
         config={ntfyConfig}

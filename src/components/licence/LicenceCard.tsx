@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, Eye, EyeOff, Copy, Check, Pencil, Trash2, StickyNote } from "lucide-react";
+import { Key, Eye, EyeOff, Copy, Check, Pencil, Trash2, StickyNote, Bell, BellOff } from "lucide-react";
 import { Licence, licenceTypeLabels, licenceTypeColors } from "@/types/licence";
 import LicenceStatusBadge from "./LicenceStatusBadge";
 import { cn } from "@/lib/utils";
@@ -62,6 +62,11 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
                 {licenceTypeLabels[licence.type]}
               </span>
               <LicenceStatusBadge licence={licence} />
+              {licence.notificationsEnabled === false && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border" title="Notifications désactivées">
+                  <BellOff className="w-3 h-3" />
+                </span>
+              )}
             </div>
 
             {/* Key */}

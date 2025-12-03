@@ -8,6 +8,7 @@ export interface Licence {
   isLifetime: boolean;
   renewalDate?: string;
   notes?: string;
+  notificationsEnabled?: boolean;
   createdAt: string;
 }
 
@@ -16,6 +17,11 @@ export interface NtfyConfig {
   serverUrl: string;
   topic: string;
   token?: string;
+  notificationType?: 'ntfy' | 'email' | 'both';
+  autoRemindersEnabled?: boolean;
+  reminderFrequency?: 'daily' | 'weekly';
+  lastReminderSentAt?: string;
+  emailConfigured?: boolean;
 }
 
 export const licenceTypeLabels: Record<LicenceType, string> = {

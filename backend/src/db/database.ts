@@ -293,6 +293,47 @@ export function initializeDatabase() {
     )
   `);
 
+  // Migration : Ajouter les nouvelles colonnes à ntfy_configs si elles n'existent pas
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(ntfy_configs)").all() as Array<{ name: string }>;
+    const columnNames = tableInfo.map((col) => col.name);
+    
+    if (!columnNames.includes('notification_type')) {
+      db.exec(`ALTER TABLE ntfy_configs ADD COLUMN notification_type TEXT NOT NULL DEFAULT 'ntfy'`);
+      console.log('Colonne notification_type ajoutée à ntfy_configs');
+    }
+    
+    if (!columnNames.includes('auto_reminders_enabled')) {
+      db.exec(`ALTER TABLE ntfy_configs ADD COLUMN auto_reminders_enabled INTEGER NOT NULL DEFAULT 0`);
+      console.log('Colonne auto_reminders_enabled ajoutée à ntfy_configs');
+    }
+    
+    if (!columnNames.includes('reminder_frequency')) {
+      db.exec(`ALTER TABLE ntfy_configs ADD COLUMN reminder_frequency TEXT NOT NULL DEFAULT 'daily'`);
+      console.log('Colonne reminder_frequency ajoutée à ntfy_configs');
+    }
+    
+    if (!columnNames.includes('last_reminder_sent_at')) {
+      db.exec(`ALTER TABLE ntfy_configs ADD COLUMN last_reminder_sent_at TEXT`);
+      console.log('Colonne last_reminder_sent_at ajoutée à ntfy_configs');
+    }
+  } catch (error) {
+    console.log('Migration ntfy_configs déjà effectuée ou table n\'existe pas encore');
+  }
+
+  // Migration : Ajouter notifications_enabled à la table licences si elle n'existe pas
+  try {
+    const licencesTableInfo = db.prepare("PRAGMA table_info(licences)").all() as Array<{ name: string }>;
+    const licencesColumnNames = licencesTableInfo.map((col) => col.name);
+    
+    if (!licencesColumnNames.includes('notifications_enabled')) {
+      db.exec(`ALTER TABLE licences ADD COLUMN notifications_enabled INTEGER NOT NULL DEFAULT 1`);
+      console.log('Colonne notifications_enabled ajoutée à licences');
+    }
+  } catch (error) {
+    console.log('Migration licences (notifications_enabled) déjà effectuée ou table n\'existe pas encore');
+  }
+
   // Migration : Ajouter user_id à la table licences si elle existe déjà sans cette colonne
   try {
     const tableInfo = db.prepare("PRAGMA table_info(licences)").all() as Array<{ name: string }>;
