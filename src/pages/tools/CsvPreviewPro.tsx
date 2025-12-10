@@ -10,6 +10,7 @@ import {
   Rows3,
   Columns3,
   Loader2,
+  GripVertical,
 } from "lucide-react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
@@ -24,6 +25,7 @@ interface CsvData {
   headers: string[];
   rows: string[][];
   fileName: string;
+  delimiter: string;
 }
 
 const CsvPreviewPro = () => {
@@ -33,7 +35,71 @@ const CsvPreviewPro = () => {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const parseFile = useCallback((file: File) => {
+  const detectDelimiter = useCallback(async (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split("\n").slice(0, 5).filter((line) => line.trim().length > 0);
+        
+        if (lines.length === 0) {
+          resolve(",");
+          return;
+        }
+
+        const delimiters = [
+          { char: ",", name: "Virgule" },
+          { char: ";", name: "Point-virgule" },
+          { char: "\t", name: "Tabulation" },
+          { char: "|", name: "Pipe" },
+        ];
+
+        const scores: { [key: string]: number[] } = {};
+        
+        delimiters.forEach((del) => {
+          scores[del.char] = [];
+          lines.forEach((line) => {
+            const count = (line.match(new RegExp(`\\${del.char}`, "g")) || []).length;
+            scores[del.char].push(count);
+          });
+        });
+
+        // Trouver le délimiteur avec le plus grand nombre d'occurrences cohérentes
+        let bestDelimiter = ",";
+        let bestScore = 0;
+
+        delimiters.forEach((del) => {
+          const counts = scores[del.char];
+          if (counts.length > 0) {
+            const avgCount = counts.reduce((a, b) => a + b, 0) / counts.length;
+            const variance = counts.reduce((sum, count) => sum + Math.pow(count - avgCount, 2), 0) / counts.length;
+            // Score basé sur la moyenne moins la variance (cohérence)
+            const score = avgCount - variance * 0.1;
+            
+            if (score > bestScore && avgCount > 0) {
+              bestScore = score;
+              bestDelimiter = del.char;
+            }
+          }
+        });
+
+        resolve(bestDelimiter);
+      };
+      reader.readAsText(file.slice(0, 1024 * 10)); // Lire les 10 premiers KB
+    });
+  }, []);
+
+  const formatDelimiter = (delimiter: string): string => {
+    const delimiterMap: { [key: string]: string } = {
+      ",": "Virgule",
+      ";": "Point-virgule",
+      "\t": "Tabulation",
+      "|": "Pipe",
+    };
+    return delimiterMap[delimiter] || delimiter;
+  };
+
+  const parseFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith(".csv")) {
       toast({
         title: "Format invalide",
@@ -45,34 +111,47 @@ const CsvPreviewPro = () => {
 
     setIsLoading(true);
 
-    Papa.parse(file, {
-      complete: (results) => {
-        const data = results.data as string[][];
-        if (data.length > 0) {
-          const headers = data[0];
-          const rows = data.slice(1).filter((row) => row.some((cell) => cell.trim() !== ""));
-          setCsvData({
-            headers,
-            rows,
-            fileName: file.name,
-          });
+    try {
+      const detectedDelimiter = await detectDelimiter(file);
+
+      Papa.parse(file, {
+        delimiter: detectedDelimiter,
+        complete: (results) => {
+          const data = results.data as string[][];
+          if (data.length > 0) {
+            const headers = data[0];
+            const rows = data.slice(1).filter((row) => row.some((cell) => cell.trim() !== ""));
+            setCsvData({
+              headers,
+              rows,
+              fileName: file.name,
+              delimiter: detectedDelimiter,
+            });
+            toast({
+              title: "Fichier chargé",
+              description: `${rows.length} lignes et ${headers.length} colonnes détectées.`,
+            });
+          }
+          setIsLoading(false);
+        },
+        error: (error) => {
           toast({
-            title: "Fichier chargé",
-            description: `${rows.length} lignes et ${headers.length} colonnes détectées.`,
+            title: "Erreur de parsing",
+            description: error.message,
+            variant: "destructive",
           });
-        }
-        setIsLoading(false);
-      },
-      error: (error) => {
-        toast({
-          title: "Erreur de parsing",
-          description: error.message,
-          variant: "destructive",
-        });
-        setIsLoading(false);
-      },
-    });
-  }, []);
+          setIsLoading(false);
+        },
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de détection",
+        description: "Impossible de détecter le délimiteur. Utilisation de la virgule par défaut.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  }, [detectDelimiter]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -254,7 +333,7 @@ const CsvPreviewPro = () => {
 
         {/* File Info */}
         {csvData && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50">
               <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center">
                 <File className="w-5 h-5 text-accent" />
@@ -280,6 +359,15 @@ const CsvPreviewPro = () => {
               <div>
                 <p className="text-xs text-muted-foreground">Colonnes</p>
                 <p className="font-medium text-foreground font-mono">{csvData.headers.length}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+                <GripVertical className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Délimiteur</p>
+                <p className="font-medium text-foreground">{formatDelimiter(csvData.delimiter)}</p>
               </div>
             </div>
           </div>
