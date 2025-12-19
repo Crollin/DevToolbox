@@ -14,7 +14,9 @@ import iconsRoutes from './routes/icons';
 import licencesRoutes from './routes/licences';
 import electricalcRoutes from './routes/electricalc';
 import authRoutes from './routes/auth';
+import tasksRoutes from './routes/tasks';
 import { checkAndSendReminders } from './lib/licenceReminders';
+import { checkAndSendTaskReminders } from './lib/taskReminders';
 
 const app = express();
 const PORT = process.env.PORT || 1400;
@@ -40,6 +42,7 @@ app.use('/api/git', gitRoutes);
 app.use('/api/icons', iconsRoutes);
 app.use('/api/licences', licencesRoutes);
 app.use('/api/electricalc', electricalcRoutes);
+app.use('/api/tasks', tasksRoutes);
 
 // Route de santé
 app.get('/health', (req, res) => {
@@ -60,6 +63,11 @@ app.listen(PORT, () => {
     checkAndSendReminders().catch((error) => {
       console.error('Erreur lors de la vérification initiale des rappels:', error);
     });
+    
+    console.log('📋 Vérification initiale des rappels de tâches...');
+    checkAndSendTaskReminders().catch((error) => {
+      console.error('Erreur lors de la vérification initiale des rappels de tâches:', error);
+    });
   }, 5000); // 5 secondes après le démarrage
   
   // Puis exécuter périodiquement
@@ -67,6 +75,11 @@ app.listen(PORT, () => {
     console.log('🔔 Vérification périodique des rappels de licences...');
     checkAndSendReminders().catch((error) => {
       console.error('Erreur lors de la vérification périodique des rappels:', error);
+    });
+    
+    console.log('📋 Vérification périodique des rappels de tâches...');
+    checkAndSendTaskReminders().catch((error) => {
+      console.error('Erreur lors de la vérification périodique des rappels de tâches:', error);
     });
   }, REMINDER_CHECK_INTERVAL);
   

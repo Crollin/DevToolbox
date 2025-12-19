@@ -401,6 +401,169 @@ export async function sendTestEmail(email: string, name: string): Promise<boolea
 }
 
 /**
+ * Interface pour une tâche avec rappel
+ */
+export interface TaskReminder {
+  title: string;
+  description?: string;
+  dueDate: string;
+  client?: string;
+  link?: string;
+  daysUntilDue?: number;
+}
+
+/**
+ * Envoie un email de rappel pour une tâche
+ */
+export async function sendTaskReminderEmail(
+  email: string,
+  name: string,
+  task: TaskReminder
+): Promise<boolean> {
+  // Si le transporteur n'est pas configuré, on retourne false sans erreur
+  if (!transporter) {
+    console.warn('SMTP non configuré - email de rappel de tâche non envoyé');
+    return false;
+  }
+
+  const daysUntilDue = task.daysUntilDue;
+  let urgencyText = '';
+  let urgencyColor = '#0066CC';
+  
+  if (daysUntilDue !== undefined) {
+    if (daysUntilDue < 0) {
+      urgencyText = `⚠️ En retard depuis ${Math.abs(daysUntilDue)} jour(s)`;
+      urgencyColor = '#dc2626';
+    } else if (daysUntilDue === 0) {
+      urgencyText = '🔴 Échéance aujourd\'hui !';
+      urgencyColor = '#dc2626';
+    } else if (daysUntilDue === 1) {
+      urgencyText = '⚠️ Échéance demain';
+      urgencyColor = '#f59e0b';
+    } else {
+      urgencyText = `📅 Échéance dans ${daysUntilDue} jour(s)`;
+      urgencyColor = '#0066CC';
+    }
+  }
+
+  const taskDetailsHtml = `
+    <div style="background: #fff; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${urgencyColor};">
+      <h2 style="margin-top: 0; color: #1f2937;">${task.title}</h2>
+      ${task.description ? `<p style="color: #6b7280; margin: 10px 0;">${task.description}</p>` : ''}
+      <div style="margin: 15px 0;">
+        <p style="margin: 5px 0;"><strong>📅 Date d'échéance :</strong> ${new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        ${task.client ? `<p style="margin: 5px 0;"><strong>👤 Client :</strong> ${task.client}</p>` : ''}
+        ${task.link ? `<p style="margin: 5px 0;"><strong>🔗 Lien :</strong> <a href="${task.link}" style="color: #0066CC;">${task.link}</a></p>` : ''}
+        ${urgencyText ? `<p style="margin: 10px 0; padding: 10px; background: ${urgencyColor === '#dc2626' ? '#fee2e2' : urgencyColor === '#f59e0b' ? '#fef3c7' : '#dbeafe'}; border-radius: 4px; color: ${urgencyColor}; font-weight: bold;">${urgencyText}</p>` : ''}
+      </div>
+    </div>
+  `;
+
+  const taskDetailsText = `
+${task.title}
+${task.description ? `\n${task.description}` : ''}
+
+📅 Date d'échéance : ${new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+${task.client ? `👤 Client : ${task.client}` : ''}
+${task.link ? `🔗 Lien : ${task.link}` : ''}
+${urgencyText ? `\n${urgencyText}` : ''}
+  `;
+
+  try {
+    const mailOptions = {
+      from: `"DevToolbox" <${SMTP_FROM}>`,
+      to: email,
+      subject: `📋 Rappel de tâche : ${task.title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background: linear-gradient(135deg, #0066CC 0%, #004499 100%);
+              color: white;
+              padding: 30px;
+              text-align: center;
+              border-radius: 8px 8px 0 0;
+            }
+            .content {
+              background: #f9fafb;
+              padding: 30px;
+              border-radius: 0 0 8px 8px;
+            }
+            .button {
+              display: inline-block;
+              padding: 12px 24px;
+              background: #0066CC;
+              color: white;
+              text-decoration: none;
+              border-radius: 6px;
+              margin-top: 20px;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              color: #6b7280;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>📋 Rappel de tâche</h1>
+          </div>
+          <div class="content">
+            <p>Bonjour <strong>${name}</strong>,</p>
+            <p>Vous avez une tâche qui nécessite votre attention :</p>
+            ${taskDetailsHtml}
+            <p style="text-align: center;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/task-reminder" class="button">Voir mes tâches</a>
+            </p>
+            <p>Cordialement,<br>L'équipe DevToolbox</p>
+          </div>
+          <div class="footer">
+            <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Rappel de tâche
+        
+        Bonjour ${name},
+        
+        Vous avez une tâche qui nécessite votre attention :
+        
+        ${taskDetailsText}
+        
+        Voir mes tâches : ${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/task-reminder
+        
+        Cordialement,
+        L'équipe DevToolbox
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email de rappel de tâche envoyé à ${email} pour la tâche "${task.title}"`);
+    return true;
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi de l\'email de rappel de tâche:', error);
+    return false;
+  }
+}
+
+/**
  * Vérifie si le service email est configuré
  */
 export function isEmailConfigured(): boolean {

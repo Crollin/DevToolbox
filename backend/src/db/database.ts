@@ -405,6 +405,38 @@ export function initializeDatabase() {
     )
   `);
 
+  // Table pour les tâches
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date TEXT NOT NULL,
+      client TEXT,
+      link TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      reminder_days TEXT, -- JSON array des jours avant (ex: [7, 3, 1])
+      reminder_datetime TEXT, -- Date/heure précise du rappel (optionnel)
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Table pour tracker les rappels envoyés
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_reminders (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      reminder_type TEXT NOT NULL, -- 'days_before' ou 'datetime'
+      reminder_value TEXT NOT NULL, -- Nombre de jours ou date/heure
+      sent_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    )
+  `);
+
   console.log('Base de données initialisée avec succès');
 }
 

@@ -22,6 +22,7 @@ import MarkdownEditor from "./pages/tools/MarkdownEditor";
 import WPHookReference from "./pages/tools/WPHookReference";
 import WPQueryBuilder from "./pages/tools/WPQueryBuilder";
 import ImageResizer from "./pages/tools/ImageResizer";
+import TaskReminder from "./pages/tools/TaskReminder";
 
 const queryClient = new QueryClient();
 
@@ -144,6 +145,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <ImageResizer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/task-reminder"
+                element={
+                  <ProtectedRoute>
+                    <TaskReminder />
                   </ProtectedRoute>
                 }
               />

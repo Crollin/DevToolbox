@@ -173,4 +173,14 @@ export const tools: Tool[] = [
     tags: ["images", "wordpress", "webp", "optimisation", "redimensionnement"],
     color: "amber",
   },
+  {
+    id: "task-reminder",
+    name: "Task Reminder",
+    description: "Gestionnaire de tâches avec rappels par email. Créez des tâches, définissez des dates d'accomplissement et recevez des notifications automatiques.",
+    category: "utilitaires",
+    icon: "CheckSquare",
+    url: "#",
+    tags: ["tâches", "rappels", "email", "gestion", "productivité"],
+    color: "amber",
+  },
 ];
