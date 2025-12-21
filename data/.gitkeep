@@ -1,0 +1,3 @@
+# Ce fichier permet de conserver le dossier data/ dans Git
+# Les fichiers de base de données (*.db) sont ignorés par .gitignore
+
