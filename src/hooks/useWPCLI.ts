@@ -11,6 +11,35 @@ export const useWPCLI = () => {
   const [categories, setCategories] = useState<string[]>(defaultCategories);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Synchronize default commands with existing data
+  const syncDefaultCommands = useCallback((existingCommands: WPCLICommand[]) => {
+    const now = new Date().toISOString();
+    const existingCommandKeys = new Set(existingCommands.map(cmd => cmd.command));
+    const newCommands: WPCLICommand[] = [];
+
+    // Find missing default commands
+    defaultCommands.forEach(defaultCmd => {
+      if (!existingCommandKeys.has(defaultCmd.command)) {
+        newCommands.push({
+          ...defaultCmd,
+          id: generateId(),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    });
+
+    // Add new commands if any
+    if (newCommands.length > 0) {
+      const updatedCommands = [...newCommands, ...existingCommands];
+      setCommands(updatedCommands);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedCommands));
+      return true;
+    }
+
+    return false;
+  }, []);
+
   // Load from localStorage
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -18,7 +47,10 @@ export const useWPCLI = () => {
 
     if (stored) {
       try {
-        setCommands(JSON.parse(stored));
+        const parsedCommands = JSON.parse(stored) as WPCLICommand[];
+        setCommands(parsedCommands);
+        // Synchronize with default commands to add any missing ones
+        syncDefaultCommands(parsedCommands);
       } catch {
         initializeDefaults();
       }
@@ -28,14 +60,20 @@ export const useWPCLI = () => {
 
     if (storedCategories) {
       try {
-        setCategories(JSON.parse(storedCategories));
+        const parsedCategories = JSON.parse(storedCategories) as string[];
+        // Merge with default categories to ensure all are present
+        const mergedCategories = [...new Set([...defaultCategories, ...parsedCategories])];
+        setCategories(mergedCategories);
+        localStorage.setItem(CATEGORIES_KEY, JSON.stringify(mergedCategories));
       } catch {
         setCategories(defaultCategories);
       }
+    } else {
+      setCategories(defaultCategories);
     }
 
     setIsLoaded(true);
-  }, []);
+  }, [syncDefaultCommands]);
 
   const initializeDefaults = () => {
     const now = new Date().toISOString();
