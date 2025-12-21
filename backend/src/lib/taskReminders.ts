@@ -178,4 +178,3 @@ export async function checkAndSendTaskReminders(): Promise<void> {
     console.error('Erreur lors de la vérification des rappels de tâches:', error);
   }
 }
-

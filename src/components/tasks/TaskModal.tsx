@@ -227,4 +227,3 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
 };
 
 export default TaskModal;
-

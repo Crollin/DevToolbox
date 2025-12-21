@@ -123,4 +123,3 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => 
 };
 
 export default TaskCard;
-

@@ -92,4 +92,3 @@ const TaskStatusBadge = ({ task, className }: TaskStatusBadgeProps) => {
 };
 
 export default TaskStatusBadge;
-

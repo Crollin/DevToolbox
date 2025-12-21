@@ -25,4 +25,3 @@ export interface CreateTaskInput {
 export interface UpdateTaskInput extends Partial<CreateTaskInput> {
   status?: 'pending' | 'in_progress' | 'completed';
 }
-
