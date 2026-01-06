@@ -148,12 +148,24 @@ export const useImageResizer = () => {
           }
 
           // Maintain aspect ratio if enabled
-          if (currentSettings.maintainAspectRatio && targetWidth > 0 && targetHeight > 0) {
+          if (currentSettings.maintainAspectRatio) {
             const aspectRatio = originalDimensions.width / originalDimensions.height;
-            if (targetWidth / targetHeight > aspectRatio) {
-              targetWidth = Math.round(targetHeight * aspectRatio);
-            } else {
+            
+            // Cas 1: Seulement la largeur est renseignée
+            if (targetWidth > 0 && targetHeight === 0) {
               targetHeight = Math.round(targetWidth / aspectRatio);
+            }
+            // Cas 2: Seulement la hauteur est renseignée
+            else if (targetWidth === 0 && targetHeight > 0) {
+              targetWidth = Math.round(targetHeight * aspectRatio);
+            }
+            // Cas 3: Les deux sont renseignées (comportement actuel)
+            else if (targetWidth > 0 && targetHeight > 0) {
+              if (targetWidth / targetHeight > aspectRatio) {
+                targetWidth = Math.round(targetHeight * aspectRatio);
+              } else {
+                targetHeight = Math.round(targetWidth / aspectRatio);
+              }
             }
           }
         }

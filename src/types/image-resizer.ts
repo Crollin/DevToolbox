@@ -4,6 +4,7 @@ export type ImagePresetType =
   | "container"
   | "thumbnail"
   | "medium"
+  | "medium-large"
   | "large"
   | "full"
   | "custom";
@@ -49,6 +50,7 @@ export interface ImageResizerState {
   error: string | null;
   settings: ImageResizeSettings;
 }
+
 
 
 
