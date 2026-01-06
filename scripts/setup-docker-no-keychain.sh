@@ -3,21 +3,12 @@
 # Script de configuration Docker pour désactiver définitivement osxkeychain
 # Utile pour les serveurs de build automatisés où le keychain n'est pas accessible
 # 
-# Usage: ./scripts/setup-docker-no-keychain.sh [--non-interactive]
-# 
-# Options:
-#   --non-interactive  : Exécute le script sans demander de confirmation
+# Usage: ./scripts/setup-docker-no-keychain.sh
 # 
 # ATTENTION: Ce script modifie définitivement votre configuration Docker.
 # Les credentials Docker Hub seront stockés en clair dans config.json au lieu du keychain.
 
 set -e
-
-# Vérifier les arguments
-NON_INTERACTIVE=false
-if [[ "$1" == "--non-interactive" ]] || [[ "$1" == "-y" ]]; then
-    NON_INTERACTIVE=true
-fi
 
 # Couleurs pour les messages
 RED='\033[0;31m'
@@ -43,17 +34,14 @@ if [ -f "$DOCKER_CONFIG" ]; then
     if grep -q '"credsStore"' "$DOCKER_CONFIG" 2>/dev/null; then
         echo -e "${YELLOW}⚠️  credsStore est actuellement activé dans la configuration${NC}"
         
-        # Demander confirmation si en mode interactif et non-forcé
-        if [ "$NON_INTERACTIVE" = false ] && [ -t 0 ]; then
+        # Demander confirmation si en mode interactif
+        if [ -t 0 ]; then
             echo -e "${YELLOW}Voulez-vous continuer ? (o/N)${NC}"
             read -r response
             if [[ ! "$response" =~ ^[OoYy]$ ]]; then
                 echo -e "${YELLOW}❌ Opération annulée${NC}"
                 exit 0
             fi
-        elif [ "$NON_INTERACTIVE" = false ] && [ ! -t 0 ]; then
-            # Mode non-interactif mais pas explicitement demandé et pas de terminal
-            echo -e "${YELLOW}⚠️  Mode non-interactif détecté (pas de terminal). Utilisez --non-interactive pour éviter ce message.${NC}"
         fi
         
         # Retirer credsStore de la configuration
@@ -95,9 +83,4 @@ echo ""
 echo -e "${YELLOW}💡 Pour restaurer la configuration précédente:${NC}"
 echo -e "   cp $BACKUP_CONFIG $DOCKER_CONFIG"
 echo ""
-
-
-
-
-
 

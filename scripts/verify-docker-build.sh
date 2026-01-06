@@ -45,3 +45,4 @@ echo ""
 echo "✅ Toutes les vérifications sont passées !"
 echo "🚀 Prêt pour le build Docker : docker-compose build frontend"
 
+

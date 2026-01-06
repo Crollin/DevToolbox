@@ -1,68 +1,70 @@
 # Guide de déploiement Docker
 
-## Problème de credentials Docker sur macOS
+## Problème de keychain Docker sur macOS
+
+### Erreur lors du build avec images publiques
+
+Lors du déploiement sur un serveur Mac (ou lors de builds automatisés), vous pouvez rencontrer l'erreur suivante :
+
+```
+ERROR [frontend internal] load metadata for docker.io/library/node:20-alpine
+target backend: failed to solve: error getting credentials - err: exit status 1, 
+out: `keychain cannot be accessed because the current session does not allow user interaction. 
+The keychain may be locked; unlock it by running "security -v unlock-keychain ~/Library/Keychains/login.keychain-db" and try again`
+```
+
+**Cause** : Docker essaie d'accéder au keychain macOS même pour télécharger des images publiques (`node:20-alpine`, `nginx:alpine`), ce qui échoue lorsque la session ne permet pas l'interaction utilisateur (builds automatisés, SSH sans interface graphique, etc.).
+
+### Solution rapide : Script de build automatique (Recommandé)
+
+Le projet inclut un script qui configure automatiquement Docker pour éviter le keychain lors du build :
+
+```bash
+# Utiliser le script de build au lieu de docker-compose build
+./scripts/docker-build.sh
+
+# Ou avec docker-compose directement
+./scripts/docker-build.sh frontend backend
+
+# Le script restaure automatiquement la configuration après le build
+```
+
+**Avantages** :
+- ✅ Fonctionne avec les images publiques sans credentials
+- ✅ Restaure automatiquement votre configuration Docker après le build
+- ✅ Compatible avec docker-compose et docker build
+- ✅ Ne modifie pas définitivement votre configuration
+
+### Solution permanente : Désactiver osxkeychain
+
+Pour les serveurs de build automatisés où le keychain n'est jamais nécessaire :
+
+```bash
+# Exécuter le script de configuration
+./scripts/setup-docker-no-keychain.sh
+```
+
+Ce script :
+- Sauvegarde votre configuration actuelle
+- Retire `credsStore: "osxkeychain"` de manière permanente
+- Permet le téléchargement d'images publiques sans keychain
+
+**Note** : Après cette configuration, les credentials Docker Hub seront stockés en clair dans `~/.docker/config.json` au lieu du keychain.
+
+## Problème de credentials Docker sur serveurs distants
 
 Lors du déploiement sur des serveurs distants, vous pouvez rencontrer l'erreur suivante :
 
 ```
-error getting credentials - err: exit status 1, out: `keychain cannot be accessed because the current session does not allow user interaction. The keychain may be locked; unlock it by running "security -v unlock-keychain ~/Library/Keychains/login.keychain-db" and try again`
+Erreur de credentials
+Cause : Votre Docker config (~/.docker/config.json) utilise osxkeychain pour stocker les credentials, mais le trousseau est verrouillé.
 ```
 
-Ce problème survient car macOS utilise `osxkeychain` comme credential helper par défaut, ce qui n'est pas disponible dans une session non-interactive sur un serveur distant.
+Ce problème survient car macOS utilise `osxkeychain` comme credential helper par défaut, ce qui n'est pas disponible sur les serveurs Linux distants.
 
 ## Solutions
 
-### Solution 0 : Script de déploiement automatique (Recommandé - La plus simple)
-
-Le projet inclut un script `deploy.sh` qui configure automatiquement Docker pour éviter le problème du keychain avant d'exécuter `docker compose`.
-
-**Utilisation :**
-
-Au lieu d'utiliser directement `docker compose`, utilisez le script `deploy.sh` :
-
-```bash
-# Au lieu de : docker compose up -d --build
-./scripts/deploy.sh up -d --build
-
-# Au lieu de : docker compose down
-./scripts/deploy.sh down
-
-# Pour un déploiement complet
-./scripts/deploy.sh down && ./scripts/deploy.sh up -d --build
-```
-
-**Comment ça fonctionne :**
-
-1. Le script sauvegarde automatiquement votre configuration Docker actuelle
-2. Désactive temporairement `credsStore` (osxkeychain) dans `~/.docker/config.json`
-3. Exécute la commande `docker compose` avec les arguments fournis
-4. Restaure automatiquement la configuration originale après l'exécution
-
-**Avantages :**
-
-- ✅ Aucune configuration manuelle nécessaire
-- ✅ Fonctionne automatiquement sur serveurs distants
-- ✅ Restaure la configuration originale après utilisation
-- ✅ Compatible avec toutes les commandes docker-compose
-- ✅ Fonctionne avec les images publiques Docker Hub (pas besoin de credentials)
-
-**Note :** Ce script fonctionne uniquement pour les images publiques Docker Hub. Pour les images privées, vous devrez toujours utiliser `docker login` ou une des autres solutions ci-dessous.
-
-### Solution 1 : Configuration permanente sans keychain
-
-Si vous voulez désactiver définitivement le keychain (utile pour les serveurs de build automatisés), utilisez le script `setup-docker-no-keychain.sh` :
-
-```bash
-# Mode interactif (demande confirmation)
-./scripts/setup-docker-no-keychain.sh
-
-# Mode non-interactif (pour scripts automatisés)
-./scripts/setup-docker-no-keychain.sh --non-interactive
-```
-
-**Attention :** Cette solution modifie définitivement votre configuration Docker. Les credentials Docker Hub seront stockés en clair dans `config.json` au lieu du keychain.
-
-### Solution 2 : Utiliser des variables d'environnement
+### Solution 1 : Utiliser des variables d'environnement (Recommandé)
 
 Au lieu d'utiliser le credential helper, utilisez directement les variables d'environnement lors du déploiement :
 
@@ -76,7 +78,7 @@ export DOCKER_REGISTRY="registry.example.com"  # Optionnel, par défaut docker.i
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY
 ```
 
-### Solution 3 : Utiliser le credential helper "file"
+### Solution 2 : Utiliser le credential helper "file"
 
 Sur le serveur distant, configurez Docker pour utiliser le credential helper "file" au lieu d'osxkeychain :
 
@@ -102,6 +104,41 @@ cat > ~/.docker/config.json << EOF
 EOF
 ```
 
+### Solution 3 : Script de déploiement automatisé
+
+Créez un script de déploiement qui configure automatiquement les credentials :
+
+```bash
+#!/bin/bash
+# deploy.sh
+
+set -e
+
+# Configuration
+DOCKER_USERNAME="${DOCKER_USERNAME:-}"
+DOCKER_PASSWORD="${DOCKER_PASSWORD:-}"
+DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io}"
+
+if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+  echo "Erreur: DOCKER_USERNAME et DOCKER_PASSWORD doivent être définis"
+  exit 1
+fi
+
+# Se connecter à Docker
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY
+
+# Construire et démarrer les conteneurs
+docker-compose build
+docker-compose up -d
+
+echo "Déploiement terminé avec succès"
+```
+
+Utilisation :
+```bash
+DOCKER_USERNAME="mon-user" DOCKER_PASSWORD="mon-pass" ./deploy.sh
+```
+
 ### Solution 4 : Utiliser docker-compose avec credentials inline
 
 Vous pouvez également configurer les credentials directement dans `docker-compose.yml` en utilisant des variables d'environnement :
@@ -122,7 +159,7 @@ DOCKER_USERNAME=votre-username
 DOCKER_PASSWORD=votre-password
 ```
 
-### Solution 5 : Utiliser un secret manager (Pour images privées uniquement)
+### Solution 5 : Utiliser un secret manager
 
 Pour les environnements de production, utilisez un gestionnaire de secrets (HashiCorp Vault, AWS Secrets Manager, etc.) :
 
@@ -139,19 +176,19 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
 Pour éviter le problème sur votre machine locale, vous pouvez :
 
-1. **Utiliser le script deploy.sh** (recommandé) :
+1. **Utiliser le script de build** (recommandé pour les builds ponctuels) :
    ```bash
-   ./scripts/deploy.sh up -d --build
+   ./scripts/docker-build.sh
    ```
 
-2. **Déverrouiller le trousseau macOS** :
-   ```bash
-   security unlock-keychain ~/Library/Keychains/login.keychain-db
-   ```
-
-3. **Désactiver définitivement le keychain** :
+2. **Désactiver définitivement osxkeychain** (pour les serveurs de build) :
    ```bash
    ./scripts/setup-docker-no-keychain.sh
+   ```
+
+3. **Déverrouiller le trousseau macOS** (si vous voulez garder osxkeychain) :
+   ```bash
+   security unlock-keychain ~/Library/Keychains/login.keychain-db
    ```
 
 4. **Changer le credential helper manuellement** :
@@ -191,4 +228,28 @@ docker pull hello-world
 docker logout
 rm ~/.docker/config.json
 ```
+
+### Restaurer la configuration après utilisation du script de build
+
+Le script `docker-build.sh` restaure automatiquement la configuration. Si vous avez besoin de restaurer manuellement :
+
+```bash
+# Trouver le backup le plus récent
+ls -lt ~/.docker/config.json.backup.* | head -1
+
+# Restaurer (remplacer TIMESTAMP par la date du backup)
+cp ~/.docker/config.json.backup.TIMESTAMP ~/.docker/config.json
+```
+
+### Vérifier que le script fonctionne
+
+```bash
+# Tester le script de build
+./scripts/docker-build.sh --help 2>/dev/null || ./scripts/docker-build.sh
+
+# Vérifier que les images publiques peuvent être téléchargées
+docker pull node:20-alpine
+docker pull nginx:alpine
+```
+
 

@@ -113,10 +113,3 @@ fi
 # La restauration se fera automatiquement via le trap EXIT
 exit $BUILD_EXIT_CODE
 
-
-
-
-
-
-
-
