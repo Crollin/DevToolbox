@@ -49,6 +49,7 @@ const ColorPaletteGen = () => {
     toggleLock,
     generatePalette,
     importPalette,
+    loadPredefinedPalette,
   } = useColorPalettes();
 
   if (!activePalette) return null;
@@ -66,6 +67,7 @@ const ColorPaletteGen = () => {
             onDeletePalette={deletePalette}
             onDuplicatePalette={duplicatePalette}
             onImportPalette={importPalette}
+            onLoadPredefinedPalette={loadPredefinedPalette}
           />
         </div>
 
@@ -97,6 +99,10 @@ const ColorPaletteGen = () => {
                     onDeletePalette={deletePalette}
                     onDuplicatePalette={duplicatePalette}
                     onImportPalette={importPalette}
+                    onLoadPredefinedPalette={(id) => {
+                      loadPredefinedPalette(id);
+                      setSidebarOpen(false);
+                    }}
                   />
                 </SheetContent>
               </Sheet>

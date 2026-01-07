@@ -20,10 +20,14 @@ async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
   
+  console.log(`[API] ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body as string) : '');
+  
   const response = await fetch(url, {
     ...options,
     headers,
   });
+
+  console.log(`[API] Response status: ${response.status} for ${url}`);
 
   if (!response.ok) {
     // Si erreur 401, supprimer le token

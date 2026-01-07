@@ -15,6 +15,7 @@ import licencesRoutes from './routes/licences';
 import electricalcRoutes from './routes/electricalc';
 import authRoutes from './routes/auth';
 import tasksRoutes from './routes/tasks';
+import toolsRoutes from './routes/tools';
 import { checkAndSendReminders } from './lib/licenceReminders';
 import { checkAndSendTaskReminders } from './lib/taskReminders';
 
@@ -43,6 +44,7 @@ app.use('/api/icons', iconsRoutes);
 app.use('/api/licences', licencesRoutes);
 app.use('/api/electricalc', electricalcRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/tools', toolsRoutes);
 
 // Route de santé
 app.get('/health', (req, res) => {

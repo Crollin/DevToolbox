@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { ColorPalette, PaletteColor, ColorRole, HarmonyType } from "@/types/palette";
 import { generateShades, generateHarmonyPalette, generateId, randomHex } from "@/lib/colorUtils";
+import { predefinedPalettes, PredefinedPalette } from "@/data/predefinedPalettes";
+import { toast } from "@/components/ui/sonner";
 
 const STORAGE_KEY = "color-palettes";
 
@@ -248,6 +250,39 @@ export const useColorPalettes = () => {
     return imported.length;
   }, []);
 
+  // Load predefined palette
+  const loadPredefinedPalette = useCallback((predefinedId: string) => {
+    const predefined = predefinedPalettes.find((p) => p.id === predefinedId);
+    if (!predefined) {
+      toast.error("Palette prédéfinie introuvable");
+      return null;
+    }
+
+    const colors: PaletteColor[] = predefined.colors.map((color) => ({
+      id: generateId(),
+      name: color.name,
+      hex: color.hex,
+      role: color.role,
+      locked: false,
+      shades: generateShades(color.hex),
+    }));
+
+    const newPalette: ColorPalette = {
+      id: generateId(),
+      name: predefined.name,
+      description: predefined.description,
+      harmony: "custom",
+      colors,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setPalettes((prev) => [...prev, newPalette]);
+    setActivePaletteId(newPalette.id);
+    toast.success(`Palette "${predefined.name}" chargée avec succès`);
+    return newPalette;
+  }, []);
+
   return {
     palettes,
     activePalette,
@@ -263,5 +298,6 @@ export const useColorPalettes = () => {
     toggleLock,
     generatePalette,
     importPalette,
+    loadPredefinedPalette,
   };
 };

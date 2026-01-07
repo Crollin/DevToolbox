@@ -437,6 +437,19 @@ export function initializeDatabase() {
     )
   `);
 
+  // Table pour l'ordre personnalisé des outils par utilisateur
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tool_order (
+      user_id TEXT NOT NULL,
+      tool_id TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (user_id, tool_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   console.log('Base de données initialisée avec succès');
 }
 

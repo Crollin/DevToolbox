@@ -28,15 +28,22 @@ const internalTools = ["licence-key-hub", "csv-preview-pro", "mon-calcul-energie
 interface ToolCardProps {
   tool: Tool;
   index: number;
+  isDragging?: boolean;
+  isEditMode?: boolean;
 }
 
-const ToolCard = ({ tool, index }: ToolCardProps) => {
+const ToolCard = ({ tool, index, isDragging = false, isEditMode = false }: ToolCardProps) => {
   const navigate = useNavigate();
   const IconComponent = iconMap[tool.icon] || Code2;
   const colors = categoryColors[tool.category];
   const isInternal = internalTools.includes(tool.id);
 
   const handleClick = () => {
+    // Désactiver le clic pendant le drag ou en mode édition
+    if (isDragging || isEditMode) {
+      return;
+    }
+    
     if (isInternal) {
       navigate(`/tools/${tool.id}`);
     } else if (tool.url) {
@@ -46,7 +53,10 @@ const ToolCard = ({ tool, index }: ToolCardProps) => {
 
   return (
     <article
-      className="tool-card group cursor-pointer animate-fade-in"
+      className={cn(
+        "tool-card group animate-fade-in",
+        isDragging ? "cursor-grabbing" : isEditMode ? "cursor-grab" : "cursor-pointer"
+      )}
       style={{ animationDelay: `${index * 50}ms` }}
       onClick={handleClick}
     >

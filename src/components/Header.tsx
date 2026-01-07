@@ -1,4 +1,4 @@
-import { Terminal, Plus, LogOut, User, Key } from "lucide-react";
+import { Terminal, LogOut, User, Key } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
@@ -13,11 +13,9 @@ import {
 import { ChangePasswordModal } from "./auth/ChangePasswordModal";
 import { useState } from "react";
 
-interface HeaderProps {
-  onAddTool?: () => void;
-}
+interface HeaderProps {}
 
-const Header = ({ onAddTool }: HeaderProps) => {
+const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
@@ -72,13 +70,6 @@ const Header = ({ onAddTool }: HeaderProps) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            <button
-              onClick={onAddTool}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-all hover:shadow-lg hover:shadow-primary/20 active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Ajouter un outil</span>
-            </button>
           </div>
         </div>
       </div>

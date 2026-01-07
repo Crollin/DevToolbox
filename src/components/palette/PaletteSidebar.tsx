@@ -1,11 +1,12 @@
-import { Plus, Trash2, Copy, Upload } from "lucide-react";
+import { Plus, Trash2, Copy, Upload, Sparkles } from "lucide-react";
 import { ColorPalette } from "@/types/palette";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import PredefinedPalettes from "./PredefinedPalettes";
 
 interface PaletteSidebarProps {
   palettes: ColorPalette[];
@@ -15,6 +16,7 @@ interface PaletteSidebarProps {
   onDeletePalette: (id: string) => void;
   onDuplicatePalette: (id: string) => void;
   onImportPalette: (data: ColorPalette | ColorPalette[]) => number;
+  onLoadPredefinedPalette: (paletteId: string) => void;
 }
 
 const PaletteSidebar = ({
@@ -25,8 +27,10 @@ const PaletteSidebar = ({
   onDeletePalette,
   onDuplicatePalette,
   onImportPalette,
+  onLoadPredefinedPalette,
 }: PaletteSidebarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [predefinedOpen, setPredefinedOpen] = useState(false);
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -55,13 +59,24 @@ const PaletteSidebar = ({
       {/* Header */}
       <div className="p-4 border-b border-border">
         <h2 className="font-semibold text-sm mb-3">Mes palettes</h2>
-        <div className="flex gap-2">
-          <Button onClick={onCreatePalette} size="sm" className="flex-1">
-            <Plus className="w-4 h-4 mr-1" />
-            Nouvelle
-          </Button>
-          <Button onClick={handleImportClick} variant="outline" size="sm">
-            <Upload className="w-4 h-4" />
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Button onClick={onCreatePalette} size="sm" className="flex-1">
+              <Plus className="w-4 h-4 mr-1" />
+              Nouvelle
+            </Button>
+            <Button onClick={handleImportClick} variant="outline" size="sm">
+              <Upload className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button
+            onClick={() => setPredefinedOpen(true)}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            <Sparkles className="w-4 h-4 mr-1" />
+            Palettes prédéfinies
           </Button>
           <input
             ref={fileInputRef}
@@ -72,6 +87,13 @@ const PaletteSidebar = ({
           />
         </div>
       </div>
+
+      {/* Predefined Palettes Dialog */}
+      <PredefinedPalettes
+        open={predefinedOpen}
+        onOpenChange={setPredefinedOpen}
+        onLoadPalette={onLoadPredefinedPalette}
+      />
 
       {/* Palette list */}
       <ScrollArea className="flex-1">

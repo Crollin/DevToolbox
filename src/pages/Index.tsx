@@ -1,16 +1,22 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import CategoryFilter from "@/components/CategoryFilter";
-import ToolCard from "@/components/ToolCard";
+import ToolGrid from "@/components/ToolGrid";
 import StatsBar from "@/components/StatsBar";
 import EmptyState from "@/components/EmptyState";
+import { Button } from "@/components/ui/button";
+import { GripVertical, Check } from "lucide-react";
 import { tools, ToolCategory, categoryLabels } from "@/data/tools";
-import { toast } from "@/hooks/use-toast";
+import { useToolOrder } from "@/hooks/useToolOrder";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ToolCategory | "all">("all");
+  const [isEditMode, setIsEditMode] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const filteredTools = useMemo(() => {
     return tools.filter((tool) => {
@@ -24,6 +30,9 @@ const Index = () => {
       return matchesSearch && matchesCategory;
     });
   }, [searchQuery, selectedCategory]);
+
+  // Utiliser le hook pour gérer l'ordre personnalisé
+  const { orderedTools, isLoading: isLoadingOrder, saveOrder } = useToolOrder(filteredTools);
 
   const toolCounts = useMemo(() => {
     const counts: Record<ToolCategory | "all", number> = {
@@ -42,16 +51,33 @@ const Index = () => {
     return counts;
   }, []);
 
-  const handleAddTool = () => {
-    toast({
-      title: "Fonctionnalité à venir",
-      description: "L'ajout d'outils sera disponible dans une prochaine version.",
-    });
+  // Gérer le changement d'ordre avec debounce
+  const handleOrderChange = useCallback((toolIds: string[]) => {
+    // Annuler le timeout précédent s'il existe
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Définir un nouveau timeout pour sauvegarder après 500ms
+    saveTimeoutRef.current = setTimeout(() => {
+      saveOrder(toolIds);
+    }, 500);
+  }, [saveOrder]);
+
+  const toggleEditMode = () => {
+    setIsEditMode((prev) => !prev);
+    if (isEditMode) {
+      // Si on désactive le mode édition, annuler tout timeout en attente
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onAddTool={handleAddTool} />
+      <Header />
 
       <main className="container mx-auto px-4 py-8">
         {/* Hero Section */}
@@ -76,9 +102,31 @@ const Index = () => {
         <section className="mb-8 space-y-4 animate-fade-in" style={{ animationDelay: "100ms" }}>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
-            <p className="text-sm text-muted-foreground">
-              {filteredTools.length} outil{filteredTools.length !== 1 ? "s" : ""} trouvé{filteredTools.length !== 1 ? "s" : ""}
-            </p>
+            <div className="flex items-center gap-4">
+              {isAuthenticated && (
+                <Button
+                  variant={isEditMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleEditMode}
+                  className="flex items-center gap-2"
+                >
+                  {isEditMode ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Terminer
+                    </>
+                  ) : (
+                    <>
+                      <GripVertical className="w-4 h-4" />
+                      Réorganiser
+                    </>
+                  )}
+                </Button>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {filteredTools.length} outil{filteredTools.length !== 1 ? "s" : ""} trouvé{filteredTools.length !== 1 ? "s" : ""}
+              </p>
+            </div>
           </div>
           <CategoryFilter
             selectedCategory={selectedCategory}
@@ -90,11 +138,11 @@ const Index = () => {
         {/* Tools Grid */}
         <section>
           {filteredTools.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredTools.map((tool, index) => (
-                <ToolCard key={tool.id} tool={tool} index={index} />
-              ))}
-            </div>
+            <ToolGrid
+              tools={orderedTools}
+              isEditMode={isEditMode && isAuthenticated}
+              onOrderChange={handleOrderChange}
+            />
           ) : (
             <EmptyState searchQuery={searchQuery} />
           )}
