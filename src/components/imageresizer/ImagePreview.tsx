@@ -1,7 +1,14 @@
+import { useState } from "react";
 import { ProcessedImage } from "@/types/image-resizer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Download, TrendingDown, TrendingUp, Maximize2 } from "lucide-react";
+import { BeforeAfterSlider } from "./BeforeAfterSlider";
 
 interface ImagePreviewProps {
   image: ProcessedImage;
@@ -18,6 +25,7 @@ const calculateReduction = (original: number, processed: number): number => {
 };
 
 export const ImagePreview = ({ image }: ImagePreviewProps) => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const sizeReduction = calculateReduction(image.originalSize, image.processedSize);
   const dimensionReduction = {
     width: Math.round(((image.originalDimensions.width - image.processedDimensions.width) / image.originalDimensions.width) * 100),
@@ -26,71 +34,19 @@ export const ImagePreview = ({ image }: ImagePreviewProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Comparison Grid */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Original Image */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Image originale</span>
-              <Badge variant="outline">Avant</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden border">
-              <img
-                src={image.originalUrl}
-                alt="Original"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Dimensions</p>
-                <p className="font-mono font-medium">
-                  {image.originalDimensions.width} × {image.originalDimensions.height} px
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Taille</p>
-                <p className="font-medium">{formatFileSize(image.originalSize)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Processed Image */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Image optimisée</span>
-              <Badge variant="default" className="bg-primary">
-                Après
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden border">
-              <img
-                src={image.processedUrl}
-                alt="Processed"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Dimensions</p>
-                <p className="font-mono font-medium">
-                  {image.processedDimensions.width} × {image.processedDimensions.height} px
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Taille</p>
-                <p className="font-medium">{formatFileSize(image.processedSize)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Before/After Slider */}
+      <div className="space-y-4">
+        <BeforeAfterSlider image={image} />
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setLightboxOpen(true)}
+            className="gap-2"
+          >
+            <Maximize2 className="w-4 h-4" />
+            Voir l'image optimisée en grand format
+          </Button>
+        </div>
       </div>
 
       {/* Statistics */}
@@ -172,6 +128,27 @@ export const ImagePreview = ({ image }: ImagePreviewProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Lightbox pour l'image convertie */}
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent className="max-w-7xl max-h-[95vh] p-0 bg-black/95">
+          <div className="relative w-full h-full flex items-center justify-center p-4">
+            <img
+              src={image.processedUrl}
+              alt="Image optimisée en grand format"
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg text-sm">
+              <p className="font-medium">
+                {image.processedDimensions.width} × {image.processedDimensions.height} px
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {formatFileSize(image.processedSize)} • Qualité {image.settings.quality}%
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

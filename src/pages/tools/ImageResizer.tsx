@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 const ImageResizer = () => {
   const tool = tools.find((t) => t.id === "image-resizer")!;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState("settings");
   const {
     currentImage,
     isProcessing,
@@ -44,6 +45,13 @@ const ImageResizer = () => {
     clearImage();
   };
 
+  // Navigation automatique vers l'onglet prévisualisation après traitement réussi
+  useEffect(() => {
+    if (currentImage && !isProcessing) {
+      setActiveTab("preview");
+    }
+  }, [currentImage, isProcessing]);
+
   return (
     <ToolLayout tool={tool}>
       <div className="space-y-6">
@@ -64,7 +72,7 @@ const ImageResizer = () => {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="settings" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="settings">Paramètres</TabsTrigger>
             <TabsTrigger value="preview" disabled={!currentImage}>
