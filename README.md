@@ -344,6 +344,17 @@ docker-compose up -d
 docker-compose ps
 ```
 
+### ⚠️ Configuration pour serveurs distants Linux
+
+Si vous déployez sur un serveur Linux distant et rencontrez l'erreur `keychain cannot be accessed`, exécutez ce script **une seule fois** :
+
+```bash
+# Sur le serveur distant Linux
+./scripts/setup-docker-remote.sh
+```
+
+Ce script configure Docker pour fonctionner sans keychain macOS. Voir [docker/SETUP-REMOTE.md](docker/SETUP-REMOTE.md) pour plus de détails.
+
 ### Déploiement Frontend uniquement (Netlify/Vercel)
 
 Pour déployer uniquement le frontend sur Netlify ou Vercel (sans backend) :

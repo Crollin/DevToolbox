@@ -34,6 +34,14 @@ trap restore_config EXIT INT TERM
 
 echo -e "${GREEN}🔧 Configuration Docker pour éviter le keychain...${NC}"
 
+# Détecter si on est sur un serveur distant Linux
+if [[ "$OSTYPE" != "darwin"* ]] && [ -f "$DOCKER_CONFIG" ] && grep -q '"credsStore".*"osxkeychain"' "$DOCKER_CONFIG" 2>/dev/null; then
+    echo -e "${YELLOW}⚠️  Détection d'une configuration osxkeychain sur un serveur Linux${NC}"
+    echo -e "${YELLOW}💡 Pour résoudre définitivement ce problème, exécutez:${NC}"
+    echo -e "${YELLOW}   ./scripts/setup-docker-remote.sh${NC}"
+    echo ""
+fi
+
 # Vérifier si le fichier de config existe
 if [ -f "$DOCKER_CONFIG" ]; then
     # Sauvegarder la configuration actuelle

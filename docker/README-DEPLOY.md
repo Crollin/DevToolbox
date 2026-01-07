@@ -51,20 +51,46 @@ Ce script :
 
 **Note** : Après cette configuration, les credentials Docker Hub seront stockés en clair dans `~/.docker/config.json` au lieu du keychain.
 
-## Problème de credentials Docker sur serveurs distants
+## Problème de credentials Docker sur serveurs distants (Linux)
 
-Lors du déploiement sur des serveurs distants, vous pouvez rencontrer l'erreur suivante :
+Lors du déploiement sur des serveurs distants Linux, vous pouvez rencontrer l'erreur suivante :
 
 ```
-Erreur de credentials
-Cause : Votre Docker config (~/.docker/config.json) utilise osxkeychain pour stocker les credentials, mais le trousseau est verrouillé.
+ERROR [frontend internal] load metadata for docker.io/library/node:20-alpine
+target frontend: failed to solve: error getting credentials - err: exit status 1, 
+out: `keychain cannot be accessed because the current session does not allow user interaction. 
+The keychain may be locked; unlock it by running "security -v unlock-keychain ~/Library/Keychains/login.keychain-db" and try again`
 ```
 
-Ce problème survient car macOS utilise `osxkeychain` comme credential helper par défaut, ce qui n'est pas disponible sur les serveurs Linux distants.
+**Cause** : Docker essaie d'utiliser `osxkeychain` (credential helper macOS) qui n'existe pas sur les serveurs Linux. Cela se produit même si la configuration Docker a été copiée depuis un Mac vers un serveur Linux.
+
+### Solution définitive pour serveurs distants Linux (Recommandé)
+
+**Exécutez ce script une seule fois sur votre serveur distant Linux** :
+
+```bash
+# Sur le serveur distant Linux
+./scripts/setup-docker-remote.sh
+```
+
+Ce script :
+- ✅ Détecte automatiquement l'environnement Linux
+- ✅ Retire `credsStore: "osxkeychain"` de la configuration Docker
+- ✅ Configure Docker pour fonctionner sans keychain
+- ✅ Teste automatiquement la configuration
+- ✅ Sauvegarde votre configuration actuelle avant modification
+
+**Avantages** :
+- ✅ Résout définitivement le problème sur les serveurs Linux
+- ✅ Permet de télécharger les images publiques sans erreur
+- ✅ Configuration permanente (pas besoin de reconfigurer à chaque build)
+- ✅ Compatible avec tous les builds Docker (docker build, docker-compose, etc.)
+
+**Note** : Après cette configuration, les credentials Docker Hub seront stockés en clair dans `~/.docker/config.json` au lieu du keychain (ce qui est normal sur Linux).
 
 ## Solutions
 
-### Solution 1 : Utiliser des variables d'environnement (Recommandé)
+### Solution alternative 1 : Utiliser des variables d'environnement
 
 Au lieu d'utiliser le credential helper, utilisez directement les variables d'environnement lors du déploiement :
 
