@@ -1,11 +1,22 @@
 import { useState, useCallback, useRef, DragEvent } from "react";
 import { marked } from "marked";
+import html2pdf from "html2pdf.js";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import { remarkDocx } from "@m2d/remark-docx";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Bold,
   Italic,
@@ -28,9 +39,19 @@ import {
   Eye,
   Edit3,
   Upload,
+  ChevronDown,
+  File,
+  FileText,
+  FileType,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+// DOCX processor (Markdown → .docx), created once
+const docxProcessor = unified()
+  .use(remarkParse)
+  .use(remarkGfm)
+  .use(remarkDocx);
 
 // Supported text file extensions
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".text", ".log", ".csv", ".json", ".xml", ".html", ".htm", ".css", ".js", ".ts", ".jsx", ".tsx", ".py", ".php", ".sql", ".sh", ".bash", ".yaml", ".yml", ".ini", ".conf", ".env"];
@@ -263,6 +284,66 @@ Bonne édition !
     toast.success("Fichier exporté avec succès");
   };
 
+  const handleExportPdf = async () => {
+    const toastId = toast.loading("Génération du PDF en cours...");
+    let container: HTMLDivElement | null = null;
+    try {
+      container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.width = "210mm";
+      container.style.padding = "20px";
+      container.style.background = "white";
+      container.style.color = "#1a1a1a";
+      container.className = cn(
+        "prose prose-sm max-w-none",
+        "prose-headings:text-foreground prose-p:text-foreground/90",
+        "prose-a:text-primary prose-strong:text-foreground",
+        "prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:rounded",
+        "prose-pre:bg-muted prose-pre:border prose-pre:border-border/50",
+        "prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground",
+        "prose-hr:border-border"
+      );
+      container.innerHTML = getHtmlContent();
+      document.body.appendChild(container);
+      await html2pdf()
+        .set({
+          filename: `${fileName || "document"}.pdf`,
+          margin: 10,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        })
+        .from(container)
+        .save();
+      toast.success("PDF exporté avec succès", { id: toastId });
+    } catch (error) {
+      toast.error("Échec de l'export PDF. Document peut-être trop long.", { id: toastId });
+    } finally {
+      if (container?.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+    }
+  };
+
+  const handleExportDocx = async () => {
+    const toastId = toast.loading("Génération du DOCX en cours...");
+    try {
+      const vfile = await docxProcessor.process(content);
+      const blob = (await vfile.result) as Blob;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${fileName || "document"}.docx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("DOCX exporté avec succès", { id: toastId });
+    } catch (error) {
+      toast.error("Échec de l'export DOCX", { id: toastId });
+    }
+  };
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(content);
     toast.success("Markdown copié");
@@ -329,10 +410,29 @@ Bonne édition !
               <Trash2 className="w-4 h-4 mr-1" />
               <span className="hidden sm:inline">Effacer</span>
             </Button>
-            <Button size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-1" />
-              Exporter
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                  <Download className="w-4 h-4 mr-1" />
+                  Exporter
+                  <ChevronDown className="w-4 h-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExport}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Exporter en .md
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPdf}>
+                  <File className="w-4 h-4 mr-2" />
+                  Exporter en PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportDocx}>
+                  <FileType className="w-4 h-4 mr-2" />
+                  Exporter en DOCX
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

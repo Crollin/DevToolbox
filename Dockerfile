@@ -25,7 +25,7 @@ FROM nginx:alpine
 
 LABEL maintainer="DevToolbox"
 LABEL description="DevToolbox Frontend - Production"
-LABEL version="1.0"
+LABEL version="1.1"
 
 # Nginx utilise déjà l'utilisateur nginx (non-root), s'assurer des permissions correctes
 COPY --chown=nginx:nginx docker/nginx.conf /etc/nginx/conf.d/default.conf

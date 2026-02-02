@@ -1,5 +1,6 @@
 # Configuration Docker Compose pour DevToolbox
-# 
+# Frontend : export Markdown (.md, PDF, DOCX)
+#
 # Pour le déploiement sur serveurs distants avec credentials Docker :
 # 1. Configurez les credentials avant de lancer docker-compose :
 #    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
