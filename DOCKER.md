@@ -260,6 +260,20 @@ docker-compose up -d
 
 ## Dépannage
 
+### Conflits lors d'un git pull
+
+Si `git pull` échoue avec des messages du type « Your local changes would be overwritten » ou « untracked working tree files would be overwritten » (fichiers comme `README.md`, `docker/README-DEPLOY.md`, `scripts/docker-build.sh`, `docker/SETUP-REMOTE.md`, `scripts/setup-docker-remote.sh`) :
+
+```bash
+# Option 1 : script dédié (stash des modifs, sauvegarde des non suivis, pull, stash pop)
+./scripts/fix-pull-conflicts.sh
+
+# Option 2 : mise à jour complète (inclut la gestion des fichiers non suivis)
+./scripts/git-update.sh
+```
+
+Les fichiers non suivis éventuellement écrasés sont sauvegardés dans un dossier `.backup-pull-*` ou `.backup-untracked-*`. Comparez avec les versions du dépôt puis supprimez le dossier de backup si tout est correct.
+
 ### Le backend ne démarre pas
 
 ```bash

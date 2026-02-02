@@ -45,6 +45,19 @@ git rm -r --cached data/*.backup 2>/dev/null || true
 git rm -r --cached data/*.bak 2>/dev/null || true
 echo -e "${GREEN}✓ Fichiers ignorés retirés du suivi${NC}"
 
+# Fichiers non suivis qui peuvent bloquer le pull (sauvegarde puis suppression)
+BACKUP_UNTRACKED=".backup-untracked-$(date +%Y%m%d-%H%M%S)"
+UNTRACKED_BACKED_UP=false
+for f in docker/SETUP-REMOTE.md scripts/setup-docker-remote.sh; do
+    if [ -f "$f" ] && git status --porcelain "$f" 2>/dev/null | grep -q '^??'; then
+        mkdir -p "$BACKUP_UNTRACKED"
+        cp "$f" "$BACKUP_UNTRACKED/$(basename "$f")" 2>/dev/null || true
+        rm -f "$f"
+        echo -e "${YELLOW}   $f (non suivi) sauvegardé dans $BACKUP_UNTRACKED/${NC}"
+        UNTRACKED_BACKED_UP=true
+    fi
+done
+
 # Récupérer les modifications distantes
 echo -e "${YELLOW}⬇️  Récupération des modifications distantes...${NC}"
 # Détecter la branche actuelle (compatible avec toutes les versions de Git)
@@ -93,6 +106,11 @@ fi
 echo ""
 echo -e "${GREEN}✅ Mise à jour terminée avec succès !${NC}"
 echo ""
+if [ "$UNTRACKED_BACKED_UP" = true ]; then
+    echo -e "${YELLOW}📁 Fichiers non suivis sauvegardés dans $BACKUP_UNTRACKED/${NC}"
+    echo "   Comparez avec les versions du dépôt si besoin, puis : rm -rf $BACKUP_UNTRACKED"
+    echo ""
+fi
 echo "📝 Prochaines étapes :"
 echo "   1. Vérifiez l'état : git status"
 echo "   2. Si des conflits : résolvez-les puis git add . && git commit"
