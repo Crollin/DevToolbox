@@ -27,9 +27,11 @@ dist-ssr
 *.sln
 *.sw?
 
-# Database files
+# Database files (root data/ only, e.g. SQLite; keep src/data/ for app data)
 data/
 !data/.gitkeep
+!src/data/
+!src/data/*
 *.db
 *.db-journal
 *.sqlite
