@@ -24,8 +24,9 @@ Le projet utilise une architecture multi-conteneurs :
 git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 
-# Copier le fichier d'environnement
-cp .env.example .env
+# Fichier d'environnement (JWT_SECRET est obligatoire pour le backend)
+cp backend/.env.example .env
+# Éditer .env et définir JWT_SECRET (ex: openssl rand -base64 32)
 ```
 
 ### 2. Démarrer les services
@@ -45,8 +46,7 @@ docker-compose logs -f frontend
 ### 3. Accéder à l'application
 
 - **Frontend** : http://localhost:14001
-- **Backend API** : http://localhost:1400
-- **Health check backend** : http://localhost:1400/health
+- **API** : via le frontend (ex. http://localhost:14001/api/…)
 - **Health check frontend** : http://localhost:14001/health
 
 ## Commandes utiles
@@ -117,9 +117,9 @@ docker-compose exec backend cp /app/data/devtoolbox.db.backup /app/data/devtoolb
 
 #### Configuration avec fichier .env
 
-Le fichier `.env` à la racine du projet est automatiquement chargé par Docker Compose pour le service backend.
+Les variables du backend sont définies dans la section `environment` du `docker-compose.yml`. Docker Compose charge le fichier `.env` à la racine du projet pour la substitution des variables (${VAR}). Aucun `env_file` n’est utilisé dans le Compose, ce qui permet un déploiement sur Coolify sans fichier .env sur le serveur.
 
-**Étapes de configuration** :
+**Étapes de configuration (en local)** :
 
 ```bash
 # 1. Copier le fichier d'exemple
@@ -177,38 +177,34 @@ DB_PATH=/app/data/devtoolbox.db
 FRONTEND_URL=http://localhost:14001
 ```
 
-**Important** : 
+**Important** :
 - Le fichier `.env` est ignoré par Git (ne sera pas commité)
-- `JWT_SECRET` est **obligatoire en production**. Générez un secret fort avec : `openssl rand -base64 32`
-- Ne jamais utiliser le secret par défaut (`dev-secret-change-in-production`) en production
-- Les variables SMTP sont optionnelles. L'application fonctionne sans elles, mais aucun email de confirmation ne sera envoyé
+- `JWT_SECRET` est **obligatoire** : le Compose refuse de démarrer s’il est vide. Générez un secret fort avec : `openssl rand -base64 32`
+- Ne jamais utiliser le secret par défaut en production
+- Les variables SMTP sont optionnelles. L’application fonctionne sans elles, mais aucun email de confirmation ne sera envoyé
+- En local, vous pouvez aussi lancer avec `docker-compose --env-file .env up` pour charger explicitement le .env
 
 ### Ports
 
 Par défaut :
-- Frontend : port 14001
-- Backend : port 1400
+- **Frontend** : port 14001 (seul service exposé sur l’hôte)
+- **Backend** : non exposé ; l’API est accessible uniquement via le frontend (chemin `/api`)
 
-Pour changer les ports, modifiez `docker-compose.yml` :
+Pour changer le port du frontend, modifiez `docker-compose.yml` :
 
 ```yaml
 services:
   frontend:
     ports:
       - "14001:80"  # Changer 14001 selon vos besoins
-  backend:
-    ports:
-      - "1400:1400"  # Changer 1400 selon vos besoins
 ```
 
 ### Volumes
 
-Les données sont persistées dans le dossier `./data` du projet :
+Les données sont persistées dans le volume nommé **devtoolbox_data** (monté sur `/app/data` dans le backend) :
 
-- Base de données SQLite : `./data/devtoolbox.db`
-- Les données sont conservées même après `docker-compose down`
-
-Pour changer l'emplacement, modifiez le volume dans `docker-compose.yml`.
+- Base de données SQLite : dans le volume `devtoolbox_data`
+- Les données sont conservées après `docker-compose down` ; pour tout supprimer : `docker-compose down -v`
 
 ## Développement
 
@@ -258,6 +254,41 @@ docker-compose pull
 docker-compose up -d
 ```
 
+### Déploiement Coolify
+
+DevToolbox peut être déployé sur [Coolify](https://coolify.io) en utilisant le Build Pack **Docker Compose**. Procédure recommandée :
+
+1. **Créer une ressource**  
+   Dans le tableau de bord Coolify : Projet → **Create New Resource**.
+
+2. **Source**  
+   Choisir **Public Repository** (ou GitHub App / Deploy Key si le dépôt est privé) et indiquer l’URL du dépôt DevToolbox.
+
+3. **Build Pack**  
+   Sélectionner **Docker Compose** (et non Nixpacks).
+
+4. **Configuration du Build Pack**  
+   - **Base Directory** : `/`  
+   - **Docker Compose Location** : `docker-compose.yml`
+
+5. **Domaine**  
+   Assigner **un domaine au service `frontend` uniquement** (ex. `https://devtoolbox.example.com`). Ne pas assigner de domaine au backend : l’API est exposée via le frontend (`/api`).
+
+6. **Variables d’environnement**  
+   Dans l’onglet **Environment** de la ressource, définir au minimum :
+   - **JWT_SECRET** (obligatoire) : par ex. `openssl rand -base64 32`
+   - **CORS_ORIGIN** : URL publique du frontend (ex. `https://devtoolbox.example.com`)
+   - **FRONTEND_URL** : même URL (pour les liens dans les e-mails)  
+   Optionnel : SMTP_*, NODE_ENV, PORT, DB_PATH.
+
+7. **Stockage**  
+   La base SQLite est stockée dans le volume nommé `devtoolbox_data` défini dans le Compose. Aucune configuration supplémentaire dans l’interface Coolify n’est nécessaire pour la persistance.
+
+8. **Déployer**  
+   Lancer le déploiement. Une fois les healthchecks des deux services au vert, l’application est accessible sur le domaine assigné au frontend.
+
+**Astuce** : Avec un domaine géré par Coolify, vous pouvez utiliser les [variables magiques](https://coolify.io/docs/knowledge-base/docker/compose#coolifys-magic-environment-variables) (ex. `SERVICE_URL_FRONTEND`) pour `FRONTEND_URL` et `CORS_ORIGIN` afin d’éviter de ressaisir l’URL.
+
 ## Dépannage
 
 ### Conflits lors d'un git pull
@@ -280,8 +311,8 @@ Les fichiers non suivis éventuellement écrasés sont sauvegardés dans un doss
 # Vérifier les logs
 docker-compose logs backend
 
-# Vérifier que le port n'est pas déjà utilisé
-lsof -i :1400
+# Vérifier que JWT_SECRET est défini (obligatoire)
+# En local : créer .env depuis .env.example et y mettre JWT_SECRET
 
 # Rebuild le conteneur
 docker-compose build --no-cache backend
@@ -292,29 +323,20 @@ docker-compose up -d backend
 
 1. Vérifier que le backend est démarré : `docker-compose ps`
 2. Vérifier la configuration Nginx : `docker-compose exec frontend cat /etc/nginx/conf.d/default.conf`
-3. Tester l'API directement : `curl http://localhost:1400/health`
+3. Tester l’API via le proxy du frontend ou depuis le conteneur backend : `docker-compose exec backend wget -q -O- http://localhost:1400/health`
 
 ### Problèmes de permissions
 
-```bash
-# Donner les permissions au dossier data
-chmod -R 755 ./data
-
-# Si nécessaire, changer le propriétaire
-sudo chown -R $USER:$USER ./data
-```
+Les données sont dans le volume nommé `devtoolbox_data`. Si le conteneur backend signale des erreurs sur `/app/data`, vérifier que le volume est bien monté : `docker volume inspect devtoolbox_devtoolbox_data` (le préfixe peut varier selon le nom du projet Compose).
 
 ### Réinitialiser complètement
 
 ```bash
-# Arrêter et supprimer tout
+# Arrêter et supprimer conteneurs et volumes (⚠️ perte des données)
 docker-compose down -v
 
 # Supprimer les images
 docker-compose rm -f
-
-# Supprimer le dossier data (⚠️ perte de données)
-rm -rf ./data
 
 # Redémarrer
 docker-compose up -d --build
