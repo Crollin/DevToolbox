@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,23 +9,38 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import LicenceKeyHub from "./pages/tools/LicenceKeyHub";
-import CsvPreviewPro from "./pages/tools/CsvPreviewPro";
-import MonCalculEnergie from "./pages/tools/MonCalculEnergie";
-import WPScriptLibrary from "./pages/tools/WPScriptLibrary";
-import ColorPaletteGen from "./pages/tools/ColorPaletteGen";
-import WPCLIGlossary from "./pages/tools/WPCLIGlossary";
-import SVGIconLibrary from "./pages/tools/SVGIconLibrary";
-import GitCommander from "./pages/tools/GitCommander";
-import DockerCommander from "./pages/tools/DockerCommander";
-import CodeSnippetLibrary from "./pages/tools/CodeSnippetLibrary";
-import MarkdownEditor from "./pages/tools/MarkdownEditor";
-import WPHookReference from "./pages/tools/WPHookReference";
-import WPQueryBuilder from "./pages/tools/WPQueryBuilder";
-import ImageResizer from "./pages/tools/ImageResizer";
-import TaskReminder from "./pages/tools/TaskReminder";
 
-const queryClient = new QueryClient();
+const LicenceKeyHub = lazy(() => import("./pages/tools/LicenceKeyHub"));
+const CsvPreviewPro = lazy(() => import("./pages/tools/CsvPreviewPro"));
+const MonCalculEnergie = lazy(() => import("./pages/tools/MonCalculEnergie"));
+const WPScriptLibrary = lazy(() => import("./pages/tools/WPScriptLibrary"));
+const ColorPaletteGen = lazy(() => import("./pages/tools/ColorPaletteGen"));
+const WPCLIGlossary = lazy(() => import("./pages/tools/WPCLIGlossary"));
+const SVGIconLibrary = lazy(() => import("./pages/tools/SVGIconLibrary"));
+const GitCommander = lazy(() => import("./pages/tools/GitCommander"));
+const DockerCommander = lazy(() => import("./pages/tools/DockerCommander"));
+const CodeSnippetLibrary = lazy(() => import("./pages/tools/CodeSnippetLibrary"));
+const MarkdownEditor = lazy(() => import("./pages/tools/MarkdownEditor"));
+const WPHookReference = lazy(() => import("./pages/tools/WPHookReference"));
+const WPQueryBuilder = lazy(() => import("./pages/tools/WPQueryBuilder"));
+const ImageResizer = lazy(() => import("./pages/tools/ImageResizer"));
+const TaskReminder = lazy(() => import("./pages/tools/TaskReminder"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      gcTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const RouteFallback = () => (
+  <div className="flex min-h-[50vh] items-center justify-center">
+    <p className="text-muted-foreground">Chargement...</p>
+  </div>
+);
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
@@ -34,8 +50,9 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
               <Route
                 path="/tools/licence-key-hub"
                 element={
@@ -156,9 +173,10 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

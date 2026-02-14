@@ -279,7 +279,8 @@ DevToolbox peut être déployé sur [Coolify](https://coolify.io) en utilisant l
    - **JWT_SECRET** (obligatoire) : par ex. `openssl rand -base64 32`
    - **CORS_ORIGIN** : URL publique du frontend (ex. `https://devtoolbox.example.com`)
    - **FRONTEND_URL** : même URL (pour les liens dans les e-mails)  
-   Optionnel : SMTP_*, NODE_ENV, PORT, DB_PATH.
+   Optionnel : SMTP_*, PORT, DB_PATH. Pour **NODE_ENV** : si définie, la configurer en « Runtime only » (pas à la build) pour éviter les échecs de build.
+
 
 7. **Stockage**  
    La base SQLite est stockée dans le volume nommé `devtoolbox_data` défini dans le Compose. Aucune configuration supplémentaire dans l’interface Coolify n’est nécessaire pour la persistance.
@@ -318,6 +319,10 @@ docker-compose logs backend
 docker-compose build --no-cache backend
 docker-compose up -d backend
 ```
+
+### Échec du build Coolify (exit 127, « command not found »)
+
+Coolify injecte `NODE_ENV=production` pendant le build, ce qui fait que `npm ci` omet les devDependencies (TypeScript, Vite…). Les Dockerfiles utilisent désormais `npm ci --include=dev` pour forcer leur installation. Si le problème persiste : dans Coolify → **Environment** → **NODE_ENV**, décocher « Available at Buildtime » et garder uniquement « Runtime only ».
 
 ### Le frontend ne se connecte pas à l'API
 

@@ -15,7 +15,15 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const _jwtSecret = process.env.NODE_ENV === 'production'
+  ? process.env.JWT_SECRET
+  : (process.env.JWT_SECRET || 'dev-secret-change-in-production');
+
+if (!_jwtSecret) {
+  throw new Error('JWT_SECRET is required');
+}
+
+const JWT_SECRET: string = _jwtSecret;
 
 export interface JWTPayload {
   userId: string;

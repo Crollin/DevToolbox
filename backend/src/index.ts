@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { initializeDatabase } from './db/database';
 import { initializeDefaultSnippets } from './db/initSnippets';
 import snippetsRoutes from './routes/snippets';
@@ -19,11 +20,21 @@ import toolsRoutes from './routes/tools';
 import { checkAndSendReminders } from './lib/licenceReminders';
 import { checkAndSendTaskReminders } from './lib/taskReminders';
 
+// Exiger JWT_SECRET en production
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('Erreur: JWT_SECRET doit être défini en production.');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 1400;
 
 // Middleware
-app.use(cors());
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:8080',
+  credentials: true,
+}));
 app.use(express.json());
 
 // Initialiser la base de données

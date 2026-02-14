@@ -9,9 +9,9 @@ WORKDIR /app
 # Copier tous les fichiers de configuration en une fois pour optimiser le cache
 COPY package*.json vite.config.ts tsconfig*.json tailwind.config.ts postcss.config.js components.json ./
 
-# Installer les dépendances (inclut browser-image-compression)
-# Utiliser npm ci si package-lock.json existe, sinon npm install
-RUN npm ci 2>/dev/null || npm install
+# Installer les dépendances (inclut devDependencies pour Vite/TypeScript)
+# Coolify injecte NODE_ENV=production à la build → npm omet les devDependencies
+RUN npm ci --include=dev 2>/dev/null || npm install
 
 # Copier le code source
 COPY src ./src

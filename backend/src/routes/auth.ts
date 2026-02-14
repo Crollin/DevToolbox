@@ -1,15 +1,24 @@
 import express, { Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import jwt from 'jsonwebtoken';
 import db from '../db/database';
-import { generateToken, JWTPayload, authenticateToken } from '../middleware/auth';
+import { generateToken, authenticateToken } from '../middleware/auth';
 import { sendConfirmationEmail } from '../lib/email';
 
 const router = express.Router();
 
+// Rate limiter pour login et register : 10 requêtes / 15 min par IP
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Trop de tentatives. Réessayez dans 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // POST /api/auth/register - Inscription
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', authRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
 
@@ -91,7 +100,7 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/login - Connexion
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', authRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -173,46 +182,9 @@ router.put('/change-password', authenticateToken, async (req: Request, res: Resp
   }
 });
 
-// GET /api/auth/me - Récupérer l'utilisateur actuel
-router.get('/me', (req: Request, res: Response) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'Token d\'authentification manquant' });
-    }
-
-    const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-    
-    let decoded: JWTPayload;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    } catch (jwtError: unknown) {
-      if (jwtError instanceof jwt.JsonWebTokenError) {
-        return res.status(401).json({ error: 'Token invalide' });
-      }
-      if (jwtError instanceof jwt.TokenExpiredError) {
-        return res.status(401).json({ error: 'Token expiré' });
-      }
-      throw jwtError;
-    }
-
-    const user = db.prepare('SELECT id, email, name FROM users WHERE id = ?').get(decoded.userId) as {
-      id: string;
-      email: string;
-      name: string;
-    } | undefined;
-
-    if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    }
-
-    res.json({ user });
-  } catch (error) {
-    console.error('Erreur lors de la récupération de l\'utilisateur:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération de l\'utilisateur' });
-  }
+// GET /api/auth/me - Récupérer l'utilisateur actuel (utilise le middleware authenticateToken)
+router.get('/me', authenticateToken, (req: Request, res: Response) => {
+  res.json({ user: req.user });
 });
 
 export default router;

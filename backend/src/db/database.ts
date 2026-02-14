@@ -450,6 +450,23 @@ export function initializeDatabase() {
     )
   `);
 
+  // Index pour les requêtes fréquentes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_user_id_status ON tasks(user_id, status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_licences_user_id ON licences(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_licences_expires_at ON licences(expires_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_code_snippets_created_at ON code_snippets(created_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_code_snippets_folder ON code_snippets(folder)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_wp_hooks_category ON wp_hooks(category)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_wp_hooks_created_at ON wp_hooks(created_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_wp_queries_created_at ON wp_queries(created_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_task_reminders_task_id ON task_reminders(task_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tool_order_user_id ON tool_order(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_ntfy_configs_user_id ON ntfy_configs(user_id)`);
+
   console.log('Base de données initialisée avec succès');
 }
 

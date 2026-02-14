@@ -2,6 +2,12 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 import { getAuthToken } from './auth';
 
+function logApi(message: string, data?: unknown): void {
+  if (import.meta.env.DEV) {
+    console.log(message, data ?? '');
+  }
+}
+
 // Fonction utilitaire pour les appels API
 async function apiRequest<T>(
   endpoint: string,
@@ -20,14 +26,15 @@ async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  console.log(`[API] ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body as string) : '');
+  const bodyData = options.body ? (() => { try { return JSON.parse(options.body as string); } catch { return options.body; } })() : undefined;
+  logApi(`[API] ${options.method || 'GET'} ${url}`, bodyData);
   
   const response = await fetch(url, {
     ...options,
     headers,
   });
 
-  console.log(`[API] Response status: ${response.status} for ${url}`);
+  logApi(`[API] Response status: ${response.status} for ${url}`);
 
   if (!response.ok) {
     // Si erreur 401, supprimer le token
