@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { ChangePasswordModal } from "./auth/ChangePasswordModal";
+import { EditAccountModal } from "./auth/EditAccountModal";
 import { useState } from "react";
 
 interface HeaderProps {}
