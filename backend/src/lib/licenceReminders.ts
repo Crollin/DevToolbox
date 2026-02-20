@@ -1,5 +1,5 @@
 import db from '../db/database';
-import { sendLicenceExpirationEmail, ExpiringLicence } from './email';
+import { sendLicenceExpirationEmail, ExpiringLicence, loadEmailPreferencesForUser } from './email';
 
 /**
  * Calcule le nombre de jours jusqu'à l'expiration d'une licence
@@ -160,10 +160,12 @@ export async function checkAndSendReminders(): Promise<void> {
       }
 
       if (user.notification_type === 'email' || user.notification_type === 'both') {
+        const emailPrefs = loadEmailPreferencesForUser(user.id);
         const emailSent = await sendLicenceExpirationEmail(
           user.email,
           user.name,
-          licencesToNotify
+          licencesToNotify,
+          emailPrefs
         );
         if (emailSent) {
           notificationSent = true;

@@ -1,4 +1,5 @@
 import { Terminal, LogOut, User, Key, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
@@ -11,14 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { ChangePasswordModal } from "./auth/ChangePasswordModal";
-import { EditAccountModal } from "./auth/EditAccountModal";
 import { useState } from "react";
 
 interface HeaderProps {}
 
 const Header = () => {
+  const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
-  const [showEditAccountModal, setShowEditAccountModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   return (
@@ -60,7 +60,7 @@ const Header = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowEditAccountModal(true)}>
+                  <DropdownMenuItem onClick={() => navigate("/account")}>
                     <Settings className="w-4 h-4 mr-2" />
                     Mon compte
                   </DropdownMenuItem>
@@ -79,10 +79,6 @@ const Header = () => {
           </div>
         </div>
       </div>
-      <EditAccountModal
-        isOpen={showEditAccountModal}
-        onClose={() => setShowEditAccountModal(false)}
-      />
       <ChangePasswordModal
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}

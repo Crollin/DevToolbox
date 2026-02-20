@@ -1,6 +1,62 @@
 import db from '../db/database';
-import { sendTaskReminderEmail, TaskReminder } from './email';
+import { sendTaskReminderEmail, TaskReminder, loadEmailPreferencesForUser } from './email';
 import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Envoie une notification Ntfy pour une tâche
+ */
+async function sendNtfyTaskNotification(
+  serverUrl: string,
+  topic: string,
+  token: string | null,
+  task: TaskReminder
+): Promise<boolean> {
+  if (!topic) return false;
+
+  let urgencyTag = 'calendar';
+  if (task.daysUntilDue !== undefined) {
+    if (task.daysUntilDue < 0) urgencyTag = 'warning';
+    else if (task.daysUntilDue <= 1) urgencyTag = 'alarm';
+  }
+
+  const message = [
+    `📋 ${task.title}`,
+    task.daysUntilDue !== undefined && task.daysUntilDue < 0
+      ? `⚠️ En retard depuis ${Math.abs(task.daysUntilDue)} jour(s)`
+      : task.daysUntilDue === 0
+      ? '🔴 Échéance aujourd\'hui !'
+      : task.daysUntilDue === 1
+      ? '⚠️ Échéance demain'
+      : task.daysUntilDue !== undefined
+      ? `📅 Échéance dans ${task.daysUntilDue} jour(s)`
+      : '',
+    task.dueDate ? `📅 ${new Date(task.dueDate).toLocaleDateString('fr-FR')}` : '',
+    task.client ? `👤 ${task.client}` : '',
+    task.link || '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'text/plain; charset=utf-8',
+      Title: `📋 Rappel : ${task.title}`,
+      Priority: task.daysUntilDue !== undefined && task.daysUntilDue <= 1 ? 'high' : 'default',
+      Tags: urgencyTag,
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${serverUrl}/${topic}`, {
+      method: 'POST',
+      headers,
+      body: message,
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi de la notification Ntfy (tâche):', error);
+    return false;
+  }
+}
 
 /**
  * Calcule le nombre de jours jusqu'à la date d'échéance d'une tâche
@@ -94,6 +150,18 @@ export async function checkAndSendTaskReminders(): Promise<void> {
     }>;
 
     for (const user of users) {
+      const ntfyConfig = db.prepare('SELECT notification_type, server_url, topic, token FROM ntfy_configs WHERE user_id = ?').get(user.id) as {
+        notification_type: string;
+        server_url: string;
+        topic: string;
+        token: string | null;
+      } | undefined;
+      let notificationType = ntfyConfig?.notification_type || 'email';
+      if ((notificationType === 'ntfy' || notificationType === 'both') && !ntfyConfig?.topic) {
+        notificationType = 'email';
+      }
+      const emailPrefs = loadEmailPreferencesForUser(user.id);
+
       // Récupérer les tâches non complétées de l'utilisateur
       const tasks = db.prepare(`
         SELECT id, title, description, due_date, client, link, reminder_days, reminder_datetime
@@ -130,13 +198,29 @@ export async function checkAndSendTaskReminders(): Promise<void> {
                   daysUntilDue,
                 };
 
-                const emailSent = await sendTaskReminderEmail(
-                  user.email,
-                  user.name,
-                  taskReminder
-                );
+                let notificationSent = false;
+                if (notificationType === 'ntfy' || notificationType === 'both') {
+                  if (ntfyConfig?.topic) {
+                    const ntfySent = await sendNtfyTaskNotification(
+                      ntfyConfig.server_url || 'https://ntfy.sh',
+                      ntfyConfig.topic,
+                      ntfyConfig.token,
+                      taskReminder
+                    );
+                    if (ntfySent) notificationSent = true;
+                  }
+                }
+                if (notificationType === 'email' || notificationType === 'both') {
+                  const emailSent = await sendTaskReminderEmail(
+                    user.email,
+                    user.name,
+                    taskReminder,
+                    emailPrefs
+                  );
+                  if (emailSent) notificationSent = true;
+                }
 
-                if (emailSent) {
+                if (notificationSent) {
                   recordReminderSent(task.id, 'days_before', daysBefore.toString());
                   reminderSent = true;
                   console.log(`Rappel "jours avant" envoyé pour la tâche "${task.title}" (${daysBefore} jours avant)`);
@@ -160,13 +244,29 @@ export async function checkAndSendTaskReminders(): Promise<void> {
               daysUntilDue,
             };
 
-            const emailSent = await sendTaskReminderEmail(
-              user.email,
-              user.name,
-              taskReminder
-            );
+            let notificationSent = false;
+            if (notificationType === 'ntfy' || notificationType === 'both') {
+              if (ntfyConfig?.topic) {
+                const ntfySent = await sendNtfyTaskNotification(
+                  ntfyConfig.server_url || 'https://ntfy.sh',
+                  ntfyConfig.topic,
+                  ntfyConfig.token,
+                  taskReminder
+                );
+                if (ntfySent) notificationSent = true;
+              }
+            }
+            if (notificationType === 'email' || notificationType === 'both') {
+              const emailSent = await sendTaskReminderEmail(
+                user.email,
+                user.name,
+                taskReminder,
+                emailPrefs
+              );
+              if (emailSent) notificationSent = true;
+            }
 
-            if (emailSent) {
+            if (notificationSent) {
               recordReminderSent(task.id, 'datetime', task.reminder_datetime);
               console.log(`Rappel date/heure envoyé pour la tâche "${task.title}"`);
             }

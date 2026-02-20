@@ -293,6 +293,37 @@ export function initializeDatabase() {
     )
   `);
 
+  // Table pour la configuration SMTP globale (une seule ligne)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS smtp_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      host TEXT,
+      port INTEGER DEFAULT 587,
+      user TEXT,
+      pass TEXT,
+      from_email TEXT,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  // Table pour les préférences de personnalisation des emails par utilisateur
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_email_preferences (
+      user_id TEXT PRIMARY KEY,
+      company_name TEXT,
+      signature TEXT,
+      primary_color TEXT DEFAULT '#0066CC',
+      secondary_color TEXT DEFAULT '#004499',
+      logo_url TEXT,
+      welcome_text TEXT,
+      licences_text TEXT,
+      tasks_text TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Migration : Ajouter preferences à la table users si elle n'existe pas
   try {
     const usersTableInfo = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;

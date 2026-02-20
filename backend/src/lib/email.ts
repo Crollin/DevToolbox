@@ -1,23 +1,90 @@
 import nodemailer from 'nodemailer';
+import db from '../db/database';
 
-// Configuration SMTP depuis les variables d'environnement
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'noreply@devtoolbox.com';
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  fromEmail: string;
+}
 
-// Créer le transporteur email (seulement si configuré)
-let transporter: nodemailer.Transporter | null = null;
+export interface EmailPreferences {
+  companyName?: string;
+  signature?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  logoUrl?: string;
+  welcomeText?: string;
+  licencesText?: string;
+  tasksText?: string;
+}
 
-if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-  transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465, // true pour 465, false pour les autres ports
-    auth: {
+function getEmailDefaults(prefs?: EmailPreferences | null) {
+  return {
+    companyName: prefs?.companyName || 'DevToolbox',
+    signature: prefs?.signature || 'L\'équipe DevToolbox',
+    primaryColor: prefs?.primaryColor || '#0066CC',
+    secondaryColor: prefs?.secondaryColor || '#004499',
+    logoUrl: prefs?.logoUrl || '',
+  };
+}
+
+/**
+ * Charge la configuration SMTP depuis la base de données ou les variables d'environnement
+ */
+function loadSmtpConfig(): SmtpConfig | null {
+  const dbConfig = db.prepare('SELECT host, port, user, pass, from_email FROM smtp_config WHERE id = 1').get() as {
+    host: string | null;
+    port: number | null;
+    user: string | null;
+    pass: string | null;
+    from_email: string | null;
+  } | undefined;
+
+  if (dbConfig && dbConfig.host && dbConfig.user && dbConfig.pass) {
+    return {
+      host: dbConfig.host,
+      port: dbConfig.port || 587,
+      user: dbConfig.user,
+      pass: dbConfig.pass,
+      fromEmail: dbConfig.from_email || dbConfig.user || 'noreply@devtoolbox.com',
+    };
+  }
+
+  const SMTP_HOST = process.env.SMTP_HOST;
+  const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+  const SMTP_USER = process.env.SMTP_USER;
+  const SMTP_PASS = process.env.SMTP_PASS;
+  const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || 'noreply@devtoolbox.com';
+
+  if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+    return {
+      host: SMTP_HOST,
+      port: SMTP_PORT,
       user: SMTP_USER,
       pass: SMTP_PASS,
+      fromEmail: SMTP_FROM,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Obtient le transporteur Nodemailer (config DB prioritaire sur env)
+ */
+function getTransporter(): nodemailer.Transporter | null {
+  const config = loadSmtpConfig();
+  if (!config) return null;
+
+  return nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.port === 465,
+    auth: {
+      user: config.user,
+      pass: config.pass,
     },
   });
 }
@@ -25,16 +92,23 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
 /**
  * Envoie un email de confirmation de bienvenue à un nouvel utilisateur
  */
-export async function sendConfirmationEmail(email: string, name: string): Promise<boolean> {
-  // Si le transporteur n'est pas configuré, on retourne false sans erreur
+export async function sendConfirmationEmail(email: string, name: string, prefs?: EmailPreferences | null): Promise<boolean> {
+  const transporter = getTransporter();
   if (!transporter) {
     console.warn('SMTP non configuré - email de confirmation non envoyé');
     return false;
   }
 
+  const config = loadSmtpConfig();
+  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
+  const d = getEmailDefaults(prefs);
+  const welcomeBody = prefs?.welcomeText
+    ? prefs.welcomeText.split('\n').map(p => `<p>${p}</p>`).join('')
+    : `<p>Merci de vous être inscrit sur <strong>${d.companyName}</strong> ! Votre compte a été créé avec succès.</p><p>Vous pouvez maintenant accéder à tous les outils disponibles et commencer à utiliser votre boîte à outils de développement.</p>`;
+
   try {
     const mailOptions = {
-      from: `"DevToolbox" <${SMTP_FROM}>`,
+      from: `"${d.companyName}" <${fromAddr}>`,
       to: email,
       subject: 'Bienvenue sur DevToolbox ! 🎉',
       html: `
@@ -84,17 +158,17 @@ export async function sendConfirmationEmail(email: string, name: string): Promis
         </head>
         <body>
           <div class="header">
-            <h1>Bienvenue sur DevToolbox ! 🎉</h1>
+            ${d.logoUrl ? `<img src="${d.logoUrl}" alt="${d.companyName}" style="max-height: 60px; margin-bottom: 10px;">` : ''}
+            <h1>Bienvenue sur ${d.companyName} ! 🎉</h1>
           </div>
           <div class="content">
             <p>Bonjour <strong>${name}</strong>,</p>
-            <p>Merci de vous être inscrit sur <strong>DevToolbox</strong> ! Votre compte a été créé avec succès.</p>
-            <p>Vous pouvez maintenant accéder à tous les outils disponibles et commencer à utiliser votre boîte à outils de développement.</p>
+            ${welcomeBody}
             <p style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" class="button">Accéder à DevToolbox</a>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" class="button">Accéder à ${d.companyName}</a>
             </p>
             <p>Si vous avez des questions ou besoin d'aide, n'hésitez pas à nous contacter.</p>
-            <p>Cordialement,<br>L'équipe DevToolbox</p>
+            <p>Cordialement,<br>${d.signature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -144,9 +218,10 @@ export interface ExpiringLicence {
 export async function sendLicenceExpirationEmail(
   email: string,
   name: string,
-  licences: ExpiringLicence[]
+  licences: ExpiringLicence[],
+  prefs?: EmailPreferences | null
 ): Promise<boolean> {
-  // Si le transporteur n'est pas configuré, on retourne false sans erreur
+  const transporter = getTransporter();
   if (!transporter) {
     console.warn('SMTP non configuré - email de notification de licences non envoyé');
     return false;
@@ -180,9 +255,16 @@ export async function sendLicenceExpirationEmail(
     })
     .join('\n');
 
+  const config = loadSmtpConfig();
+  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
+  const d = getEmailDefaults(prefs);
+  const licencesIntro = prefs?.licencesText
+    ? prefs.licencesText.split('\n').map(p => `<p>${p}</p>`).join('')
+    : `<p>Vous avez <strong>${licences.length} licence(s)</strong> nécessitant votre attention :</p>`;
+
   try {
     const mailOptions = {
-      from: `"DevToolbox" <${SMTP_FROM}>`,
+      from: `"${d.companyName}" <${fromAddr}>`,
       to: email,
       subject: `🔑 Licences à renouveler (${licences.length})`,
       html: `
@@ -200,7 +282,7 @@ export async function sendLicenceExpirationEmail(
               padding: 20px;
             }
             .header {
-              background: linear-gradient(135deg, #0066CC 0%, #004499 100%);
+              background: linear-gradient(135deg, ${d.primaryColor} 0%, ${d.secondaryColor} 100%);
               color: white;
               padding: 30px;
               text-align: center;
@@ -219,7 +301,7 @@ export async function sendLicenceExpirationEmail(
             .button {
               display: inline-block;
               padding: 12px 24px;
-              background: #0066CC;
+              background: ${d.primaryColor};
               color: white;
               text-decoration: none;
               border-radius: 6px;
@@ -248,7 +330,7 @@ export async function sendLicenceExpirationEmail(
           </div>
           <div class="content">
             <p>Bonjour <strong>${name}</strong>,</p>
-            <p>Vous avez <strong>${licences.length} licence(s)</strong> nécessitant votre attention :</p>
+            ${licencesIntro}
             <div class="summary">
               ${expiredCount > 0 ? `<strong>${expiredCount} licence(s) expirée(s)</strong>` : ''}
               ${warningCount > 0 ? `<strong>${warningCount} licence(s) expirant bientôt</strong>` : ''}
@@ -260,7 +342,7 @@ export async function sendLicenceExpirationEmail(
               <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/licence-key-hub" class="button">Gérer mes licences</a>
             </p>
             <p>N'oubliez pas de renouveler vos licences avant leur expiration pour éviter toute interruption de service.</p>
-            <p>Cordialement,<br>L'équipe DevToolbox</p>
+            <p>Cordialement,<br>${d.signature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -301,18 +383,22 @@ export async function sendLicenceExpirationEmail(
 /**
  * Envoie un email de test pour valider la configuration SMTP
  */
-export async function sendTestEmail(email: string, name: string): Promise<boolean> {
-  // Si le transporteur n'est pas configuré, on retourne false sans erreur
+export async function sendTestEmail(email: string, name: string, prefs?: EmailPreferences | null): Promise<boolean> {
+  const transporter = getTransporter();
   if (!transporter) {
     console.warn('SMTP non configuré - email de test non envoyé');
     return false;
   }
 
+  const config = loadSmtpConfig();
+  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
+  const d = getEmailDefaults(prefs);
+
   try {
     const mailOptions = {
-      from: `"DevToolbox" <${SMTP_FROM}>`,
+      from: `"${d.companyName}" <${fromAddr}>`,
       to: email,
-      subject: '🔔 Test de notification DevToolbox',
+      subject: `🔔 Test de notification ${d.companyName}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -328,7 +414,7 @@ export async function sendTestEmail(email: string, name: string): Promise<boolea
               padding: 20px;
             }
             .header {
-              background: linear-gradient(135deg, #0066CC 0%, #004499 100%);
+              background: linear-gradient(135deg, ${d.primaryColor} 0%, ${d.secondaryColor} 100%);
               color: white;
               padding: 30px;
               text-align: center;
@@ -367,7 +453,7 @@ export async function sendTestEmail(email: string, name: string): Promise<boolea
               <p>Si vous recevez cet email, cela signifie que votre configuration SMTP fonctionne correctement.</p>
             </div>
             <p>Vous recevrez désormais des notifications par email pour les licences expirantes dans votre Licence Key Hub.</p>
-            <p>Cordialement,<br>L'équipe DevToolbox</p>
+            <p>Cordialement,<br>${d.signature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -418,9 +504,10 @@ export interface TaskReminder {
 export async function sendTaskReminderEmail(
   email: string,
   name: string,
-  task: TaskReminder
+  task: TaskReminder,
+  prefs?: EmailPreferences | null
 ): Promise<boolean> {
-  // Si le transporteur n'est pas configuré, on retourne false sans erreur
+  const transporter = getTransporter();
   if (!transporter) {
     console.warn('SMTP non configuré - email de rappel de tâche non envoyé');
     return false;
@@ -469,9 +556,16 @@ ${task.link ? `🔗 Lien : ${task.link}` : ''}
 ${urgencyText ? `\n${urgencyText}` : ''}
   `;
 
+  const config = loadSmtpConfig();
+  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
+  const d = getEmailDefaults(prefs);
+  const tasksIntro = prefs?.tasksText
+    ? prefs.tasksText.split('\n').map(p => `<p>${p}</p>`).join('')
+    : `<p>Vous avez une tâche qui nécessite votre attention :</p>`;
+
   try {
     const mailOptions = {
-      from: `"DevToolbox" <${SMTP_FROM}>`,
+      from: `"${d.companyName}" <${fromAddr}>`,
       to: email,
       subject: `📋 Rappel de tâche : ${task.title}`,
       html: `
@@ -489,7 +583,7 @@ ${urgencyText ? `\n${urgencyText}` : ''}
               padding: 20px;
             }
             .header {
-              background: linear-gradient(135deg, #0066CC 0%, #004499 100%);
+              background: linear-gradient(135deg, ${d.primaryColor} 0%, ${d.secondaryColor} 100%);
               color: white;
               padding: 30px;
               text-align: center;
@@ -503,7 +597,7 @@ ${urgencyText ? `\n${urgencyText}` : ''}
             .button {
               display: inline-block;
               padding: 12px 24px;
-              background: #0066CC;
+              background: ${d.primaryColor};
               color: white;
               text-decoration: none;
               border-radius: 6px;
@@ -525,12 +619,12 @@ ${urgencyText ? `\n${urgencyText}` : ''}
           </div>
           <div class="content">
             <p>Bonjour <strong>${name}</strong>,</p>
-            <p>Vous avez une tâche qui nécessite votre attention :</p>
+            ${tasksIntro}
             ${taskDetailsHtml}
             <p style="text-align: center;">
               <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/task-reminder" class="button">Voir mes tâches</a>
             </p>
-            <p>Cordialement,<br>L'équipe DevToolbox</p>
+            <p>Cordialement,<br>${d.signature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -567,7 +661,38 @@ ${urgencyText ? `\n${urgencyText}` : ''}
  * Vérifie si le service email est configuré
  */
 export function isEmailConfigured(): boolean {
-  return transporter !== null;
+  return getTransporter() !== null;
+}
+
+export { loadSmtpConfig };
+
+/**
+ * Charge les préférences email d'un utilisateur depuis la base
+ */
+export function loadEmailPreferencesForUser(userId: string): EmailPreferences | null {
+  const row = db.prepare('SELECT * FROM user_email_preferences WHERE user_id = ?').get(userId) as {
+    company_name: string | null;
+    signature: string | null;
+    primary_color: string | null;
+    secondary_color: string | null;
+    logo_url: string | null;
+    welcome_text: string | null;
+    licences_text: string | null;
+    tasks_text: string | null;
+  } | undefined;
+
+  if (!row) return null;
+
+  return {
+    companyName: row.company_name || undefined,
+    signature: row.signature || undefined,
+    primaryColor: row.primary_color || undefined,
+    secondaryColor: row.secondary_color || undefined,
+    logoUrl: row.logo_url || undefined,
+    welcomeText: row.welcome_text || undefined,
+    licencesText: row.licences_text || undefined,
+    tasksText: row.tasks_text || undefined,
+  };
 }
 
 

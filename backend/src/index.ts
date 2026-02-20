@@ -15,6 +15,7 @@ import iconsRoutes from './routes/icons';
 import licencesRoutes from './routes/licences';
 import electricalcRoutes from './routes/electricalc';
 import authRoutes from './routes/auth';
+import accountRoutes from './routes/account';
 import tasksRoutes from './routes/tasks';
 import toolsRoutes from './routes/tools';
 import { checkAndSendReminders } from './lib/licenceReminders';
@@ -43,6 +44,7 @@ initializeDefaultSnippets();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/account', accountRoutes);
 app.use('/api/snippets', snippetsRoutes);
 app.use('/api/hooks', hooksRoutes);
 app.use('/api/queries', queriesRoutes);

@@ -26,6 +26,7 @@ const WPHookReference = lazy(() => import("./pages/tools/WPHookReference"));
 const WPQueryBuilder = lazy(() => import("./pages/tools/WPQueryBuilder"));
 const ImageResizer = lazy(() => import("./pages/tools/ImageResizer"));
 const TaskReminder = lazy(() => import("./pages/tools/TaskReminder"));
+const Account = lazy(() => import("./pages/Account"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -172,6 +173,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <TaskReminder />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <Account />
                   </ProtectedRoute>
                 }
               />
