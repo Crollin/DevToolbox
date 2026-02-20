@@ -1,9 +1,14 @@
 const TOKEN_KEY = 'devtoolbox_auth_token';
 
+export interface UserPreferences {
+  theme?: 'light' | 'dark' | 'system';
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
+  preferences?: UserPreferences;
 }
 
 export interface AuthResponse {

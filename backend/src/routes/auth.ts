@@ -90,6 +90,7 @@ router.post('/register', authRateLimiter, async (req: Request, res: Response) =>
         id,
         email,
         name,
+        preferences: {},
       },
       emailSent,
     });
@@ -110,11 +111,12 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response) => {
     }
 
     // Récupérer l'utilisateur
-    const user = db.prepare('SELECT id, email, password_hash, name FROM users WHERE email = ?').get(email) as {
+    const user = db.prepare('SELECT id, email, password_hash, name, preferences FROM users WHERE email = ?').get(email) as {
       id: string;
       email: string;
       password_hash: string;
       name: string;
+      preferences?: string | null;
     } | undefined;
 
     if (!user) {
@@ -127,6 +129,15 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
     }
 
+    let preferences: Record<string, unknown> | undefined;
+    if (user.preferences) {
+      try {
+        preferences = JSON.parse(user.preferences) as Record<string, unknown>;
+      } catch {
+        preferences = {};
+      }
+    }
+
     // Générer le token JWT
     const token = generateToken({ userId: user.id, email: user.email });
 
@@ -136,11 +147,98 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        preferences,
       },
     });
   } catch (error) {
     console.error('Erreur lors de la connexion:', error);
     res.status(500).json({ error: 'Erreur lors de la connexion' });
+  }
+});
+
+const VALID_THEMES = ['light', 'dark', 'system'];
+
+// PUT /api/auth/profile - Mettre à jour le profil (nom, préférences)
+router.put('/profile', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { name, preferences } = req.body;
+
+    const updates: string[] = [];
+    const values: unknown[] = [];
+
+    if (typeof name === 'string') {
+      const trimmed = name.trim();
+      if (!trimmed) {
+        return res.status(400).json({ error: 'Le nom ne peut pas être vide' });
+      }
+      updates.push('name = ?');
+      values.push(trimmed);
+    }
+
+    if (typeof preferences === 'object' && preferences !== null) {
+      const currentUser = db.prepare('SELECT preferences FROM users WHERE id = ?').get(userId) as { preferences?: string | null } | undefined;
+      let mergedPrefs: Record<string, unknown> = {};
+      if (currentUser?.preferences) {
+        try {
+          mergedPrefs = JSON.parse(currentUser.preferences) as Record<string, unknown>;
+        } catch {
+          mergedPrefs = {};
+        }
+      }
+      mergedPrefs = { ...mergedPrefs, ...preferences };
+      if (typeof mergedPrefs.theme === 'string' && !VALID_THEMES.includes(mergedPrefs.theme)) {
+        return res.status(400).json({ error: 'Thème invalide. Valeurs acceptées: light, dark, system' });
+      }
+      updates.push('preferences = ?');
+      values.push(JSON.stringify(mergedPrefs));
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Aucune donnée à mettre à jour (name ou preferences requis)' });
+    }
+
+    const now = new Date().toISOString();
+    updates.push('updated_at = ?');
+    values.push(now);
+    values.push(userId);
+
+    const result = db.prepare(`
+      UPDATE users
+      SET ${updates.join(', ')}
+      WHERE id = ?
+    `).run(...values) as { changes: number };
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    const updated = db.prepare('SELECT id, email, name, preferences FROM users WHERE id = ?').get(userId) as {
+      id: string;
+      email: string;
+      name: string;
+      preferences?: string | null;
+    };
+    let prefs: Record<string, unknown> | undefined;
+    if (updated.preferences) {
+      try {
+        prefs = JSON.parse(updated.preferences) as Record<string, unknown>;
+      } catch {
+        prefs = {};
+      }
+    }
+
+    res.json({
+      user: {
+        id: updated.id,
+        email: updated.email,
+        name: updated.name,
+        preferences: prefs,
+      },
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du profil:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour du profil' });
   }
 });
 

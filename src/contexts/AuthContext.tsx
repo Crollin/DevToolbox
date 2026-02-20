@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, getAuthToken, setAuthToken, removeAuthToken, isTokenExpired } from '@/lib/auth';
+import { User, UserPreferences, getAuthToken, setAuthToken, removeAuthToken, isTokenExpired } from '@/lib/auth';
 import api from '@/lib/api';
 
 interface AuthContextType {
@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<{ emailSent: boolean }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: { name?: string; preferences?: UserPreferences }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProfile = async (data: { name?: string; preferences?: UserPreferences }) => {
+    const response = await api.put<{ user: User }>('/auth/profile', data);
+    setUser(response.user);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -86,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         refreshUser,
+        updateProfile,
       }}
     >
       {children}

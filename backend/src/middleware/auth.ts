@@ -10,6 +10,7 @@ declare global {
         id: string;
         email: string;
         name: string;
+        preferences?: Record<string, unknown>;
       };
     }
   }
@@ -42,14 +43,24 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     
     // Vérifier que l'utilisateur existe toujours
-    const user = db.prepare('SELECT id, email, name FROM users WHERE id = ?').get(decoded.userId) as {
+    const user = db.prepare('SELECT id, email, name, preferences FROM users WHERE id = ?').get(decoded.userId) as {
       id: string;
       email: string;
       name: string;
+      preferences?: string | null;
     } | undefined;
 
     if (!user) {
       return res.status(401).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    let preferences: Record<string, unknown> | undefined;
+    if (user.preferences) {
+      try {
+        preferences = JSON.parse(user.preferences) as Record<string, unknown>;
+      } catch {
+        preferences = {};
+      }
     }
 
     // Ajouter les informations utilisateur à la requête
@@ -57,6 +68,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
       id: user.id,
       email: user.email,
       name: user.name,
+      preferences,
     };
 
     next();

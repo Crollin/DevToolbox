@@ -293,6 +293,19 @@ export function initializeDatabase() {
     )
   `);
 
+  // Migration : Ajouter preferences à la table users si elle n'existe pas
+  try {
+    const usersTableInfo = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+    const usersColumnNames = usersTableInfo.map((col) => col.name);
+
+    if (!usersColumnNames.includes('preferences')) {
+      db.exec(`ALTER TABLE users ADD COLUMN preferences TEXT DEFAULT '{}'`);
+      console.log('Colonne preferences ajoutée à users');
+    }
+  } catch (error) {
+    console.log('Migration users (preferences) déjà effectuée ou table n\'existe pas encore');
+  }
+
   // Migration : Ajouter les nouvelles colonnes à ntfy_configs si elles n'existent pas
   try {
     const tableInfo = db.prepare("PRAGMA table_info(ntfy_configs)").all() as Array<{ name: string }>;

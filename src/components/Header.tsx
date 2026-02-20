@@ -1,4 +1,4 @@
-import { Terminal, LogOut, User, Key } from "lucide-react";
+import { Terminal, LogOut, User, Key, Settings } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
@@ -17,6 +17,7 @@ interface HeaderProps {}
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const [showEditAccountModal, setShowEditAccountModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   return (
@@ -58,6 +59,10 @@ const Header = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowEditAccountModal(true)}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Mon compte
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowChangePasswordModal(true)}>
                     <Key className="w-4 h-4 mr-2" />
                     Changer le mot de passe
@@ -73,6 +78,10 @@ const Header = () => {
           </div>
         </div>
       </div>
+      <EditAccountModal
+        isOpen={showEditAccountModal}
+        onClose={() => setShowEditAccountModal(false)}
+      />
       <ChangePasswordModal
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
