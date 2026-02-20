@@ -11,8 +11,8 @@ COPY package*.json tsconfig.json ./
 
 # Installer les dépendances (inclut devDependencies pour tsc/TypeScript)
 # Coolify injecte NODE_ENV=production à la build → npm omet les devDependencies
-# On force l'installation complète pour que tsc soit disponible
-RUN npm ci --include=dev 2>/dev/null || npm install
+# NODE_ENV=development forcé pour garantir l'installation de TypeScript
+RUN NODE_ENV=development npm ci --include=dev 2>/dev/null || NODE_ENV=development npm install --include=dev
 
 # Copier le code source
 COPY src ./src

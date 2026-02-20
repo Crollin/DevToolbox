@@ -11,7 +11,8 @@ COPY package*.json vite.config.ts tsconfig*.json tailwind.config.ts postcss.conf
 
 # Installer les dépendances (inclut devDependencies pour Vite/TypeScript)
 # Coolify injecte NODE_ENV=production à la build → npm omet les devDependencies
-RUN npm ci --include=dev 2>/dev/null || npm install
+# NODE_ENV=development forcé pour garantir l'installation de Vite/TypeScript
+RUN NODE_ENV=development npm ci --include=dev 2>/dev/null || NODE_ENV=development npm install --include=dev
 
 # Copier le code source
 COPY src ./src
