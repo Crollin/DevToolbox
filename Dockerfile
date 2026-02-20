@@ -28,6 +28,9 @@ LABEL maintainer="DevToolbox"
 LABEL description="DevToolbox Frontend - Production"
 LABEL version="1.1"
 
+# wget requis pour le healthcheck (absent de nginx:alpine récent)
+RUN apk add --no-cache wget
+
 # Nginx utilise déjà l'utilisateur nginx (non-root), s'assurer des permissions correctes
 COPY --chown=nginx:nginx docker/nginx.conf /etc/nginx/conf.d/default.conf
 
