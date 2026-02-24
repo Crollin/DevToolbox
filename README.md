@@ -11,7 +11,7 @@ Cette application regroupe une collection d'outils pratiques pour les développe
 - **Générateur de palettes de couleurs** - Palettes harmonieuses pour vos projets
 - **Bibliothèque d'icônes SVG** - Édition et export en SVG/JSX
 - **Outils WordPress** - WP-CLI, scripts, hooks, queries
-- **Image Resizer** - Redimensionnement et optimisation d'images pour WordPress (WebP)
+- **Image Resizer** - Redimensionnement et optimisation d'images pour WordPress (WebP, traitement par lots)
 - **Calculateur électrique** - Consommation énergétique et estimation des coûts
 - **Gestionnaire de clés de licence** - Centralisation des licences SaaS
 - **Éditeur Markdown** - Éditeur WYSIWYG avec prévisualisation
@@ -150,6 +150,7 @@ DevToolbox/
   - Présets WordPress (Hero, Banner, Container, Thumbnail, etc.)
   - Redimensionnement manuel avec ratio d'aspect
   - Conversion WebP avec qualité ajustable (50-100%)
+  - **Traitement par lots** : plusieurs images avec les mêmes paramètres, export ZIP ou individuel
   - Prévisualisation avant/après avec statistiques
   - Traitement 100% côté client (pas de backend requis)
 - **Licence Key Hub** - Gestionnaire centralisé de clés de licence
@@ -308,6 +309,7 @@ Les fichiers suivants sont automatiquement ignorés et ne causeront pas de confl
 - **Tailwind CSS** - Framework CSS
 - **React Router** - Routing
 - **browser-image-compression** - Compression et redimensionnement d'images côté client
+- **JSZip** - Création d'archives ZIP côté client (export batch Image Resizer)
 
 ### Backend
 - **Node.js** - Runtime JavaScript
@@ -491,6 +493,7 @@ Outil complet de redimensionnement et d'optimisation d'images pour WordPress :
 - **Présets WordPress** : Hero (1920x1080), Banner (1200x630), Container, Thumbnail, Medium, Large, Full
 - **Redimensionnement manuel** : Dimensions personnalisables avec conservation du ratio d'aspect
 - **Conversion WebP** : Export optimisé avec qualité ajustable (50-100%, défaut 75%)
+- **Traitement par lots** : Mode "Lots" pour traiter plusieurs images avec les mêmes paramètres, export ZIP ou téléchargements individuels
 - **Prévisualisation** : Comparaison avant/après avec statistiques détaillées
 - **Traitement côté client** : Aucun backend requis, traitement dans le navigateur
 - **Support multi-formats** : JPG, PNG, GIF, WebP, SVG

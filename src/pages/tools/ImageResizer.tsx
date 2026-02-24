@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Progress } from "@/components/ui/progress";
 import { useImageResizer } from "@/hooks/useImageResizer";
 import { ImageUploader } from "@/components/imageresizer/ImageUploader";
 import { ResizeControls } from "@/components/imageresizer/ResizeControls";
@@ -9,12 +11,15 @@ import { QualitySlider } from "@/components/imageresizer/QualitySlider";
 import { ImagePreview } from "@/components/imageresizer/ImagePreview";
 import { ExportPanel } from "@/components/imageresizer/ExportPanel";
 import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
+import { Play, ImageIcon, Layers } from "lucide-react";
 import { toast } from "sonner";
+import type { ImageResizerMode } from "@/types/image-resizer";
 
 const ImageResizer = () => {
   const tool = tools.find((t) => t.id === "image-resizer")!;
+  const [mode, setMode] = useState<ImageResizerMode>("single");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [activeTab, setActiveTab] = useState("settings");
   const {
     currentImage,
@@ -22,14 +27,35 @@ const ImageResizer = () => {
     error,
     settings,
     processImage,
+    processBatch,
     updateSettings,
     clearImage,
+    clearBatch,
     downloadImage,
+    downloadProcessedImage,
+    downloadAllAsZip,
+    processedImages,
+    batchProgress,
+    batchFailedCount,
   } = useImageResizer();
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
     clearImage();
+  };
+
+  const handleFilesSelect = (files: File[]) => {
+    setSelectedFiles(files);
+    clearBatch();
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClearBatch = () => {
+    setSelectedFiles([]);
+    clearBatch();
   };
 
   const handleProcess = async () => {
@@ -40,45 +66,110 @@ const ImageResizer = () => {
     await processImage(selectedFile, settings);
   };
 
+  const handleProcessBatch = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error("Veuillez sélectionner au moins une image");
+      return;
+    }
+    await processBatch(selectedFiles, settings);
+  };
+
   const handleClear = () => {
     setSelectedFile(null);
     clearImage();
   };
 
-  // Navigation automatique vers l'onglet prévisualisation après traitement réussi
+  const handleModeChange = (value: string) => {
+    if (value === "single" || value === "batch") {
+      setMode(value);
+      if (value === "single") {
+        setSelectedFiles([]);
+        clearBatch();
+      } else {
+        setSelectedFile(null);
+        clearImage();
+      }
+    }
+  };
+
+  const hasBatchData = processedImages.length > 0;
+  const hasSingleData = !!currentImage;
+
   useEffect(() => {
-    if (currentImage && !isProcessing) {
+    if (mode === "single" && currentImage && !isProcessing) {
       setActiveTab("preview");
     }
-  }, [currentImage, isProcessing]);
+  }, [mode, currentImage, isProcessing]);
+
+  useEffect(() => {
+    if (mode === "batch" && hasBatchData && !isProcessing) {
+      setActiveTab("export");
+    }
+  }, [mode, hasBatchData, isProcessing]);
 
   return (
     <ToolLayout tool={tool}>
       <div className="space-y-6">
+        {/* Mode Toggle */}
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-semibold mb-2">Mode</h2>
+          <ToggleGroup
+            type="single"
+            value={mode}
+            onValueChange={handleModeChange}
+            className="inline-flex"
+          >
+            <ToggleGroupItem value="single" aria-label="Image unique">
+              <ImageIcon className="w-4 h-4 mr-2" />
+              Image unique
+            </ToggleGroupItem>
+            <ToggleGroupItem value="batch" aria-label="Lots">
+              <Layers className="w-4 h-4 mr-2" />
+              Lots
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
         {/* Upload Section */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-xl font-semibold mb-2">1. Téléverser une image</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              1. Téléverser {mode === "single" ? "une image" : "des images"}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Glissez-déposez ou sélectionnez une image à redimensionner et optimiser
+              {mode === "single"
+                ? "Glissez-déposez ou sélectionnez une image à redimensionner et optimiser"
+                : "Glissez-déposez ou sélectionnez plusieurs images à traiter avec les mêmes paramètres"}
             </p>
           </div>
-          <ImageUploader
-            onFileSelect={handleFileSelect}
-            isProcessing={isProcessing}
-            currentImage={selectedFile}
-            onClear={handleClear}
-          />
+          {mode === "single" ? (
+            <ImageUploader
+              mode="single"
+              onFileSelect={handleFileSelect}
+              isProcessing={isProcessing}
+              currentImage={selectedFile}
+              onClear={handleClear}
+            />
+          ) : (
+            <ImageUploader
+              mode="batch"
+              onFilesSelect={handleFilesSelect}
+              currentFiles={selectedFiles}
+              onRemoveFile={handleRemoveFile}
+              onClearBatch={handleClearBatch}
+              isProcessing={isProcessing}
+            />
+          )}
         </div>
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="settings">Paramètres</TabsTrigger>
-            <TabsTrigger value="preview" disabled={!currentImage}>
+            <TabsTrigger value="preview" disabled={mode === "batch" || !hasSingleData}>
               Prévisualisation
             </TabsTrigger>
-            <TabsTrigger value="export" disabled={!currentImage}>
+            <TabsTrigger value="export" disabled={!hasSingleData && !hasBatchData}>
               Export
             </TabsTrigger>
           </TabsList>
@@ -86,7 +177,6 @@ const ImageResizer = () => {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
-              {/* Resize Controls */}
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">2. Configuration du redimensionnement</h3>
@@ -97,7 +187,6 @@ const ImageResizer = () => {
                 <ResizeControls settings={settings} onSettingsChange={updateSettings} />
               </div>
 
-              {/* Quality Settings */}
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">3. Qualité WebP</h3>
@@ -113,7 +202,7 @@ const ImageResizer = () => {
             </div>
 
             {/* Process Button */}
-            {selectedFile && (
+            {mode === "single" && selectedFile && (
               <div className="flex justify-center pt-4">
                 <Button
                   onClick={handleProcess}
@@ -136,7 +225,38 @@ const ImageResizer = () => {
               </div>
             )}
 
-            {/* Error Display */}
+            {mode === "batch" && selectedFiles.length > 0 && (
+              <div className="flex flex-col items-center gap-4 pt-4">
+                <Button
+                  onClick={handleProcessBatch}
+                  disabled={isProcessing}
+                  size="lg"
+                  className="min-w-[200px]"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                      Traitement en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Traiter {selectedFiles.length} image(s)
+                    </>
+                  )}
+                </Button>
+                {isProcessing && (
+                  <div className="w-full max-w-md space-y-2">
+                    <Progress value={batchProgress} className="h-2" />
+                    <p className="text-sm text-muted-foreground text-center">
+                      {Math.round(batchProgress)}% traité
+                      {batchFailedCount > 0 && ` · ${batchFailedCount} échec(s)`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {error && (
               <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <p className="text-sm text-destructive font-medium">Erreur</p>
@@ -145,7 +265,7 @@ const ImageResizer = () => {
             )}
           </TabsContent>
 
-          {/* Preview Tab */}
+          {/* Preview Tab (single only) */}
           <TabsContent value="preview">
             {currentImage ? (
               <ImagePreview image={currentImage} />
@@ -158,11 +278,18 @@ const ImageResizer = () => {
 
           {/* Export Tab */}
           <TabsContent value="export">
-            {currentImage ? (
-              <ExportPanel image={currentImage} onDownload={downloadImage} />
+            {mode === "single" && currentImage ? (
+              <ExportPanel mode="single" image={currentImage} onDownload={downloadImage} />
+            ) : mode === "batch" ? (
+              <ExportPanel
+                mode="batch"
+                images={processedImages}
+                onDownloadSingle={downloadProcessedImage}
+                onDownloadAll={() => downloadAllAsZip(processedImages)}
+              />
             ) : (
               <div className="text-center py-12 text-muted-foreground">
-                <p>Aucune image à exporter. Traitez d'abord une image.</p>
+                <p>Aucune image à exporter. Traitez d'abord vos images.</p>
               </div>
             )}
           </TabsContent>
@@ -173,4 +300,3 @@ const ImageResizer = () => {
 };
 
 export default ImageResizer;
-

@@ -44,11 +44,28 @@ export interface ProcessedImage {
   processedAt: string;
 }
 
+export type ImageResizerMode = "single" | "batch";
+
+export interface ProcessedImageWithStatus extends ProcessedImage {
+  status: "success" | "error";
+  errorMessage?: string;
+}
+
+export interface BatchState {
+  processedImages: ProcessedImage[];
+  progress: number;
+  failedCount: number;
+}
+
 export interface ImageResizerState {
   currentImage: ProcessedImage | null;
   isProcessing: boolean;
   error: string | null;
   settings: ImageResizeSettings;
+  // Batch mode
+  processedImages: ProcessedImage[];
+  batchProgress: number;
+  batchFailedCount: number;
 }
 
 
