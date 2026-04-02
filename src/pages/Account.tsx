@@ -193,7 +193,7 @@ const Account = () => {
     }
     setProfileLoading(true);
     try {
-      const updates: { name?: string; preferences?: { theme: string } } = {};
+      const updates: { name?: string; preferences?: { theme: "light" | "dark" | "system" } } = {};
       if (trimmedName !== user?.name) updates.name = trimmedName;
       if (themeValue !== (user?.preferences?.theme || "system")) {
         updates.preferences = { theme: themeValue as "light" | "dark" | "system" };
