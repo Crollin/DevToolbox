@@ -61,7 +61,7 @@ export function EditAccountModal({ isOpen, onClose }: EditAccountModalProps) {
     setIsLoading(true);
 
     try {
-      const updates: { name?: string; preferences?: { theme: string } } = {};
+      const updates: { name?: string; preferences?: { theme: "light" | "dark" | "system" } } = {};
       if (trimmedName !== user?.name) {
         updates.name = trimmedName;
       }
