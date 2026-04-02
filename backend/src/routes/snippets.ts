@@ -1,8 +1,13 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middleware/auth';
+import { validateBody, snippetCreateSchema, snippetUpdateSchema } from '../lib/validate';
 
 const router = express.Router();
+
+// Toutes les routes nécessitent une authentification
+router.use(authenticateToken);
 
 // POST /api/snippets/init - Initialiser les snippets par défaut
 router.post('/init', (req, res) => {
@@ -148,7 +153,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/snippets - Créer un snippet
-router.post('/', (req, res) => {
+router.post('/', validateBody(snippetCreateSchema), (req, res) => {
   try {
     const { title, description, code, language, scope, priority, tags, folder, isFavorite, wpCodeBoxId, cloudId } = req.body;
     const id = uuidv4();
@@ -170,7 +175,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/snippets/:id - Mettre à jour un snippet
-router.put('/:id', (req, res) => {
+router.put('/:id', validateBody(snippetUpdateSchema), (req, res) => {
   try {
     const { title, description, code, language, scope, priority, tags, folder, isFavorite } = req.body;
     const now = new Date().toISOString();

@@ -1,8 +1,12 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
+
+// Toutes les routes nécessitent une authentification
+router.use(authenticateToken);
 
 // GET /api/hooks - Récupérer tous les hooks
 router.get('/', (req, res) => {

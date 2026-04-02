@@ -1,7 +1,11 @@
 import express from 'express';
 import db from '../db/database';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
+
+// Toutes les routes nécessitent une authentification
+router.use(authenticateToken);
 
 // GET /api/electricalc/settings - Récupérer les paramètres
 router.get('/settings', (req, res) => {

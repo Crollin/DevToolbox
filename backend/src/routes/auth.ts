@@ -8,10 +8,10 @@ import { sendConfirmationEmail } from '../lib/email';
 
 const router = express.Router();
 
-// Rate limiter pour login et register : 10 requêtes / 15 min par IP
+// Rate limiter pour login et register : 10 requêtes / 15 min par IP (désactivé en test)
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 10,
   message: { error: 'Trop de tentatives. Réessayez dans 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -78,10 +78,12 @@ router.post('/register', authRateLimiter, async (req: Request, res: Response) =>
 
     // Envoyer l'email de confirmation (ne pas bloquer l'inscription si ça échoue)
     let emailSent = false;
-    try {
-      emailSent = await sendConfirmationEmail(email, name);
-    } catch (emailError) {
-      console.error('Erreur lors de l\'envoi de l\'email de confirmation (non bloquant):', emailError);
+    if (process.env.NODE_ENV !== 'test') {
+      try {
+        emailSent = await sendConfirmationEmail(email, name);
+      } catch (emailError) {
+        console.error('Erreur lors de l\'envoi de l\'email de confirmation (non bloquant):', emailError);
+      }
     }
 
     res.status(201).json({

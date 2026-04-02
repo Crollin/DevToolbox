@@ -2,9 +2,22 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 import { getAuthToken } from './auth';
 
-function logApi(message: string, data?: unknown): void {
+const SENSITIVE_PATHS = ['/auth/login', '/auth/register'];
+
+function redactSensitiveData(obj: unknown, url: string): unknown {
+  if (!obj || typeof obj !== 'object') return obj;
+  const isSensitive = SENSITIVE_PATHS.some((p) => url.includes(p));
+  if (!isSensitive) return obj;
+  const redacted = { ...(obj as Record<string, unknown>) };
+  if ('password' in redacted) redacted.password = '[REDACTED]';
+  if ('email' in redacted) redacted.email = '[REDACTED]';
+  return redacted;
+}
+
+function logApi(message: string, data?: unknown, url?: string): void {
   if (import.meta.env.DEV) {
-    console.log(message, data ?? '');
+    const safeData = url ? redactSensitiveData(data, url) : data;
+    console.log(message, safeData ?? '');
   }
 }
 
@@ -27,7 +40,7 @@ async function apiRequest<T>(
   }
   
   const bodyData = options.body ? (() => { try { return JSON.parse(options.body as string); } catch { return options.body; } })() : undefined;
-  logApi(`[API] ${options.method || 'GET'} ${url}`, bodyData);
+  logApi(`[API] ${options.method || 'GET'} ${url}`, bodyData, url);
   
   const response = await fetch(url, {
     ...options,

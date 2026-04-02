@@ -1,8 +1,13 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middleware/auth';
+import { validateBody, wpcliCommandSchema } from '../lib/validate';
 
 const router = express.Router();
+
+// Toutes les routes nécessitent une authentification
+router.use(authenticateToken);
 
 // GET /api/wpcli - Récupérer toutes les commandes
 router.get('/', (req, res) => {
@@ -43,7 +48,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/wpcli - Créer une commande
-router.post('/', (req, res) => {
+router.post('/', validateBody(wpcliCommandSchema), (req, res) => {
   try {
     const { command, description, example, options, notes, category, difficulty, isFavorite } = req.body;
     const id = uuidv4();
@@ -64,7 +69,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/wpcli/:id - Mettre à jour une commande
-router.put('/:id', (req, res) => {
+router.put('/:id', validateBody(wpcliCommandSchema), (req, res) => {
   try {
     const { command, description, example, options, notes, category, difficulty, isFavorite } = req.body;
     const now = new Date().toISOString();

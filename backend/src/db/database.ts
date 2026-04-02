@@ -494,6 +494,104 @@ export function initializeDatabase() {
     )
   `);
 
+  // =========================
+  // Knowledge Base (KB)
+  // =========================
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kb_categories (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(user_id, name),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kb_tags (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(user_id, name),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kb_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      category_id TEXT,
+      url TEXT,
+      title TEXT NOT NULL,
+      summary TEXT,
+      content TEXT,
+      is_favorite INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active', -- active|archived
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      last_opened_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES kb_categories(id) ON DELETE SET NULL
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kb_entry_tags (
+      entry_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (entry_id, tag_id),
+      FOREIGN KEY (entry_id) REFERENCES kb_entries(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES kb_tags(id) ON DELETE CASCADE
+    )
+  `);
+
+  // FTS5 pour la recherche (si dispo). Fallback: l'app utilisera LIKE côté API.
+  try {
+    db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS kb_entries_fts
+      USING fts5(
+        entry_id UNINDEXED,
+        user_id UNINDEXED,
+        title,
+        url,
+        summary,
+        content,
+        content='',
+        tokenize='unicode61'
+      )
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS kb_entries_ai AFTER INSERT ON kb_entries BEGIN
+        INSERT INTO kb_entries_fts(entry_id, user_id, title, url, summary, content)
+        VALUES (new.id, new.user_id, new.title, coalesce(new.url,''), coalesce(new.summary,''), coalesce(new.content,''));
+      END;
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS kb_entries_au AFTER UPDATE ON kb_entries BEGIN
+        DELETE FROM kb_entries_fts WHERE entry_id = old.id;
+        INSERT INTO kb_entries_fts(entry_id, user_id, title, url, summary, content)
+        VALUES (new.id, new.user_id, new.title, coalesce(new.url,''), coalesce(new.summary,''), coalesce(new.content,''));
+      END;
+    `);
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS kb_entries_ad AFTER DELETE ON kb_entries BEGIN
+        DELETE FROM kb_entries_fts WHERE entry_id = old.id;
+      END;
+    `);
+  } catch (error) {
+    console.log('FTS5 non disponible pour kb_entries_fts (fallback LIKE).', error);
+  }
+
   // Index pour les requêtes fréquentes
   db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id)`);
@@ -510,6 +608,16 @@ export function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_task_reminders_task_id ON task_reminders(task_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tool_order_user_id ON tool_order(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_ntfy_configs_user_id ON ntfy_configs(user_id)`);
+
+  // Index KB
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entries_user_id ON kb_entries(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entries_user_id_status ON kb_entries(user_id, status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entries_user_id_category_id ON kb_entries(user_id, category_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entries_user_id_updated_at ON kb_entries(user_id, updated_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_categories_user_id_position ON kb_categories(user_id, position)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_tags_user_id_name ON kb_tags(user_id, name)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entry_tags_tag_id ON kb_entry_tags(tag_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entry_tags_entry_id ON kb_entry_tags(entry_id)`);
 
   console.log('Base de données initialisée avec succès');
 }

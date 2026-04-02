@@ -1,68 +1,8 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import { initializeDatabase } from './db/database';
-import { initializeDefaultSnippets } from './db/initSnippets';
-import snippetsRoutes from './routes/snippets';
-import hooksRoutes from './routes/hooks';
-import queriesRoutes from './routes/queries';
-import palettesRoutes from './routes/palettes';
-import scriptsRoutes from './routes/scripts';
-import wpcliRoutes from './routes/wpcli';
-import dockerRoutes from './routes/docker';
-import gitRoutes from './routes/git';
-import iconsRoutes from './routes/icons';
-import licencesRoutes from './routes/licences';
-import electricalcRoutes from './routes/electricalc';
-import authRoutes from './routes/auth';
-import accountRoutes from './routes/account';
-import tasksRoutes from './routes/tasks';
-import toolsRoutes from './routes/tools';
+import app from './app';
 import { checkAndSendReminders } from './lib/licenceReminders';
 import { checkAndSendTaskReminders } from './lib/taskReminders';
 
-// Exiger JWT_SECRET en production
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  console.error('Erreur: JWT_SECRET doit être défini en production.');
-  process.exit(1);
-}
-
-const app = express();
 const PORT = process.env.PORT || 1400;
-
-// Middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:8080',
-  credentials: true,
-}));
-app.use(express.json());
-
-// Initialiser la base de données
-initializeDatabase();
-initializeDefaultSnippets();
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/account', accountRoutes);
-app.use('/api/snippets', snippetsRoutes);
-app.use('/api/hooks', hooksRoutes);
-app.use('/api/queries', queriesRoutes);
-app.use('/api/palettes', palettesRoutes);
-app.use('/api/scripts', scriptsRoutes);
-app.use('/api/wpcli', wpcliRoutes);
-app.use('/api/docker', dockerRoutes);
-app.use('/api/git', gitRoutes);
-app.use('/api/icons', iconsRoutes);
-app.use('/api/licences', licencesRoutes);
-app.use('/api/electricalc', electricalcRoutes);
-app.use('/api/tasks', tasksRoutes);
-app.use('/api/tools', toolsRoutes);
-
-// Route de santé
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Démarrage du serveur
 app.listen(PORT, () => {

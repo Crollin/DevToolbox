@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeSyncFromUser } from "@/components/ThemeSyncFromUser";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -26,6 +27,7 @@ const WPHookReference = lazy(() => import("./pages/tools/WPHookReference"));
 const WPQueryBuilder = lazy(() => import("./pages/tools/WPQueryBuilder"));
 const ImageResizer = lazy(() => import("./pages/tools/ImageResizer"));
 const TaskReminder = lazy(() => import("./pages/tools/TaskReminder"));
+const KnowledgeBase = lazy(() => import("./pages/tools/KnowledgeBase"));
 const Account = lazy(() => import("./pages/Account"));
 
 const queryClient = new QueryClient({
@@ -53,8 +55,9 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
+            <ErrorBoundary>
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
                 <Route path="/" element={<Index />} />
               <Route
                 path="/tools/licence-key-hub"
@@ -177,6 +180,22 @@ const App = () => (
                 }
               />
               <Route
+                path="/tools/knowledge-base"
+                element={
+                  <ProtectedRoute>
+                    <KnowledgeBase />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools/knowledge-base/new"
+                element={
+                  <ProtectedRoute>
+                    <KnowledgeBase />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/account"
                 element={
                   <ProtectedRoute>
@@ -186,8 +205,9 @@ const App = () => (
               />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

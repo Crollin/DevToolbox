@@ -1,8 +1,13 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middleware/auth';
+import { validateBody, commandSchema } from '../lib/validate';
 
 const router = express.Router();
+
+// Toutes les routes nécessitent une authentification
+router.use(authenticateToken);
 
 // GET /api/docker - Récupérer toutes les commandes
 router.get('/', (req, res) => {
@@ -39,7 +44,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/docker - Créer une commande
-router.post('/', (req, res) => {
+router.post('/', validateBody(commandSchema), (req, res) => {
   try {
     const { name, command, description, category, tags, isFavorite } = req.body;
     const id = uuidv4();
@@ -60,7 +65,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/docker/:id - Mettre à jour une commande
-router.put('/:id', (req, res) => {
+router.put('/:id', validateBody(commandSchema), (req, res) => {
   try {
     const { name, command, description, category, tags, isFavorite } = req.body;
     const now = new Date().toISOString();

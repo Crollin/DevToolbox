@@ -8,6 +8,8 @@ const router = express.Router();
 // Toutes les routes nécessitent une authentification
 router.use(authenticateToken);
 
+const VALID_STATUS = ['pending', 'in_progress', 'completed'] as const;
+
 // GET /api/tasks - Récupérer toutes les tâches de l'utilisateur
 router.get('/', (req, res) => {
   try {
@@ -15,16 +17,18 @@ router.get('/', (req, res) => {
     const { status, client } = req.query;
 
     let query = 'SELECT * FROM tasks WHERE user_id = ?';
-    const params: any[] = [userId];
+    const params: (string | number)[] = [userId];
 
-    if (status) {
+    const statusStr = typeof status === 'string' ? status : undefined;
+    if (statusStr && (VALID_STATUS as readonly string[]).includes(statusStr)) {
       query += ' AND status = ?';
-      params.push(status);
+      params.push(statusStr);
     }
 
-    if (client) {
+    const clientStr = typeof client === 'string' ? client : undefined;
+    if (clientStr && clientStr.length <= 200) {
       query += ' AND client = ?';
-      params.push(client);
+      params.push(clientStr);
     }
 
     query += ' ORDER BY due_date ASC, created_at DESC';

@@ -1,8 +1,13 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middleware/auth';
+import { validateBody, paletteSchema } from '../lib/validate';
 
 const router = express.Router();
+
+// Toutes les routes nécessitent une authentification
+router.use(authenticateToken);
 
 // GET /api/palettes - Récupérer toutes les palettes
 router.get('/', (req, res) => {
@@ -34,7 +39,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/palettes - Créer une palette
-router.post('/', (req, res) => {
+router.post('/', validateBody(paletteSchema), (req, res) => {
   try {
     const { name, description, harmony, colors } = req.body;
     const id = uuidv4();
@@ -52,7 +57,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/palettes/:id - Mettre à jour une palette
-router.put('/:id', (req, res) => {
+router.put('/:id', validateBody(paletteSchema), (req, res) => {
   try {
     const { name, description, harmony, colors } = req.body;
     const now = new Date().toISOString();

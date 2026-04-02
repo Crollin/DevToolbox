@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ExternalLink, Key, FileSpreadsheet, Zap, Braces, GitBranch, Palette, Code2, Server, Terminal, Shapes, Container, FileText, Link, Database, Image, CheckSquare } from "lucide-react";
+import { ExternalLink, Key, FileSpreadsheet, Zap, Braces, GitBranch, Palette, Code2, Server, Terminal, Shapes, Container, FileText, Link, Database, Image, CheckSquare, BookMarked } from "lucide-react";
 import { Tool, categoryLabels, categoryColors } from "@/data/tools";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +20,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Database,
   Image,
   CheckSquare,
+  BookMarked,
 };
 
 // Tools that have internal pages
-const internalTools = ["licence-key-hub", "csv-preview-pro", "mon-calcul-energie", "wp-script-library", "color-palette-gen", "wpcli-glossary", "svg-icon-library", "git-commander", "docker-commander", "code-snippet-library", "wp-hook-reference", "wp-query-builder", "markdown-editor", "image-resizer", "task-reminder"];
+const internalTools = ["licence-key-hub", "csv-preview-pro", "mon-calcul-energie", "wp-script-library", "color-palette-gen", "wpcli-glossary", "svg-icon-library", "git-commander", "docker-commander", "code-snippet-library", "wp-hook-reference", "wp-query-builder", "markdown-editor", "image-resizer", "task-reminder", "knowledge-base"];
 
 interface ToolCardProps {
   tool: Tool;

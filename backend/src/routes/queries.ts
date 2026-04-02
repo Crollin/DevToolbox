@@ -1,8 +1,13 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middleware/auth';
+import { validateBody, querySchema } from '../lib/validate';
 
 const router = express.Router();
+
+// Toutes les routes nécessitent une authentification
+router.use(authenticateToken);
 
 // GET /api/queries - Récupérer toutes les queries
 router.get('/', (req, res) => {
@@ -32,7 +37,7 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/queries - Créer une query
-router.post('/', (req, res) => {
+router.post('/', validateBody(querySchema), (req, res) => {
   try {
     const { name, description, config } = req.body;
     const id = uuidv4();
@@ -50,7 +55,7 @@ router.post('/', (req, res) => {
 });
 
 // PUT /api/queries/:id - Mettre à jour une query
-router.put('/:id', (req, res) => {
+router.put('/:id', validateBody(querySchema), (req, res) => {
   try {
     const { name, description, config } = req.body;
     const now = new Date().toISOString();

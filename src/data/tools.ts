@@ -34,6 +34,16 @@ export const categoryColors: Record<ToolCategory, { bg: string; text: string; bo
 
 export const tools: Tool[] = [
   {
+    id: "knowledge-base",
+    name: "Knowledge Base",
+    description: "Base de connaissances personnelle (liens, notes Markdown, tags, recherche) avec capture via bookmarklet.",
+    category: "utilitaires",
+    icon: "BookMarked",
+    url: "#",
+    tags: ["kb", "notes", "liens", "tags", "recherche"],
+    color: "amber",
+  },
+  {
     id: "wp-script-library",
     name: "WP Script Library",
     description: "Bibliothèque de scripts PHP/Shell pour WordPress avec catégorisation, tags et export.",
