@@ -269,6 +269,7 @@ export function initializeDatabase() {
       name TEXT NOT NULL,
       key TEXT NOT NULL,
       type TEXT NOT NULL,
+      seat_count INTEGER,
       status TEXT NOT NULL,
       expires_at TEXT,
       notes TEXT,
@@ -378,6 +379,19 @@ export function initializeDatabase() {
     console.log('Migration licences (notifications_enabled) déjà effectuée ou table n\'existe pas encore');
   }
 
+  // Migration : Ajouter seat_count à la table licences si elle n'existe pas
+  try {
+    const licencesTableInfo = db.prepare("PRAGMA table_info(licences)").all() as Array<{ name: string }>;
+    const licencesColumnNames = licencesTableInfo.map((col) => col.name);
+
+    if (!licencesColumnNames.includes('seat_count')) {
+      db.exec(`ALTER TABLE licences ADD COLUMN seat_count INTEGER`);
+      console.log('Colonne seat_count ajoutée à licences');
+    }
+  } catch (error) {
+    console.log('Migration licences (seat_count) déjà effectuée ou table n\'existe pas encore');
+  }
+
   // Migration : Ajouter user_id à la table licences si elle existe déjà sans cette colonne
   try {
     const tableInfo = db.prepare("PRAGMA table_info(licences)").all() as Array<{ name: string }>;
@@ -392,6 +406,7 @@ export function initializeDatabase() {
           name TEXT NOT NULL,
           key TEXT NOT NULL,
           type TEXT NOT NULL,
+          seat_count INTEGER,
           status TEXT NOT NULL,
           expires_at TEXT,
           notes TEXT,
@@ -403,8 +418,8 @@ export function initializeDatabase() {
       
       // Copier les données existantes (sans user_id pour l'instant)
       db.exec(`
-        INSERT INTO licences_new (id, name, key, type, status, expires_at, notes, created_at, updated_at)
-        SELECT id, name, key, type, status, expires_at, notes, created_at, updated_at
+        INSERT INTO licences_new (id, name, key, type, seat_count, status, expires_at, notes, created_at, updated_at)
+        SELECT id, name, key, type, seat_count, status, expires_at, notes, created_at, updated_at
         FROM licences
       `);
       

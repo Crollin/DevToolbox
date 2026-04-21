@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, Eye, EyeOff, Copy, Check, Pencil, Trash2, StickyNote, Bell, BellOff } from "lucide-react";
+import { Key, Eye, EyeOff, Copy, Check, Pencil, Trash2, StickyNote, BellOff, Users } from "lucide-react";
 import { Licence, licenceTypeLabels, licenceTypeColors } from "@/types/licence";
 import LicenceStatusBadge from "./LicenceStatusBadge";
 import { cn } from "@/lib/utils";
@@ -106,6 +106,13 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
               <div className="flex items-start gap-1.5 mt-2 text-xs text-muted-foreground">
                 <StickyNote className="w-3 h-3 mt-0.5 shrink-0" />
                 <span className="line-clamp-2">{licence.notes}</span>
+              </div>
+            )}
+
+            {licence.seatCount && (
+              <div className="inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
+                <Users className="w-3 h-3" />
+                <span>{licence.seatCount} siège{licence.seatCount > 1 ? "s" : ""}</span>
               </div>
             )}
           </div>

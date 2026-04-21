@@ -5,6 +5,7 @@ export interface Licence {
   name: string;
   key: string;
   type: LicenceType;
+  seatCount?: number;
   isLifetime: boolean;
   renewalDate?: string;
   notes?: string;
