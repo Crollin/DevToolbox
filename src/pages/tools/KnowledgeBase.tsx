@@ -59,6 +59,37 @@ function parseTags(tagsText: string): string[] {
     .filter(Boolean);
 }
 
+type TagVisualKind = "plugin" | "wordpress" | "design" | "other";
+
+const MAX_VISIBLE_ENTRY_TAGS = 4;
+
+function getTagVisualKind(tagName: string): TagVisualKind {
+  const normalized = tagName.trim().toLowerCase();
+  if (normalized.includes("plugin") || normalized.includes("extension")) return "plugin";
+  if (normalized.includes("wordpress") || normalized === "wp" || normalized.startsWith("wp-")) return "wordpress";
+  if (normalized.includes("design") || normalized.includes("ui") || normalized.includes("ux") || normalized.includes("icon")) {
+    return "design";
+  }
+  return "other";
+}
+
+function getTagColorClasses(kind: TagVisualKind, selected: boolean): string {
+  if (selected) {
+    return "border-primary/60 bg-primary text-primary-foreground ring-1 ring-primary/60";
+  }
+
+  switch (kind) {
+    case "plugin":
+      return "border-primary/35 bg-primary/15 text-primary hover:bg-primary/25";
+    case "wordpress":
+      return "border-accent/35 bg-accent/20 text-accent-foreground hover:bg-accent/30";
+    case "design":
+      return "border-secondary bg-secondary/90 text-secondary-foreground hover:bg-secondary";
+    default:
+      return "border-border bg-muted/70 text-muted-foreground hover:bg-muted";
+  }
+}
+
 const KnowledgeBase = () => {
   const tool = tools.find((t) => t.id === "knowledge-base")!;
   const loc = useLocation();
@@ -88,6 +119,30 @@ const KnowledgeBase = () => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
+
+  const renderTagBadge = (id: string, name: string) => {
+    const selected = selectedTagIds.includes(id);
+    const kind = getTagVisualKind(name);
+
+    return (
+      <Badge
+        key={id}
+        variant="outline"
+        className={`cursor-pointer select-none border transition-colors ${getTagColorClasses(kind, selected)}`}
+        onClick={() =>
+          setSelectedTagIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+          )
+        }
+      >
+        <span
+          className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${selected ? "bg-primary-foreground/90" : "bg-current/70"}`}
+          aria-hidden="true"
+        />
+        {name}
+      </Badge>
+    );
+  };
 
   // Prefill for bookmarklet flow
   useEffect(() => {
@@ -369,20 +424,7 @@ const KnowledgeBase = () => {
                   Tags
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {tags.slice(0, 30).map((t) => (
-                    <Badge
-                      key={t.id}
-                      variant={selectedTagIds.includes(t.id) ? "default" : "secondary"}
-                      className="cursor-pointer transition-all hover:scale-105"
-                      onClick={() =>
-                        setSelectedTagIds((prev) =>
-                          prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id]
-                        )
-                      }
-                    >
-                      {t.name}
-                    </Badge>
-                  ))}
+                  {tags.slice(0, 30).map((t) => renderTagBadge(t.id, t.name))}
                 </div>
               </div>
             )}
@@ -480,19 +522,11 @@ const KnowledgeBase = () => {
                       )}
                       {(e.tags?.length ?? 0) > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {e.tags.slice(0, 6).map((t) => (
-                            <Badge
-                              key={t.id}
-                              variant="secondary"
-                              className="text-[11px] px-1.5 py-0"
-                            >
-                              {t.name}
+                          {e.tags.slice(0, MAX_VISIBLE_ENTRY_TAGS).map((t) => renderTagBadge(t.id, t.name))}
+                          {e.tags.length > MAX_VISIBLE_ENTRY_TAGS && (
+                            <Badge variant="outline" className="border-border bg-muted/60 text-muted-foreground text-[11px] px-1.5 py-0">
+                              +{e.tags.length - MAX_VISIBLE_ENTRY_TAGS}
                             </Badge>
-                          ))}
-                          {e.tags.length > 6 && (
-                            <span className="text-[11px] text-muted-foreground">
-                              +{e.tags.length - 6}
-                            </span>
                           )}
                         </div>
                       )}
