@@ -75,6 +75,7 @@ export function useLicences() {
               name: licence.name,
               key: licence.key,
               type: licence.type,
+              seatCount: licence.seatCount,
               isLifetime: licence.isLifetime,
               renewalDate: licence.renewalDate,
               notes: licence.notes,

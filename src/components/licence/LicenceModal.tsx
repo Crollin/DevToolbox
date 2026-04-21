@@ -14,6 +14,7 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
   const [type, setType] = useState<LicenceType>("saas");
+  const [seatCount, setSeatCount] = useState("");
   const [isLifetime, setIsLifetime] = useState(false);
   const [renewalDate, setRenewalDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -24,6 +25,7 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
       setName(editLicence.name);
       setKey(editLicence.key);
       setType(editLicence.type);
+      setSeatCount(editLicence.seatCount ? String(editLicence.seatCount) : "");
       setIsLifetime(editLicence.isLifetime);
       setRenewalDate(editLicence.renewalDate || "");
       setNotes(editLicence.notes || "");
@@ -32,6 +34,7 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
       setName("");
       setKey("");
       setType("saas");
+      setSeatCount("");
       setIsLifetime(false);
       setRenewalDate("");
       setNotes("");
@@ -39,12 +42,29 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
     }
   }, [editLicence, isOpen]);
 
+  const canUseSeatCount = type === "wordpress" || type === "saas" || type === "autre";
+
+  useEffect(() => {
+    if (!canUseSeatCount) {
+      setSeatCount("");
+    }
+  }, [canUseSeatCount]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const parsedSeatCount = canUseSeatCount && seatCount.trim() !== ""
+      ? Number.parseInt(seatCount, 10)
+      : undefined;
+
+    if (parsedSeatCount !== undefined && (!Number.isInteger(parsedSeatCount) || parsedSeatCount < 1)) {
+      return;
+    }
+
     onSave({
       name,
       key,
       type,
+      seatCount: parsedSeatCount,
       isLifetime,
       renewalDate: isLifetime ? undefined : renewalDate || undefined,
       notes: notes || undefined,
@@ -125,6 +145,28 @@ const LicenceModal = ({ isOpen, onClose, onSave, editLicence }: LicenceModalProp
               ))}
             </div>
           </div>
+
+          {/* Sièges */}
+          {canUseSeatCount && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Nombre de sièges (optionnel)
+              </label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={seatCount}
+                onChange={(e) => setSeatCount(e.target.value)}
+                placeholder="Ex: 1, 5, 25"
+                className="w-full px-3 py-2 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Laisse vide si cette licence n’a pas de limite de sièges.
+              </p>
+            </div>
+          )}
 
           {/* Lifetime */}
           <div className="flex items-center gap-3">

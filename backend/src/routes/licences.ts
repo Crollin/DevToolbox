@@ -17,6 +17,7 @@ function convertBackendToFrontend(licence: {
   name: string;
   key: string;
   type: string;
+  seat_count: number | null;
   status: string;
   expires_at: string | null;
   notes: string | null;
@@ -32,6 +33,7 @@ function convertBackendToFrontend(licence: {
     name: licence.name,
     key: licence.key,
     type: licence.type as "wordpress" | "saas" | "api" | "autre",
+    seatCount: licence.seat_count ?? undefined,
     isLifetime,
     renewalDate,
     notes: licence.notes || undefined,
@@ -45,6 +47,7 @@ function convertFrontendToBackend(data: {
   name: string;
   key: string;
   type: string;
+  seatCount?: number;
   isLifetime: boolean;
   renewalDate?: string;
   notes?: string;
@@ -53,11 +56,15 @@ function convertFrontendToBackend(data: {
   const status = data.isLifetime ? 'lifetime' : (data.renewalDate ? 'active' : 'active');
   const expiresAt = data.isLifetime ? null : (data.renewalDate || null);
   const notificationsEnabled = data.notificationsEnabled !== false ? 1 : 0;
+  const seatCount = Number.isInteger(data.seatCount) && (data.seatCount as number) > 0
+    ? (data.seatCount as number)
+    : null;
 
   return {
     status,
     expiresAt,
     notificationsEnabled,
+    seatCount,
   };
 }
 
@@ -70,6 +77,7 @@ router.get('/', (req, res) => {
       name: string;
       key: string;
       type: string;
+      seat_count: number | null;
       status: string;
       expires_at: string | null;
       notes: string | null;
@@ -91,21 +99,30 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { name, key, type, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
+    const { name, key, type, seatCount, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
 
     if (!name || !key || !type) {
       return res.status(400).json({ error: 'Nom, clé et type sont requis' });
     }
 
-    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes, notificationsEnabled });
+    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue, seatCount: seatCountValue } = convertFrontendToBackend({
+      name,
+      key,
+      type,
+      seatCount,
+      isLifetime,
+      renewalDate,
+      notes,
+      notificationsEnabled,
+    });
     const id = uuidv4();
     const now = new Date().toISOString();
 
     db.prepare(`
-      INSERT INTO licences (id, user_id, name, key, type, status, expires_at, notes, notifications_enabled, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO licences (id, user_id, name, key, type, seat_count, status, expires_at, notes, notifications_enabled, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      id, userId, name, key, type, status, expiresAt, notes || null, notificationsEnabledValue, now, now
+      id, userId, name, key, type, seatCountValue, status, expiresAt, notes || null, notificationsEnabledValue, now, now
     );
 
     const licence = db.prepare('SELECT * FROM licences WHERE id = ?').get(id) as {
@@ -113,6 +130,7 @@ router.post('/', (req, res) => {
       name: string;
       key: string;
       type: string;
+      seat_count: number | null;
       status: string;
       expires_at: string | null;
       notes: string | null;
@@ -537,7 +555,7 @@ router.post('/check-expiring', async (req, res) => {
 router.put('/:id', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { name, key, type, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
+    const { name, key, type, seatCount, isLifetime, renewalDate, notes, notificationsEnabled } = req.body;
 
     // Vérifier que la licence appartient à l'utilisateur
     const existing = db.prepare('SELECT * FROM licences WHERE id = ? AND user_id = ?').get(req.params.id, userId) as {
@@ -548,15 +566,24 @@ router.put('/:id', (req, res) => {
       return res.status(404).json({ error: 'Licence non trouvée' });
     }
 
-    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue } = convertFrontendToBackend({ name, key, type, isLifetime, renewalDate, notes, notificationsEnabled });
+    const { status, expiresAt, notificationsEnabled: notificationsEnabledValue, seatCount: seatCountValue } = convertFrontendToBackend({
+      name,
+      key,
+      type,
+      seatCount,
+      isLifetime,
+      renewalDate,
+      notes,
+      notificationsEnabled,
+    });
     const now = new Date().toISOString();
 
     const result = db.prepare(`
       UPDATE licences
-      SET name = ?, key = ?, type = ?, status = ?, expires_at = ?, notes = ?, notifications_enabled = ?, updated_at = ?
+      SET name = ?, key = ?, type = ?, seat_count = ?, status = ?, expires_at = ?, notes = ?, notifications_enabled = ?, updated_at = ?
       WHERE id = ? AND user_id = ?
     `).run(
-      name, key, type, status, expiresAt, notes || null, notificationsEnabledValue, now, req.params.id, userId
+      name, key, type, seatCountValue, status, expiresAt, notes || null, notificationsEnabledValue, now, req.params.id, userId
     ) as { changes: number };
 
     if (result.changes === 0) {
@@ -568,6 +595,7 @@ router.put('/:id', (req, res) => {
       name: string;
       key: string;
       type: string;
+      seat_count: number | null;
       status: string;
       expires_at: string | null;
       notes: string | null;
