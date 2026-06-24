@@ -362,6 +362,16 @@ export function initializeDatabase() {
       db.exec(`ALTER TABLE ntfy_configs ADD COLUMN last_reminder_sent_at TEXT`);
       console.log('Colonne last_reminder_sent_at ajoutée à ntfy_configs');
     }
+
+    if (!columnNames.includes('notification_channels')) {
+      db.exec(`ALTER TABLE ntfy_configs ADD COLUMN notification_channels TEXT`);
+      console.log('Colonne notification_channels ajoutée à ntfy_configs');
+    }
+
+    if (!columnNames.includes('telegram_chat_id')) {
+      db.exec(`ALTER TABLE ntfy_configs ADD COLUMN telegram_chat_id TEXT`);
+      console.log('Colonne telegram_chat_id ajoutée à ntfy_configs');
+    }
   } catch (error) {
     console.log('Migration ntfy_configs déjà effectuée ou table n\'existe pas encore');
   }

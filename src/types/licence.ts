@@ -13,16 +13,39 @@ export interface Licence {
   createdAt: string;
 }
 
+export type NotificationChannel = 'ntfy' | 'email' | 'telegram';
+
 export interface NtfyConfig {
   enabled: boolean;
   serverUrl: string;
   topic: string;
   token?: string;
-  notificationType?: 'ntfy' | 'email' | 'both';
+  notificationChannels?: NotificationChannel[];
+  notificationType?: 'ntfy' | 'email' | 'both' | 'telegram';
+  telegramChatId?: string;
   autoRemindersEnabled?: boolean;
   reminderFrequency?: 'daily' | 'weekly';
   lastReminderSentAt?: string;
   emailConfigured?: boolean;
+  telegramConfigured?: boolean;
+}
+
+export function getNotificationChannelsFromConfig(config: Pick<NtfyConfig, 'notificationChannels' | 'notificationType'>): NotificationChannel[] {
+  if (config.notificationChannels && config.notificationChannels.length > 0) {
+    return config.notificationChannels;
+  }
+
+  switch (config.notificationType) {
+    case 'both':
+      return ['ntfy', 'email'];
+    case 'email':
+      return ['email'];
+    case 'telegram':
+      return ['telegram'];
+    case 'ntfy':
+    default:
+      return ['ntfy'];
+  }
 }
 
 export const licenceTypeLabels: Record<LicenceType, string> = {

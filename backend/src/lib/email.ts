@@ -1,5 +1,16 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import db from '../db/database';
+
+type EmailProvider = 'resend' | 'smtp';
+
+interface OutboundEmail {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  from: string;
+}
 
 export interface SmtpConfig {
   host: string;
@@ -71,6 +82,76 @@ function loadSmtpConfig(): SmtpConfig | null {
   return null;
 }
 
+function isResendConfigured(): boolean {
+  return Boolean(process.env.RESEND_API_KEY && (process.env.RESEND_FROM || process.env.SMTP_FROM));
+}
+
+function getEmailProvider(): EmailProvider | null {
+  const configured = process.env.EMAIL_PROVIDER?.toLowerCase();
+
+  if (configured === 'resend') {
+    return isResendConfigured() ? 'resend' : null;
+  }
+
+  if (configured === 'smtp') {
+    return getTransporter() ? 'smtp' : null;
+  }
+
+  if (isResendConfigured()) {
+    return 'resend';
+  }
+
+  return getTransporter() ? 'smtp' : null;
+}
+
+function getFromAddress(companyName?: string): string {
+  const d = getEmailDefaults(null);
+  const name = companyName || d.companyName;
+  const provider = getEmailProvider();
+
+  if (provider === 'resend') {
+    const from = process.env.RESEND_FROM || process.env.SMTP_FROM || 'noreply@devtoolbox.com';
+    return `"${name}" <${from}>`;
+  }
+
+  const config = loadSmtpConfig();
+  const fromAddr = config?.fromEmail ?? process.env.SMTP_FROM ?? 'noreply@devtoolbox.com';
+  return `"${name}" <${fromAddr}>`;
+}
+
+async function dispatchEmail(email: OutboundEmail): Promise<boolean> {
+  const provider = getEmailProvider();
+  if (!provider) {
+    return false;
+  }
+
+  if (provider === 'resend') {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+      from: email.from,
+      to: [email.to],
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    });
+
+    if (error) {
+      console.error('Erreur Resend:', error);
+      return false;
+    }
+
+    return true;
+  }
+
+  const transporter = getTransporter();
+  if (!transporter) {
+    return false;
+  }
+
+  await transporter.sendMail(email);
+  return true;
+}
+
 /**
  * Obtient le transporteur Nodemailer (config DB prioritaire sur env)
  */
@@ -93,22 +174,20 @@ function getTransporter(): nodemailer.Transporter | null {
  * Envoie un email de confirmation de bienvenue à un nouvel utilisateur
  */
 export async function sendConfirmationEmail(email: string, name: string, prefs?: EmailPreferences | null): Promise<boolean> {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('SMTP non configuré - email de confirmation non envoyé');
+  if (!getEmailProvider()) {
+    console.warn('Service email non configuré - email de confirmation non envoyé');
     return false;
   }
 
-  const config = loadSmtpConfig();
-  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
   const d = getEmailDefaults(prefs);
+  const fromAddr = getFromAddress(d.companyName);
   const welcomeBody = prefs?.welcomeText
     ? prefs.welcomeText.split('\n').map(p => `<p>${p}</p>`).join('')
     : `<p>Merci de vous être inscrit sur <strong>${d.companyName}</strong> ! Votre compte a été créé avec succès.</p><p>Vous pouvez maintenant accéder à tous les outils disponibles et commencer à utiliser votre boîte à outils de développement.</p>`;
 
   try {
-    const mailOptions = {
-      from: `"${d.companyName}" <${fromAddr}>`,
+    const sent = await dispatchEmail({
+      from: fromAddr,
       to: email,
       subject: 'Bienvenue sur DevToolbox ! 🎉',
       html: `
@@ -192,11 +271,12 @@ export async function sendConfirmationEmail(email: string, name: string, prefs?:
         Cordialement,
         L'équipe DevToolbox
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email de confirmation envoyé à ${email}`);
-    return true;
+    if (sent) {
+      console.log(`Email de confirmation envoyé à ${email}`);
+    }
+    return sent;
   } catch (error) {
     console.error('Erreur lors de l\'envoi de l\'email de confirmation:', error);
     return false;
@@ -221,9 +301,8 @@ export async function sendLicenceExpirationEmail(
   licences: ExpiringLicence[],
   prefs?: EmailPreferences | null
 ): Promise<boolean> {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('SMTP non configuré - email de notification de licences non envoyé');
+  if (!getEmailProvider()) {
+    console.warn('Service email non configuré - email de notification de licences non envoyé');
     return false;
   }
 
@@ -255,16 +334,15 @@ export async function sendLicenceExpirationEmail(
     })
     .join('\n');
 
-  const config = loadSmtpConfig();
-  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
   const d = getEmailDefaults(prefs);
+  const fromAddr = getFromAddress(d.companyName);
   const licencesIntro = prefs?.licencesText
     ? prefs.licencesText.split('\n').map(p => `<p>${p}</p>`).join('')
     : `<p>Vous avez <strong>${licences.length} licence(s)</strong> nécessitant votre attention :</p>`;
 
   try {
-    const mailOptions = {
-      from: `"${d.companyName}" <${fromAddr}>`,
+    const sent = await dispatchEmail({
+      from: fromAddr,
       to: email,
       subject: `🔑 Licences à renouveler (${licences.length})`,
       html: `
@@ -369,11 +447,12 @@ export async function sendLicenceExpirationEmail(
         Cordialement,
         L'équipe DevToolbox
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email de notification de licences envoyé à ${email}`);
-    return true;
+    if (sent) {
+      console.log(`Email de notification de licences envoyé à ${email}`);
+    }
+    return sent;
   } catch (error) {
     console.error('Erreur lors de l\'envoi de l\'email de notification de licences:', error);
     return false;
@@ -381,22 +460,20 @@ export async function sendLicenceExpirationEmail(
 }
 
 /**
- * Envoie un email de test pour valider la configuration SMTP
+ * Envoie un email de test pour valider la configuration email
  */
 export async function sendTestEmail(email: string, name: string, prefs?: EmailPreferences | null): Promise<boolean> {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('SMTP non configuré - email de test non envoyé');
+  if (!getEmailProvider()) {
+    console.warn('Service email non configuré - email de test non envoyé');
     return false;
   }
 
-  const config = loadSmtpConfig();
-  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
   const d = getEmailDefaults(prefs);
+  const fromAddr = getFromAddress(d.companyName);
 
   try {
-    const mailOptions = {
-      from: `"${d.companyName}" <${fromAddr}>`,
+    const sent = await dispatchEmail({
+      from: fromAddr,
       to: email,
       subject: `🔔 Test de notification ${d.companyName}`,
       html: `
@@ -475,11 +552,12 @@ export async function sendTestEmail(email: string, name: string, prefs?: EmailPr
         Cordialement,
         L'équipe DevToolbox
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email de test envoyé à ${email}`);
-    return true;
+    if (sent) {
+      console.log(`Email de test envoyé à ${email}`);
+    }
+    return sent;
   } catch (error) {
     console.error('Erreur lors de l\'envoi de l\'email de test:', error);
     return false;
@@ -507,9 +585,8 @@ export async function sendTaskReminderEmail(
   task: TaskReminder,
   prefs?: EmailPreferences | null
 ): Promise<boolean> {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn('SMTP non configuré - email de rappel de tâche non envoyé');
+  if (!getEmailProvider()) {
+    console.warn('Service email non configuré - email de rappel de tâche non envoyé');
     return false;
   }
 
@@ -556,16 +633,15 @@ ${task.link ? `🔗 Lien : ${task.link}` : ''}
 ${urgencyText ? `\n${urgencyText}` : ''}
   `;
 
-  const config = loadSmtpConfig();
-  const fromAddr = config?.fromEmail ?? 'noreply@devtoolbox.com';
   const d = getEmailDefaults(prefs);
+  const fromAddr = getFromAddress(d.companyName);
   const tasksIntro = prefs?.tasksText
     ? prefs.tasksText.split('\n').map(p => `<p>${p}</p>`).join('')
     : `<p>Vous avez une tâche qui nécessite votre attention :</p>`;
 
   try {
-    const mailOptions = {
-      from: `"${d.companyName}" <${fromAddr}>`,
+    const sent = await dispatchEmail({
+      from: fromAddr,
       to: email,
       subject: `📋 Rappel de tâche : ${task.title}`,
       html: `
@@ -646,11 +722,12 @@ ${urgencyText ? `\n${urgencyText}` : ''}
         Cordialement,
         L'équipe DevToolbox
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email de rappel de tâche envoyé à ${email} pour la tâche "${task.title}"`);
-    return true;
+    if (sent) {
+      console.log(`Email de rappel de tâche envoyé à ${email} pour la tâche "${task.title}"`);
+    }
+    return sent;
   } catch (error) {
     console.error('Erreur lors de l\'envoi de l\'email de rappel de tâche:', error);
     return false;
@@ -661,7 +738,7 @@ ${urgencyText ? `\n${urgencyText}` : ''}
  * Vérifie si le service email est configuré
  */
 export function isEmailConfigured(): boolean {
-  return getTransporter() !== null;
+  return getEmailProvider() !== null;
 }
 
 export { loadSmtpConfig };

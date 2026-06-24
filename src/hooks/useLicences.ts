@@ -12,6 +12,7 @@ const defaultNtfyConfig: NtfyConfig = {
   serverUrl: "https://ntfy.sh",
   topic: "",
   token: "",
+  notificationChannels: ["ntfy"],
   notificationType: "ntfy",
   autoRemindersEnabled: false,
   reminderFrequency: "daily",

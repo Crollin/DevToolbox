@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,13 +18,27 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [formKey, setFormKey] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setFormKey((key) => key + 1);
+    }
+  }, [isOpen, defaultTab]);
 
   const handleSuccess = () => {
     onClose();
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-center mb-4">
@@ -32,10 +46,6 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
               src="/favicon.svg"
               alt="DevToolbox"
               className="w-16 h-16"
-              onError={(e) => {
-                // Fallback sur favicon.ico si SVG ne charge pas
-                (e.target as HTMLImageElement).src = "/favicon.ico";
-              }}
             />
           </div>
           <DialogTitle className="text-center">Authentification</DialogTitle>
@@ -51,15 +61,14 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
           </TabsList>
           
           <TabsContent value="login" className="mt-4">
-            <LoginForm onSuccess={handleSuccess} />
+            <LoginForm key={`login-${formKey}`} onSuccess={handleSuccess} />
           </TabsContent>
           
           <TabsContent value="register" className="mt-4">
-            <RegisterForm onSuccess={handleSuccess} />
+            <RegisterForm key={`register-${formKey}`} onSuccess={handleSuccess} />
           </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
   );
 }
-

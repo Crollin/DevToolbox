@@ -1,8 +1,6 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -11,16 +9,18 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       setShowAuthModal(true);
-    } else if (isAuthenticated && showAuthModal) {
-      // Fermer la modal automatiquement après connexion
+    }
+  }, [isAuthenticated, isLoading]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
       setShowAuthModal(false);
     }
-  }, [isAuthenticated, isLoading, showAuthModal]);
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -60,4 +60,3 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   return <>{children}</>;
 }
-

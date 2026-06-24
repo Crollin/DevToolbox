@@ -1,5 +1,7 @@
 import db from '../db/database';
 import { sendTaskReminderEmail, TaskReminder, loadEmailPreferencesForUser } from './email';
+import { sendTelegramMessage } from './telegram';
+import { parseNotificationChannels, hasChannel } from './notificationChannels';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -56,6 +58,66 @@ async function sendNtfyTaskNotification(
     console.error('Erreur lors de l\'envoi de la notification Ntfy (tâche):', error);
     return false;
   }
+}
+
+function formatTaskMessage(task: TaskReminder): string {
+  return [
+    `📋 ${task.title}`,
+    task.daysUntilDue !== undefined && task.daysUntilDue < 0
+      ? `⚠️ En retard depuis ${Math.abs(task.daysUntilDue)} jour(s)`
+      : task.daysUntilDue === 0
+      ? '🔴 Échéance aujourd\'hui !'
+      : task.daysUntilDue === 1
+      ? '⚠️ Échéance demain'
+      : task.daysUntilDue !== undefined
+      ? `📅 Échéance dans ${task.daysUntilDue} jour(s)`
+      : '',
+    task.dueDate ? `📅 ${new Date(task.dueDate).toLocaleDateString('fr-FR')}` : '',
+    task.client ? `👤 ${task.client}` : '',
+    task.link || '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+async function sendTaskNotifications(
+  channels: ReturnType<typeof parseNotificationChannels>,
+  ntfyConfig: {
+    server_url: string;
+    topic: string;
+    token: string | null;
+    telegram_chat_id: string | null;
+  },
+  user: { email: string; name: string },
+  task: TaskReminder,
+  emailPrefs: ReturnType<typeof loadEmailPreferencesForUser>
+): Promise<boolean> {
+  let notificationSent = false;
+
+  if (hasChannel(channels, 'ntfy') && ntfyConfig.topic) {
+    const ntfySent = await sendNtfyTaskNotification(
+      ntfyConfig.server_url || 'https://ntfy.sh',
+      ntfyConfig.topic,
+      ntfyConfig.token,
+      task
+    );
+    if (ntfySent) notificationSent = true;
+  }
+
+  if (hasChannel(channels, 'email')) {
+    const emailSent = await sendTaskReminderEmail(user.email, user.name, task, emailPrefs);
+    if (emailSent) notificationSent = true;
+  }
+
+  if (hasChannel(channels, 'telegram') && ntfyConfig.telegram_chat_id) {
+    const telegramSent = await sendTelegramMessage(
+      ntfyConfig.telegram_chat_id,
+      formatTaskMessage(task)
+    );
+    if (telegramSent) notificationSent = true;
+  }
+
+  return notificationSent;
 }
 
 /**
@@ -150,16 +212,22 @@ export async function checkAndSendTaskReminders(): Promise<void> {
     }>;
 
     for (const user of users) {
-      const ntfyConfig = db.prepare('SELECT notification_type, server_url, topic, token FROM ntfy_configs WHERE user_id = ?').get(user.id) as {
+      const ntfyConfig = db.prepare(`
+        SELECT notification_type, notification_channels, server_url, topic, token, telegram_chat_id
+        FROM ntfy_configs WHERE user_id = ?
+      `).get(user.id) as {
         notification_type: string;
+        notification_channels: string | null;
         server_url: string;
         topic: string;
         token: string | null;
+        telegram_chat_id: string | null;
       } | undefined;
-      let notificationType = ntfyConfig?.notification_type || 'email';
-      if ((notificationType === 'ntfy' || notificationType === 'both') && !ntfyConfig?.topic) {
-        notificationType = 'email';
-      }
+
+      const channels = parseNotificationChannels(
+        ntfyConfig?.notification_type,
+        ntfyConfig?.notification_channels ?? null
+      );
       const emailPrefs = loadEmailPreferencesForUser(user.id);
 
       // Récupérer les tâches non complétées de l'utilisateur
@@ -198,27 +266,11 @@ export async function checkAndSendTaskReminders(): Promise<void> {
                   daysUntilDue,
                 };
 
-                let notificationSent = false;
-                if (notificationType === 'ntfy' || notificationType === 'both') {
-                  if (ntfyConfig?.topic) {
-                    const ntfySent = await sendNtfyTaskNotification(
-                      ntfyConfig.server_url || 'https://ntfy.sh',
-                      ntfyConfig.topic,
-                      ntfyConfig.token,
-                      taskReminder
-                    );
-                    if (ntfySent) notificationSent = true;
-                  }
-                }
-                if (notificationType === 'email' || notificationType === 'both') {
-                  const emailSent = await sendTaskReminderEmail(
-                    user.email,
-                    user.name,
-                    taskReminder,
-                    emailPrefs
-                  );
-                  if (emailSent) notificationSent = true;
-                }
+                const notificationSent = ntfyConfig
+                  ? await sendTaskNotifications(channels, ntfyConfig, user, taskReminder, emailPrefs)
+                  : hasChannel(channels, 'email')
+                  ? await sendTaskReminderEmail(user.email, user.name, taskReminder, emailPrefs)
+                  : false;
 
                 if (notificationSent) {
                   recordReminderSent(task.id, 'days_before', daysBefore.toString());
@@ -244,27 +296,11 @@ export async function checkAndSendTaskReminders(): Promise<void> {
               daysUntilDue,
             };
 
-            let notificationSent = false;
-            if (notificationType === 'ntfy' || notificationType === 'both') {
-              if (ntfyConfig?.topic) {
-                const ntfySent = await sendNtfyTaskNotification(
-                  ntfyConfig.server_url || 'https://ntfy.sh',
-                  ntfyConfig.topic,
-                  ntfyConfig.token,
-                  taskReminder
-                );
-                if (ntfySent) notificationSent = true;
-              }
-            }
-            if (notificationType === 'email' || notificationType === 'both') {
-              const emailSent = await sendTaskReminderEmail(
-                user.email,
-                user.name,
-                taskReminder,
-                emailPrefs
-              );
-              if (emailSent) notificationSent = true;
-            }
+            const notificationSent = ntfyConfig
+              ? await sendTaskNotifications(channels, ntfyConfig, user, taskReminder, emailPrefs)
+              : hasChannel(channels, 'email')
+              ? await sendTaskReminderEmail(user.email, user.name, taskReminder, emailPrefs)
+              : false;
 
             if (notificationSent) {
               recordReminderSent(task.id, 'datetime', task.reminder_datetime);
