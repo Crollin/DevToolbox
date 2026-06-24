@@ -271,42 +271,46 @@ docker compose build
 docker compose up -d
 ```
 
-### Déploiement Coolify
+### Déploiement Coolify (recommandé : images GHCR)
 
-DevToolbox peut être déployé sur [Coolify](https://coolify.io) en utilisant le Build Pack **Docker Compose**. Procédure recommandée :
+Coolify **ne doit pas recompiler** l'application sur le serveur (risque OOM / timeout sur `npm ci` + `better-sqlite3`). Le `docker-compose.yml` tire les images pré-construites depuis GHCR.
 
 1. **Créer une ressource**  
-   Dans le tableau de bord Coolify : Projet → **Create New Resource**.
+   Projet → **Create New Resource** → dépôt `Crollin/DevToolbox`.
 
-2. **Source**  
-   Choisir **Public Repository** (ou GitHub App / Deploy Key si le dépôt est privé) et indiquer l’URL du dépôt DevToolbox.
+2. **Build Pack**  
+   **Docker Compose** — fichier `docker-compose.yml` (sans section `build`).
 
-3. **Build Pack**  
-   Sélectionner **Docker Compose** (et non Nixpacks).
+3. **Registry GHCR** (si les packages sont privés)  
+   Coolify → **Settings** → **Docker Registries** → ajouter `ghcr.io` avec un PAT GitHub (`read:packages`).
 
-4. **Configuration du Build Pack**  
-   - **Base Directory** : `/`  
-   - **Docker Compose Location** : `docker-compose.yml`
+4. **Domaine**  
+   Assigner un domaine au service **`frontend`** uniquement.
 
-5. **Domaine**  
-   Assigner **un domaine au service `frontend` uniquement** (ex. `https://devtoolbox.example.com`). Ne pas assigner de domaine au backend : l’API est exposée via le frontend (`/api`).
+5. **Variables d'environnement — toutes en « Runtime only »**  
+   Ne cocher **aucune** variable en « Available at Buildtime » (y compris `NODE_ENV`, `JWT_SECRET`, `PORT`, etc.).  
+   Variables minimales :
 
-6. **Variables d’environnement**  
-   Dans l’onglet **Environment** de la ressource, définir au minimum :
-   - **JWT_SECRET** (obligatoire) : par ex. `openssl rand -base64 32`
-   - **CORS_ORIGIN** : URL publique du frontend (ex. `https://devtoolbox.example.com`)
-   - **FRONTEND_URL** : même URL (pour les liens dans les e-mails)
-   - **IMAGE_TAG** : version GHCR à déployer (ex. `1.0.0` ou `latest`)  
-   Optionnel : SMTP_*, PORT, DB_PATH. Pour **NODE_ENV** : si définie, la configurer en « Runtime only » (pas à la build) pour éviter les échecs de build.
+   | Variable | Exemple | Buildtime |
+   |----------|---------|-----------|
+   | `IMAGE_TAG` | `1.0.0` | Non |
+   | `JWT_SECRET` | `openssl rand -base64 32` | Non |
+   | `CORS_ORIGIN` | `https://devtoolbox.example.com` | Non |
+   | `FRONTEND_URL` | idem | Non |
 
+   Optionnel : `SMTP_*`, `PORT`, `DB_PATH`, `FRONTEND_PORT`.
 
-7. **Stockage**  
-   La base SQLite est stockée dans le volume nommé `devtoolbox_data` défini dans le Compose. Aucune configuration supplémentaire dans l’interface Coolify n’est nécessaire pour la persistance.
+6. **Stockage**  
+   Volume `devtoolbox_data` — la base SQLite est conservée entre déploiements. **Ne jamais** lancer `docker compose down -v` en production.
 
-8. **Déployer**  
-   Lancer le déploiement. Une fois les healthchecks des deux services au vert, l’application est accessible sur le domaine assigné au frontend.
+7. **Déployer**  
+   Le déploiement fait un `docker pull` + `up` (quelques secondes), pas un build complet.
 
-**Astuce** : Avec un domaine géré par Coolify, vous pouvez utiliser les [variables magiques](https://coolify.io/docs/knowledge-base/docker/compose#coolifys-magic-environment-variables) (ex. `SERVICE_URL_FRONTEND`) pour `FRONTEND_URL` et `CORS_ORIGIN` afin d’éviter de ressaisir l’URL.
+**Build local** (développement) :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+```
 
 ## Dépannage
 
