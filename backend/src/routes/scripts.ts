@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
+import { safeJsonParse } from '../lib/json';
 
 const router = express.Router();
 
@@ -39,14 +40,14 @@ router.get('/', (req, res) => {
       code: s.code,
       language: s.language,
       category: s.category,
-      tags: s.tags ? JSON.parse(s.tags) : [],
+      tags: safeJsonParse<string[]>(s.tags, []),
       wpVersionMin: s.wp_version_min,
       wpVersionMax: s.wp_version_max,
       author: s.author,
       difficulty: s.difficulty,
       instructions: s.instructions,
-      dependencies: s.dependencies ? JSON.parse(s.dependencies) : [],
-      warnings: s.warnings ? JSON.parse(s.warnings) : [],
+      dependencies: safeJsonParse(s.dependencies, []),
+      warnings: safeJsonParse(s.warnings, []),
       createdAt: s.created_at,
       updatedAt: s.updated_at,
     }));

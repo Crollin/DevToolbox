@@ -1,10 +1,11 @@
 import express, { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/database';
 import { generateToken, authenticateToken } from '../middleware/auth';
-import { sendConfirmationEmail } from '../lib/email';
+import { sendConfirmationEmail, sendPasswordResetEmail, isEmailConfigured } from '../lib/email';
 
 const router = express.Router();
 
@@ -248,37 +249,114 @@ router.put('/profile', authenticateToken, async (req: Request, res: Response) =>
 router.put('/change-password', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body;
 
-    // Validation
-    if (!newPassword) {
-      return res.status(400).json({ error: 'Le nouveau mot de passe est requis' });
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Le mot de passe actuel et le nouveau mot de passe sont requis' });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
     }
 
-    // Hasher le nouveau mot de passe
+    const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as {
+      password_hash: string;
+    } | undefined;
+
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isCurrentValid) {
+      return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    }
+
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
     const now = new Date().toISOString();
 
-    // Mettre à jour le mot de passe
-    const result = db.prepare(`
+    db.prepare(`
       UPDATE users
       SET password_hash = ?, updated_at = ?
       WHERE id = ?
-    `).run(passwordHash, now, userId) as { changes: number };
-
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    }
+    `).run(passwordHash, now, userId);
 
     res.json({ success: true, message: 'Mot de passe modifié avec succès' });
   } catch (error) {
     console.error('Erreur lors du changement de mot de passe:', error);
     res.status(500).json({ error: 'Erreur lors du changement de mot de passe' });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', authRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email requis' });
+    }
+
+    const user = db.prepare('SELECT id, email, name FROM users WHERE email = ?').get(email) as {
+      id: string;
+      email: string;
+      name: string;
+    } | undefined;
+
+    // Réponse générique pour ne pas révéler si l'email existe
+    if (!user || !isEmailConfigured()) {
+      return res.json({ success: true, message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const now = new Date().toISOString();
+
+    db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(user.id);
+    db.prepare(`
+      INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(uuidv4(), user.id, tokenHash, expiresAt, now);
+
+    await sendPasswordResetEmail(user.email, user.name, rawToken);
+
+    res.json({ success: true, message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+  } catch (error) {
+    console.error('Erreur forgot-password:', error);
+    res.status(500).json({ error: 'Erreur lors de la demande de réinitialisation' });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', authRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token et nouveau mot de passe requis' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const row = db.prepare(`
+      SELECT user_id, expires_at FROM password_reset_tokens WHERE token_hash = ?
+    `).get(tokenHash) as { user_id: string; expires_at: string } | undefined;
+
+    if (!row || new Date(row.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Lien invalide ou expiré' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const now = new Date().toISOString();
+    db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(passwordHash, now, row.user_id);
+    db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(row.user_id);
+
+    res.json({ success: true, message: 'Mot de passe réinitialisé avec succès' });
+  } catch (error) {
+    console.error('Erreur reset-password:', error);
+    res.status(500).json({ error: 'Erreur lors de la réinitialisation' });
   }
 });
 

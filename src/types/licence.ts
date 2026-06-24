@@ -24,6 +24,7 @@ export interface NtfyConfig {
   notificationType?: 'ntfy' | 'email' | 'both' | 'telegram';
   telegramChatId?: string;
   autoRemindersEnabled?: boolean;
+  taskAutoRemindersEnabled?: boolean;
   reminderFrequency?: 'daily' | 'weekly';
   lastReminderSentAt?: string;
   emailConfigured?: boolean;

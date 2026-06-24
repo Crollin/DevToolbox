@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Save, Database } from "lucide-react";
+import { Save, Database, Download, Layers } from "lucide-react";
 import ToolLayout from "@/components/ToolLayout";
 import { tools } from "@/data/tools";
 import { useWPQuery } from "@/hooks/useWPQuery";
@@ -20,6 +20,12 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const QUERY_PRESETS: { label: string; config: WPQueryConfig }[] = [
+  { label: "Posts récents", config: { post_type: "post", posts_per_page: 10, orderby: "date", order: "DESC" } },
+  { label: "Pages publiées", config: { post_type: "page", post_status: "publish", posts_per_page: -1 } },
+  { label: "CPT produit", config: { post_type: "product", posts_per_page: 12, orderby: "title", order: "ASC" } },
+];
 
 const WPQueryBuilder = () => {
   const tool = tools.find((t) => t.id === "wp-query-builder")!;
@@ -52,6 +58,15 @@ const WPQueryBuilder = () => {
     deleteQuery(id);
   };
 
+  const exportToFunctionsPhp = () => {
+    const args = JSON.stringify(config, null, 2)
+      .replace(/"([^"]+)":/g, "'$1' =>")
+      .replace(/"/g, "'");
+    const code = `$query = new WP_Query([\n${args}\n]);`;
+    void navigator.clipboard.writeText(code);
+    toast({ title: "Code WP_Query copié", description: "Collez dans functions.php ou un plugin." });
+  };
+
   if (!isLoaded) {
     return (
       <ToolLayout tool={tool}>
@@ -74,10 +89,26 @@ const WPQueryBuilder = () => {
             </p>
           </div>
 
-          <Button onClick={() => setSaveDialogOpen(true)}>
-            <Save className="w-4 h-4 mr-2" />
-            Sauvegarder
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setSaveDialogOpen(true)}>
+              <Save className="w-4 h-4 mr-2" />
+              Sauvegarder
+            </Button>
+            <Button variant="outline" onClick={exportToFunctionsPhp}>
+              <Download className="w-4 h-4 mr-2" />
+              Exporter PHP
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <Layers className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Presets :</span>
+          {QUERY_PRESETS.map((p) => (
+            <Button key={p.label} variant="secondary" size="sm" onClick={() => { setConfig(p.config); toast({ title: `Preset « ${p.label} » appliqué` }); }}>
+              {p.label}
+            </Button>
+          ))}
         </div>
 
         <Tabs defaultValue="builder" className="w-full">

@@ -3,6 +3,7 @@ import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
 import { validateBody, paletteSchema } from '../lib/validate';
+import { safeJsonParse } from '../lib/json';
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.get('/', (req, res) => {
       name: p.name,
       description: p.description,
       harmony: p.harmony,
-      colors: JSON.parse(p.colors),
+      colors: safeJsonParse(p.colors, []),
       createdAt: p.created_at,
       updatedAt: p.updated_at,
     }));

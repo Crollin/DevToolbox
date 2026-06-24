@@ -1,4 +1,4 @@
-import { Copy, Star, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Copy, Star, Pencil, Trash2, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { WPHook, hookTypeColors } from "@/types/wphook";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,15 @@ const HookCard = ({ hook, onEdit, onDelete, onToggleFavorite }: HookCardProps) =
               +{hook.tags.length - 2}
             </span>
           )}
+          <a
+            href={`https://developer.wordpress.org/?s=${encodeURIComponent(hook.name)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] sm:text-xs text-primary hover:underline flex items-center gap-0.5"
+            title="Documentation WordPress"
+          >
+            Docs <ExternalLink className="w-3 h-3" />
+          </a>
           <button
             onClick={() => setExpanded(!expanded)}
             className="text-[10px] sm:text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 ml-auto"

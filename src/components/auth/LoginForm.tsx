@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -14,6 +16,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,6 +36,52 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
   };
 
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    try {
+      await api.post("/auth/forgot-password", { email: forgotEmail || email });
+      toast({
+        title: "Email envoyé",
+        description: "Si cet email existe, un lien de réinitialisation a été envoyé.",
+      });
+      setShowForgot(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'envoi");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  if (showForgot) {
+    return (
+      <form onSubmit={handleForgot} className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Entrez votre email pour recevoir un lien de réinitialisation.
+        </p>
+        <div className="space-y-2">
+          <Label htmlFor="forgotEmail">Email</Label>
+          <Input
+            id="forgotEmail"
+            type="email"
+            value={forgotEmail || email}
+            onChange={(e) => setForgotEmail(e.target.value)}
+            required
+            disabled={forgotLoading}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => setShowForgot(false)} disabled={forgotLoading}>
+            Retour
+          </Button>
+          <Button type="submit" className="flex-1" disabled={forgotLoading}>
+            {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Envoyer le lien"}
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
@@ -38,7 +89,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           {error}
         </div>
       )}
-      
+
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -53,7 +104,16 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Mot de passe</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Mot de passe</Label>
+          <button
+            type="button"
+            className="text-xs text-primary hover:underline"
+            onClick={() => setShowForgot(true)}
+          >
+            Mot de passe oublié ?
+          </button>
+        </div>
         <Input
           id="password"
           type="password"
@@ -78,11 +138,3 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     </form>
   );
 }
-
-
-
-
-
-
-
-

@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
+import { getAppOrigin } from "@/lib/apiStorage";
 import {
   ExternalLink,
   Plus,
@@ -264,9 +265,11 @@ const KnowledgeBase = () => {
     }
   };
 
+  const appOrigin = getAppOrigin();
   const bookmarklet = useMemo(() => {
-    return `javascript:(function(){var u=encodeURIComponent(location.href);var t=encodeURIComponent(document.title||'');window.open('/tools/knowledge-base/new?url='+u+'&title='+t,'_blank');})();`;
-  }, []);
+    const base = appOrigin || "";
+    return `javascript:(function(){var o=${JSON.stringify(base)};var u=encodeURIComponent(location.href);var t=encodeURIComponent(document.title||'');window.open((o||location.origin)+'/tools/knowledge-base/new?url='+u+'&title='+t,'_blank');})();`;
+  }, [appOrigin]);
 
   const activeFilterCount = [
     favoritesOnly,

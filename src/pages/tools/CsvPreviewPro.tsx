@@ -251,6 +251,33 @@ const CsvPreviewPro = () => {
     });
   };
 
+  const exportToWooCommerce = () => {
+    if (!csvData) return;
+    const h = csvData.headers.map((x) => x.toLowerCase());
+    const skuIdx = h.findIndex((x) => x.includes("sku"));
+    const nameIdx = h.findIndex((x) => x.includes("name") || x.includes("nom"));
+    const priceIdx = h.findIndex((x) => x.includes("price") || x.includes("prix"));
+    const stockIdx = h.findIndex((x) => x.includes("stock"));
+
+    const wcHeaders = ["SKU", "Name", "Regular price", "Stock"];
+    const wcRows = csvData.rows.map((row) => [
+      skuIdx >= 0 ? row[skuIdx] : "",
+      nameIdx >= 0 ? row[nameIdx] : row[0] || "",
+      priceIdx >= 0 ? row[priceIdx] : "",
+      stockIdx >= 0 ? row[stockIdx] : "",
+    ]);
+
+    const csv = [wcHeaders, ...wcRows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `woocommerce-import-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export WooCommerce", description: "CSV format import produits généré." });
+  };
+
   return (
     <ToolLayout tool={tool}>
       <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
@@ -277,6 +304,12 @@ const CsvPreviewPro = () => {
               >
                 <TableIcon className="w-4 h-4" />
                 Excel
+              </button>
+              <button
+                onClick={exportToWooCommerce}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/30 font-medium text-sm hover:bg-purple-500/20 transition-all"
+              >
+                WooCommerce
               </button>
               <button
                 onClick={handleClear}

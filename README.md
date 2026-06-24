@@ -1,5 +1,7 @@
 # DevToolbox — Boîte à outils développeur
 
+**Version 1.1.0** — voir [CHANGELOG.md](CHANGELOG.md)
+
 ## À propos du projet
 
 DevToolbox est une plateforme personnelle développée par **Creactiveweb** pour centraliser, organiser et lancer rapidement tous vos outils de développement web.
@@ -16,7 +18,11 @@ Cette application regroupe une collection d'outils pratiques pour les développe
 - **Gestionnaire de clés de licence** - Centralisation des licences SaaS
 - **Éditeur Markdown** - Éditeur WYSIWYG avec prévisualisation
 - **CSV Preview Pro** - Visualisation et manipulation de fichiers CSV
-- Et bien plus encore...
+- **Task Reminder** - Gestionnaire de tâches avec rappels email
+- **Knowledge Base** - Base de connaissances personnelle avec bookmarklet
+- **WP Config Generator** - Extraits wp-config.php
+- **Plugin Header Builder** - En-tête de plugin WordPress.org
+- Et bien plus encore… **18 outils** au total
 
 ## Architecture
 
@@ -83,7 +89,7 @@ cd backend
 npm run dev  # Démarre sur http://localhost:1400
 
 # 5. Démarrer le frontend (dans un autre terminal)
-npm run dev  # Démarre sur http://localhost:14001
+npm run dev  # Démarre sur http://localhost:8080
 ```
 
 Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
@@ -102,9 +108,9 @@ Le frontend est configuré pour proxy les requêtes `/api` vers le backend.
 ### Fonctionnalités
 
 - **Comptes utilisateurs** : Chaque utilisateur a son propre espace de données
-- **Synchronisation multi-appareils** : Vos données sont stockées sur le serveur et accessibles depuis n'importe quel navigateur/appareil
-- **Changement de mot de passe** : Modifiez votre mot de passe depuis le menu utilisateur (icône en haut à droite)
-- **Email de confirmation** : Un email de bienvenue est envoyé lors de l'inscription (si SMTP configuré)
+- **Synchronisation multi-appareils** : Les modules connectés (licences, snippets, tâches, KB, Git, Docker, WP-CLI, hooks, queries, palettes, scripts, icônes, ElectriCalc, ordre des outils) sont stockés sur le serveur via l'API
+- **Changement de mot de passe** : Avec vérification de l'ancien mot de passe ; réinitialisation par email si oublié
+- **Email de confirmation** : Un email de bienvenue est envoyé lors de l'inscription (si SMTP/Resend configuré)
 
 ### Protection des routes
 

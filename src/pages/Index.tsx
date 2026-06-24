@@ -10,6 +10,7 @@ import { GripVertical, Check } from "lucide-react";
 import { tools, ToolCategory, categoryLabels } from "@/data/tools";
 import { useToolOrder } from "@/hooks/useToolOrder";
 import { useAuth } from "@/contexts/AuthContext";
+import { HomeDashboard } from "@/components/HomeDashboard";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,6 +97,8 @@ const Index = () => {
             totalTools={tools.length} 
             totalCategories={Object.keys(categoryLabels).length} 
           />
+
+          <HomeDashboard />
         </section>
 
         {/* Search & Filters */}

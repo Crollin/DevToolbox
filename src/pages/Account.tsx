@@ -39,6 +39,7 @@ interface NtfyConfig {
   token: string;
   notificationType: "ntfy" | "email" | "both";
   autoRemindersEnabled: boolean;
+  taskAutoRemindersEnabled?: boolean;
   reminderFrequency: "daily" | "weekly";
   emailConfigured?: boolean;
 }
@@ -81,6 +82,7 @@ const Account = () => {
     token: "",
     notificationType: "ntfy",
     autoRemindersEnabled: false,
+    taskAutoRemindersEnabled: false,
     reminderFrequency: "daily",
   });
   const [ntfyLoading, setNtfyLoading] = useState(false);
@@ -130,6 +132,7 @@ const Account = () => {
         token: data.token || "",
         notificationType: (data.notificationType as "ntfy" | "email" | "both") || "ntfy",
         autoRemindersEnabled: data.autoRemindersEnabled ?? false,
+        taskAutoRemindersEnabled: data.taskAutoRemindersEnabled ?? false,
         reminderFrequency: (data.reminderFrequency as "daily" | "weekly") || "daily",
         emailConfigured: data.emailConfigured,
       });
@@ -448,6 +451,12 @@ const Account = () => {
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={ntfyConfig.autoRemindersEnabled} onChange={(e) => setNtfyConfig((c) => ({ ...c, autoRemindersEnabled: e.target.checked }))} />
                         <span>Rappels automatiques (licences)</span>
+                      </label>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={ntfyConfig.taskAutoRemindersEnabled ?? false} onChange={(e) => setNtfyConfig((c) => ({ ...c, taskAutoRemindersEnabled: e.target.checked }))} />
+                        <span>Rappels automatiques (tâches)</span>
                       </label>
                     </div>
                     {ntfyConfig.autoRemindersEnabled && (

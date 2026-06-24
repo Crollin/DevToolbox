@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../db/database';
 import { authenticateToken } from '../middleware/auth';
+import { safeJsonParse } from '../lib/json';
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get('/settings', (req, res) => {
     if (!row) {
       return res.json({ settings: null });
     }
-    res.json({ settings: JSON.parse(row.settings) });
+    res.json({ settings: safeJsonParse(row.settings, null) });
   } catch (error) {
     res.status(500).json({ error: 'Erreur lors de la récupération des paramètres' });
   }
@@ -58,7 +59,7 @@ router.get('/history', (req, res) => {
     }[];
     const formattedHistory = history.map((h) => ({
       id: h.id,
-      calculation: JSON.parse(h.calculation),
+      calculation: safeJsonParse(h.calculation, {}),
       createdAt: h.created_at,
     }));
     res.json({ history: formattedHistory });

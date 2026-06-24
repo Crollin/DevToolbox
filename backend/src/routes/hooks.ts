@@ -1,4 +1,5 @@
 import express from 'express';
+import { safeJsonParse } from '../lib/json';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
@@ -34,7 +35,7 @@ router.get('/', (req, res) => {
       type: h.type,
       description: h.description,
       category: h.category,
-      tags: h.tags ? JSON.parse(h.tags) : [],
+      tags: safeJsonParse<string[]>(h.tags, []),
       example: h.example,
       parameters: h.parameters,
       since: h.since,

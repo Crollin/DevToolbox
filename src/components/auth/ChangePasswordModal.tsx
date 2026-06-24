@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -20,6 +19,7 @@ interface ChangePasswordModalProps {
 }
 
 export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,8 +29,8 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
     e.preventDefault();
     setError("");
 
-    if (!newPassword) {
-      setError("Le nouveau mot de passe est requis");
+    if (!currentPassword) {
+      setError("Le mot de passe actuel est requis");
       return;
     }
 
@@ -47,11 +47,12 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
     setIsLoading(true);
 
     try {
-      await api.put("/auth/change-password", { newPassword });
+      await api.put("/auth/change-password", { currentPassword, newPassword });
       toast({
         title: "Mot de passe modifié",
         description: "Votre mot de passe a été modifié avec succès.",
       });
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       onClose();
@@ -68,7 +69,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
         <DialogHeader>
           <DialogTitle>Changer le mot de passe</DialogTitle>
           <DialogDescription>
-            Entrez votre nouveau mot de passe. Il doit contenir au moins 6 caractères.
+            Entrez votre mot de passe actuel puis le nouveau (minimum 6 caractères).
           </DialogDescription>
         </DialogHeader>
 
@@ -78,6 +79,18 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
               {error}
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="newPassword">Nouveau mot de passe</Label>
@@ -126,11 +139,3 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
     </Dialog>
   );
 }
-
-
-
-
-
-
-
-

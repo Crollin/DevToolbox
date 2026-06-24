@@ -249,6 +249,18 @@ export function initializeDatabase() {
     )
   `);
 
+  // Table pour les tokens de réinitialisation de mot de passe
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Table pour les sessions (blacklist de tokens)
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -371,6 +383,11 @@ export function initializeDatabase() {
     if (!columnNames.includes('telegram_chat_id')) {
       db.exec(`ALTER TABLE ntfy_configs ADD COLUMN telegram_chat_id TEXT`);
       console.log('Colonne telegram_chat_id ajoutée à ntfy_configs');
+    }
+
+    if (!columnNames.includes('task_auto_reminders_enabled')) {
+      db.exec(`ALTER TABLE ntfy_configs ADD COLUMN task_auto_reminders_enabled INTEGER NOT NULL DEFAULT 0`);
+      console.log('Colonne task_auto_reminders_enabled ajoutée à ntfy_configs');
     }
   } catch (error) {
     console.log('Migration ntfy_configs déjà effectuée ou table n\'existe pas encore');

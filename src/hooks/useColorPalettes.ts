@@ -1,17 +1,27 @@
 import { useState, useEffect, useCallback } from "react";
 import { ColorPalette, PaletteColor, ColorRole, HarmonyType } from "@/types/palette";
 import { generateShades, generateHarmonyPalette, generateId, randomHex } from "@/lib/colorUtils";
-import { predefinedPalettes, PredefinedPalette } from "@/data/predefinedPalettes";
+import { predefinedPalettes } from "@/data/predefinedPalettes";
 import { toast } from "@/components/ui/sonner";
+import api from "@/lib/api";
+import {
+  USE_API,
+  isMigrationDone,
+  markMigrationDone,
+  loadFromLocalStorage,
+  saveToLocalStorage,
+} from "@/lib/apiStorage";
 
 const STORAGE_KEY = "color-palettes";
+const ACTIVE_KEY = "color-palettes-active";
+const MIGRATION_KEY = "migration_done_palettes";
 
 const defaultRoles: ColorRole[] = ["primary", "secondary", "accent", "background", "foreground"];
 
 const createDefaultPalette = (): ColorPalette => {
   const baseHex = randomHex();
   const harmonyColors = generateHarmonyPalette(baseHex, "analogous");
-  
+
   const colors: PaletteColor[] = harmonyColors.map((hex, i) => ({
     id: generateId(),
     name: defaultRoles[i] || "Couleur " + (i + 1),
@@ -32,164 +42,267 @@ const createDefaultPalette = (): ColorPalette => {
   };
 };
 
-export const useColorPalettes = () => {
-  const [palettes, setPalettes] = useState<ColorPalette[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load palettes:", e);
-    }
-    return [createDefaultPalette()];
-  });
+function toApiPalette(palette: ColorPalette) {
+  return {
+    name: palette.name,
+    description: palette.description,
+    harmony: palette.harmony,
+    colors: palette.colors,
+  };
+}
 
-  const [activePaletteId, setActivePaletteId] = useState<string>(() => {
-    return palettes[0]?.id || "";
-  });
+export const useColorPalettes = () => {
+  const [palettes, setPalettes] = useState<ColorPalette[]>([createDefaultPalette()]);
+  const [activePaletteId, setActivePaletteId] = useState<string>("");
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const activePalette = palettes.find((p) => p.id === activePaletteId) || palettes[0];
 
-  // Save to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(palettes));
-  }, [palettes]);
-
-  // Create new palette
-  const createPalette = useCallback((name?: string) => {
-    const newPalette = createDefaultPalette();
-    if (name) newPalette.name = name;
-    setPalettes((prev) => [...prev, newPalette]);
-    setActivePaletteId(newPalette.id);
-    return newPalette;
+  const persistLocal = useCallback((items: ColorPalette[]) => {
+    saveToLocalStorage(STORAGE_KEY, items);
   }, []);
 
-  // Delete palette
-  const deletePalette = useCallback((id: string) => {
-    setPalettes((prev) => {
-      const filtered = prev.filter((p) => p.id !== id);
-      if (filtered.length === 0) {
-        const newDefault = createDefaultPalette();
-        setActivePaletteId(newDefault.id);
-        return [newDefault];
+  const migrateToApi = useCallback(async (localPalettes: ColorPalette[]) => {
+    if (isMigrationDone(MIGRATION_KEY)) return;
+    for (const palette of localPalettes) {
+      try {
+        await api.post("/palettes", toApiPalette(palette));
+      } catch (e) {
+        console.error("Migration palettes:", e);
       }
-      if (id === activePaletteId) {
-        setActivePaletteId(filtered[0].id);
+    }
+    markMigrationDone(MIGRATION_KEY);
+  }, []);
+
+  const apiCreatePalette = useCallback(async (palette: ColorPalette): Promise<ColorPalette> => {
+    const created = await api.post<{ id: string; createdAt: string; updatedAt: string }>(
+      "/palettes",
+      toApiPalette(palette)
+    );
+    return { ...palette, id: created.id, createdAt: created.createdAt, updatedAt: created.updatedAt };
+  }, []);
+
+  const apiUpdatePalette = useCallback(async (palette: ColorPalette) => {
+    await api.put(`/palettes/${palette.id}`, toApiPalette(palette));
+  }, []);
+
+  const apiDeletePalette = useCallback(async (id: string) => {
+    await api.delete(`/palettes/${id}`);
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      if (USE_API) {
+        try {
+          const data = await api.get<{ palettes: ColorPalette[] }>("/palettes");
+          let loaded = data.palettes || [];
+
+          if (loaded.length === 0) {
+            const localPalettes = loadFromLocalStorage<ColorPalette[]>(STORAGE_KEY, []);
+            if (localPalettes.length > 0 && !isMigrationDone(MIGRATION_KEY)) {
+              await migrateToApi(localPalettes);
+              const refreshed = await api.get<{ palettes: ColorPalette[] }>("/palettes");
+              loaded = refreshed.palettes || [];
+            } else if (loaded.length === 0) {
+              const defaultPalette = createDefaultPalette();
+              const created = await apiCreatePalette(defaultPalette);
+              loaded = [created];
+            }
+          }
+
+          setPalettes(loaded);
+          const storedActive = localStorage.getItem(ACTIVE_KEY);
+          const activeId =
+            storedActive && loaded.some((p) => p.id === storedActive) ? storedActive : loaded[0]?.id || "";
+          setActivePaletteId(activeId);
+        } catch (error) {
+          console.error("Erreur API palettes:", error);
+          const fallback = loadFromLocalStorage<ColorPalette[]>(STORAGE_KEY, [createDefaultPalette()]);
+          setPalettes(fallback);
+          setActivePaletteId(fallback[0]?.id || "");
+        }
+      } else {
+        const stored = loadFromLocalStorage<ColorPalette[] | null>(STORAGE_KEY, null);
+        if (stored && stored.length > 0) {
+          setPalettes(stored);
+          const storedActive = localStorage.getItem(ACTIVE_KEY);
+          setActivePaletteId(
+            storedActive && stored.some((p) => p.id === storedActive) ? storedActive : stored[0].id
+          );
+        } else {
+          const defaultPalette = createDefaultPalette();
+          setPalettes([defaultPalette]);
+          setActivePaletteId(defaultPalette.id);
+          persistLocal([defaultPalette]);
+        }
       }
-      return filtered;
-    });
+      setIsLoaded(true);
+    };
+    void load();
+  }, [apiCreatePalette, migrateToApi, persistLocal]);
+
+  useEffect(() => {
+    if (!isLoaded || USE_API) return;
+    persistLocal(palettes);
+  }, [palettes, isLoaded, persistLocal]);
+
+  useEffect(() => {
+    if (activePaletteId) localStorage.setItem(ACTIVE_KEY, activePaletteId);
   }, [activePaletteId]);
 
-  // Duplicate palette
-  const duplicatePalette = useCallback((id: string) => {
-    const source = palettes.find((p) => p.id === id);
-    if (!source) return;
-    
-    const duplicate: ColorPalette = {
-      ...source,
-      id: generateId(),
-      name: source.name + " (copie)",
-      colors: source.colors.map((c) => ({ ...c, id: generateId() })),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setPalettes((prev) => [...prev, duplicate]);
-    setActivePaletteId(duplicate.id);
-  }, [palettes]);
+  const createPalette = useCallback(
+    async (name?: string) => {
+      let newPalette = createDefaultPalette();
+      if (name) newPalette = { ...newPalette, name };
+      if (USE_API) {
+        newPalette = await apiCreatePalette(newPalette);
+      }
+      setPalettes((prev) => [...prev, newPalette]);
+      setActivePaletteId(newPalette.id);
+      return newPalette;
+    },
+    [apiCreatePalette]
+  );
 
-  // Update palette metadata
-  const updatePalette = useCallback((id: string, updates: Partial<Pick<ColorPalette, "name" | "description" | "harmony">>) => {
-    setPalettes((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, ...updates, updatedAt: new Date().toISOString() }
-          : p
-      )
-    );
-  }, []);
+  const deletePalette = useCallback(
+    async (id: string) => {
+      if (USE_API) {
+        await apiDeletePalette(id);
+      }
+      const remaining = palettes.filter((p) => p.id !== id);
+      if (remaining.length === 0) {
+        let newDefault = createDefaultPalette();
+        if (USE_API) {
+          newDefault = await apiCreatePalette(newDefault);
+        }
+        setPalettes([newDefault]);
+        setActivePaletteId(newDefault.id);
+        return;
+      }
+      if (id === activePaletteId) {
+        setActivePaletteId(remaining[0].id);
+      }
+      setPalettes(remaining);
+    },
+    [activePaletteId, apiCreatePalette, apiDeletePalette, palettes]
+  );
 
-  // Add color to palette
-  const addColor = useCallback((paletteId: string, hex?: string) => {
-    const color: PaletteColor = {
-      id: generateId(),
-      name: "Nouvelle couleur",
-      hex: hex || randomHex(),
-      role: "custom",
-      locked: false,
-      shades: generateShades(hex || randomHex()),
-    };
+  const duplicatePalette = useCallback(
+    async (id: string) => {
+      const source = palettes.find((p) => p.id === id);
+      if (!source) return;
 
-    setPalettes((prev) =>
-      prev.map((p) =>
-        p.id === paletteId
-          ? { ...p, colors: [...p.colors, color], updatedAt: new Date().toISOString() }
-          : p
-      )
-    );
-  }, []);
+      let duplicate: ColorPalette = {
+        ...source,
+        id: generateId(),
+        name: source.name + " (copie)",
+        colors: source.colors.map((c) => ({ ...c, id: generateId() })),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-  // Remove color from palette
-  const removeColor = useCallback((paletteId: string, colorId: string) => {
-    setPalettes((prev) =>
-      prev.map((p) =>
-        p.id === paletteId
-          ? { ...p, colors: p.colors.filter((c) => c.id !== colorId), updatedAt: new Date().toISOString() }
-          : p
-      )
-    );
-  }, []);
+      if (USE_API) {
+        duplicate = await apiCreatePalette(duplicate);
+      }
 
-  // Update color
-  const updateColor = useCallback((paletteId: string, colorId: string, updates: Partial<PaletteColor>) => {
-    setPalettes((prev) =>
-      prev.map((p) =>
-        p.id === paletteId
-          ? {
-              ...p,
-              colors: p.colors.map((c) => {
-                if (c.id !== colorId) return c;
-                const updated = { ...c, ...updates };
-                // Regenerate shades if hex changed
-                if (updates.hex && updates.hex !== c.hex) {
-                  updated.shades = generateShades(updates.hex);
-                }
-                return updated;
-              }),
-              updatedAt: new Date().toISOString(),
-            }
-          : p
-      )
-    );
-  }, []);
+      setPalettes((prev) => [...prev, duplicate]);
+      setActivePaletteId(duplicate.id);
+    },
+    [apiCreatePalette, palettes]
+  );
 
-  // Toggle lock
-  const toggleLock = useCallback((paletteId: string, colorId: string) => {
-    setPalettes((prev) =>
-      prev.map((p) =>
-        p.id === paletteId
-          ? {
-              ...p,
-              colors: p.colors.map((c) =>
-                c.id === colorId ? { ...c, locked: !c.locked } : c
-              ),
-              updatedAt: new Date().toISOString(),
-            }
-          : p
-      )
-    );
-  }, []);
+  const updatePalette = useCallback(
+    async (id: string, updates: Partial<Pick<ColorPalette, "name" | "description" | "harmony">>) => {
+      setPalettes((prev) => {
+        const next = prev.map((p) =>
+          p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
+        );
+        if (USE_API) {
+          const updated = next.find((p) => p.id === id);
+          if (updated) void apiUpdatePalette(updated);
+        }
+        return next;
+      });
+    },
+    [apiUpdatePalette]
+  );
 
-  // Generate new colors based on harmony
-  const generatePalette = useCallback((paletteId: string, harmony: HarmonyType) => {
-    setPalettes((prev) =>
-      prev.map((p) => {
-        if (p.id !== paletteId) return p;
+  const syncPaletteColors = useCallback(
+    async (paletteId: string, updater: (palette: ColorPalette) => ColorPalette) => {
+      setPalettes((prev) => {
+        const next = prev.map((p) => (p.id === paletteId ? updater(p) : p));
+        if (USE_API) {
+          const updated = next.find((p) => p.id === paletteId);
+          if (updated) void apiUpdatePalette(updated);
+        }
+        return next;
+      });
+    },
+    [apiUpdatePalette]
+  );
 
+  const addColor = useCallback(
+    (paletteId: string, hex?: string) => {
+      const color: PaletteColor = {
+        id: generateId(),
+        name: "Nouvelle couleur",
+        hex: hex || randomHex(),
+        role: "custom",
+        locked: false,
+        shades: generateShades(hex || randomHex()),
+      };
+      void syncPaletteColors(paletteId, (p) => ({
+        ...p,
+        colors: [...p.colors, color],
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    [syncPaletteColors]
+  );
+
+  const removeColor = useCallback(
+    (paletteId: string, colorId: string) => {
+      void syncPaletteColors(paletteId, (p) => ({
+        ...p,
+        colors: p.colors.filter((c) => c.id !== colorId),
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    [syncPaletteColors]
+  );
+
+  const updateColor = useCallback(
+    (paletteId: string, colorId: string, updates: Partial<PaletteColor>) => {
+      void syncPaletteColors(paletteId, (p) => ({
+        ...p,
+        colors: p.colors.map((c) => {
+          if (c.id !== colorId) return c;
+          const updated = { ...c, ...updates };
+          if (updates.hex && updates.hex !== c.hex) {
+            updated.shades = generateShades(updates.hex);
+          }
+          return updated;
+        }),
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    [syncPaletteColors]
+  );
+
+  const toggleLock = useCallback(
+    (paletteId: string, colorId: string) => {
+      void syncPaletteColors(paletteId, (p) => ({
+        ...p,
+        colors: p.colors.map((c) => (c.id === colorId ? { ...c, locked: !c.locked } : c)),
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    [syncPaletteColors]
+  );
+
+  const generatePalette = useCallback(
+    (paletteId: string, harmony: HarmonyType) => {
+      void syncPaletteColors(paletteId, (p) => {
         const lockedColor = p.colors.find((c) => c.locked);
         const baseHex = lockedColor?.hex || randomHex();
         const newColors = generateHarmonyPalette(baseHex, harmony);
@@ -197,14 +310,9 @@ export const useColorPalettes = () => {
         const updatedColors = p.colors.map((c, i) => {
           if (c.locked) return c;
           const newHex = newColors[i] || randomHex();
-          return {
-            ...c,
-            hex: newHex,
-            shades: generateShades(newHex),
-          };
+          return { ...c, hex: newHex, shades: generateShades(newHex) };
         });
 
-        // Add extra colors if needed
         while (updatedColors.length < newColors.length) {
           const hex = newColors[updatedColors.length];
           updatedColors.push({
@@ -217,71 +325,80 @@ export const useColorPalettes = () => {
           });
         }
 
-        return {
+        return { ...p, harmony, colors: updatedColors, updatedAt: new Date().toISOString() };
+      });
+    },
+    [syncPaletteColors]
+  );
+
+  const importPalette = useCallback(
+    async (data: ColorPalette | ColorPalette[]) => {
+      const palettesToImport = Array.isArray(data) ? data : [data];
+
+      const imported: ColorPalette[] = [];
+      for (const p of palettesToImport) {
+        let palette: ColorPalette = {
           ...p,
-          harmony,
-          colors: updatedColors,
+          id: generateId(),
+          colors: p.colors.map((c) => ({
+            ...c,
+            id: generateId(),
+            shades: c.shades?.length ? c.shades : generateShades(c.hex),
+          })),
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-      })
-    );
-  }, []);
+        if (USE_API) {
+          palette = await apiCreatePalette(palette);
+        }
+        imported.push(palette);
+      }
 
-  // Import palette from JSON
-  const importPalette = useCallback((data: ColorPalette | ColorPalette[]) => {
-    const palettesToImport = Array.isArray(data) ? data : [data];
-    
-    const imported = palettesToImport.map((p) => ({
-      ...p,
-      id: generateId(),
-      colors: p.colors.map((c) => ({
-        ...c,
+      setPalettes((prev) => [...prev, ...imported]);
+      if (imported.length > 0) setActivePaletteId(imported[0].id);
+      return imported.length;
+    },
+    [apiCreatePalette]
+  );
+
+  const loadPredefinedPalette = useCallback(
+    async (predefinedId: string) => {
+      const predefined = predefinedPalettes.find((p) => p.id === predefinedId);
+      if (!predefined) {
+        toast.error("Palette prédéfinie introuvable");
+        return null;
+      }
+
+      const colors: PaletteColor[] = predefined.colors.map((color) => ({
         id: generateId(),
-        shades: c.shades?.length ? c.shades : generateShades(c.hex),
-      })),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
+        name: color.name,
+        hex: color.hex,
+        role: color.role,
+        locked: false,
+        shades: generateShades(color.hex),
+      }));
 
-    setPalettes((prev) => [...prev, ...imported]);
-    if (imported.length > 0) {
-      setActivePaletteId(imported[0].id);
-    }
-    return imported.length;
-  }, []);
+      let newPalette: ColorPalette = {
+        id: generateId(),
+        name: predefined.name,
+        description: predefined.description,
+        harmony: "custom",
+        colors,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-  // Load predefined palette
-  const loadPredefinedPalette = useCallback((predefinedId: string) => {
-    const predefined = predefinedPalettes.find((p) => p.id === predefinedId);
-    if (!predefined) {
-      toast.error("Palette prédéfinie introuvable");
-      return null;
-    }
+      if (USE_API) {
+        newPalette = await apiCreatePalette(newPalette);
+      }
 
-    const colors: PaletteColor[] = predefined.colors.map((color) => ({
-      id: generateId(),
-      name: color.name,
-      hex: color.hex,
-      role: color.role,
-      locked: false,
-      shades: generateShades(color.hex),
-    }));
-
-    const newPalette: ColorPalette = {
-      id: generateId(),
-      name: predefined.name,
-      description: predefined.description,
-      harmony: "custom",
-      colors,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setPalettes((prev) => [...prev, newPalette]);
-    setActivePaletteId(newPalette.id);
-    toast.success(`Palette "${predefined.name}" chargée avec succès`);
-    return newPalette;
-  }, []);
+      setPalettes((prev) => [...prev, newPalette]);
+      setActivePaletteId(newPalette.id);
+      toast.success(`Palette "${predefined.name}" chargée avec succès`);
+      return newPalette;
+    },
+    [apiCreatePalette]
+  );
 
   return {
     palettes,

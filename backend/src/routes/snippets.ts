@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
+import { safeJsonParse } from '../lib/json';
 import { validateBody, snippetCreateSchema, snippetUpdateSchema } from '../lib/validate';
 
 const router = express.Router();
@@ -89,7 +90,7 @@ router.get('/', (req, res) => {
       language: s.language,
       scope: s.scope,
       priority: s.priority,
-      tags: s.tags ? JSON.parse(s.tags) : [],
+      tags: safeJsonParse<string[]>(s.tags, []),
       folder: s.folder,
       isFavorite: Boolean(s.is_favorite),
       wpCodeBoxId: s.wp_code_box_id,
@@ -139,7 +140,7 @@ router.get('/:id', (req, res) => {
       language: snippet.language,
       scope: snippet.scope,
       priority: snippet.priority,
-      tags: snippet.tags ? JSON.parse(snippet.tags) : [],
+      tags: safeJsonParse<string[]>(snippet.tags, []),
       folder: snippet.folder,
       isFavorite: Boolean(snippet.is_favorite),
       wpCodeBoxId: snippet.wp_code_box_id,

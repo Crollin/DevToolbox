@@ -1,4 +1,4 @@
-import { Terminal, LogOut, User, Key, Settings } from "lucide-react";
+import { Terminal, LogOut, User, Key, Settings, LogIn, Cloud } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,20 +12,27 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { ChangePasswordModal } from "./auth/ChangePasswordModal";
+import { AuthModal } from "./auth/AuthModal";
 import { useState } from "react";
-
-interface HeaderProps {}
+import { USE_API } from "@/lib/apiStorage";
 
 const Header = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
     <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => navigate("/")}
+            onKeyDown={(e) => e.key === "Enter" && navigate("/")}
+            role="button"
+            tabIndex={0}
+          >
             <div className="relative">
               <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
                 <Terminal className="w-5 h-5 text-primary" />
@@ -43,8 +50,14 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {isAuthenticated && USE_API && (
+              <span className="hidden sm:flex items-center gap-1 text-xs text-emerald-500/90 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <Cloud className="w-3 h-3" />
+                Synchronisé
+              </span>
+            )}
             <ThemeToggle />
-            {isAuthenticated && user && (
+            {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center gap-2">
@@ -75,6 +88,11 @@ const Header = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <Button size="sm" onClick={() => setShowAuthModal(true)} className="gap-2">
+                <LogIn className="w-4 h-4" />
+                <span className="hidden sm:inline">Se connecter</span>
+              </Button>
             )}
           </div>
         </div>
@@ -83,6 +101,7 @@ const Header = () => {
         isOpen={showChangePasswordModal}
         onClose={() => setShowChangePasswordModal(false)}
       />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </header>
   );
 };

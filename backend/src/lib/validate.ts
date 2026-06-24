@@ -25,11 +25,20 @@ export const snippetCreateSchema = z.object({
 
 export const snippetUpdateSchema = snippetCreateSchema.partial();
 
+const paletteColorSchema = z.object({
+  id: z.string().min(1).max(100),
+  name: z.string().max(MAX_NAME),
+  hex: z.string().max(50),
+  role: z.string().max(50),
+  locked: z.boolean(),
+  shades: z.array(z.object({ shade: z.number(), hex: z.string().max(50) })),
+});
+
 export const paletteSchema = z.object({
   name: z.string().min(1).max(MAX_NAME),
   description: z.string().max(MAX_DESCRIPTION).optional().default(''),
   harmony: z.string().min(1).max(50),
-  colors: z.array(z.string().max(50)).min(1).max(20),
+  colors: z.array(paletteColorSchema).min(1).max(20),
 });
 
 export const commandSchema = z.object({

@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
+import { safeJsonParse } from '../lib/json';
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.get('/', (req, res) => {
       id: i.id,
       name: i.name,
       svg: i.svg,
-      tags: i.tags ? JSON.parse(i.tags) : [],
+      tags: safeJsonParse<string[]>(i.tags, []),
       category: i.category,
       isFavorite: Boolean(i.is_favorite),
       createdAt: i.created_at,

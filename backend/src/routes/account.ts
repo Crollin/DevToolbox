@@ -185,6 +185,7 @@ router.put('/ntfy-config', (req: Request, res: Response) => {
       notificationChannels,
       telegramChatId,
       autoRemindersEnabled,
+      taskAutoRemindersEnabled,
       reminderFrequency,
     } = req.body;
 
@@ -198,7 +199,7 @@ router.put('/ntfy-config', (req: Request, res: Response) => {
     if (existing) {
       db.prepare(`
         UPDATE ntfy_configs
-        SET enabled = ?, server_url = ?, topic = ?, token = ?, notification_type = ?, notification_channels = ?, telegram_chat_id = ?, auto_reminders_enabled = ?, reminder_frequency = ?, updated_at = ?
+        SET enabled = ?, server_url = ?, topic = ?, token = ?, notification_type = ?, notification_channels = ?, telegram_chat_id = ?, auto_reminders_enabled = ?, task_auto_reminders_enabled = ?, reminder_frequency = ?, updated_at = ?
         WHERE user_id = ?
       `).run(
         enabled ? 1 : 0,
@@ -209,6 +210,7 @@ router.put('/ntfy-config', (req: Request, res: Response) => {
         channelsJson,
         telegramChatId || null,
         autoRemindersEnabled ? 1 : 0,
+        taskAutoRemindersEnabled ? 1 : 0,
         reminderFrequency || 'daily',
         now,
         userId
@@ -216,8 +218,8 @@ router.put('/ntfy-config', (req: Request, res: Response) => {
     } else {
       const id = uuidv4();
       db.prepare(`
-        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, notification_type, notification_channels, telegram_chat_id, auto_reminders_enabled, reminder_frequency, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, notification_type, notification_channels, telegram_chat_id, auto_reminders_enabled, task_auto_reminders_enabled, reminder_frequency, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id,
         userId,
@@ -229,6 +231,7 @@ router.put('/ntfy-config', (req: Request, res: Response) => {
         channelsJson,
         telegramChatId || null,
         autoRemindersEnabled ? 1 : 0,
+        taskAutoRemindersEnabled ? 1 : 0,
         reminderFrequency || 'daily',
         now,
         now
@@ -244,6 +247,7 @@ router.put('/ntfy-config', (req: Request, res: Response) => {
       notification_channels: channelsJson,
       telegram_chat_id: telegramChatId || null,
       auto_reminders_enabled: autoRemindersEnabled ? 1 : 0,
+      task_auto_reminders_enabled: taskAutoRemindersEnabled ? 1 : 0,
       reminder_frequency: reminderFrequency || 'daily',
       last_reminder_sent_at: null,
     }));

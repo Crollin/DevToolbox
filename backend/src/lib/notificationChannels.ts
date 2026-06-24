@@ -1,5 +1,6 @@
 import { isEmailConfigured } from './email';
 import { isTelegramConfigured } from './telegram';
+import { safeJsonParse } from './json';
 
 export type NotificationChannel = 'ntfy' | 'email' | 'telegram';
 
@@ -10,19 +11,15 @@ export function parseNotificationChannels(
   notificationChannelsJson: string | null | undefined
 ): NotificationChannel[] {
   if (notificationChannelsJson) {
-    try {
-      const parsed = JSON.parse(notificationChannelsJson) as unknown;
-      if (Array.isArray(parsed)) {
-        const valid = parsed.filter(
-          (channel): channel is NotificationChannel =>
-            channel === 'ntfy' || channel === 'email' || channel === 'telegram'
-        );
-        if (valid.length > 0) {
-          return [...new Set(valid)];
-        }
+    const parsed = safeJsonParse<unknown>(notificationChannelsJson, null);
+    if (Array.isArray(parsed)) {
+      const valid = parsed.filter(
+        (channel): channel is NotificationChannel =>
+          channel === 'ntfy' || channel === 'email' || channel === 'telegram'
+      );
+      if (valid.length > 0) {
+        return [...new Set(valid)];
       }
-    } catch {
-      // Utiliser le type legacy
     }
   }
 
@@ -93,6 +90,7 @@ interface NtfyConfigRow {
   notification_channels?: string | null;
   telegram_chat_id?: string | null;
   auto_reminders_enabled: number | null;
+  task_auto_reminders_enabled?: number | null;
   reminder_frequency: string | null;
   last_reminder_sent_at?: string | null;
 }
@@ -112,6 +110,7 @@ export function formatNtfyConfigResponse(config: NtfyConfigRow) {
     notificationChannels,
     telegramChatId: config.telegram_chat_id || undefined,
     autoRemindersEnabled: config.auto_reminders_enabled === 1,
+    taskAutoRemindersEnabled: config.task_auto_reminders_enabled === 1,
     reminderFrequency: config.reminder_frequency || 'daily',
     lastReminderSentAt: config.last_reminder_sent_at || undefined,
     emailConfigured: isEmailConfigured(),

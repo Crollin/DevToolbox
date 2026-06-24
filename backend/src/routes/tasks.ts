@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
+import { safeJsonParse } from '../lib/json';
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ router.get('/', (req, res) => {
       client: task.client || undefined,
       link: task.link || undefined,
       status: task.status as 'pending' | 'in_progress' | 'completed',
-      reminderDays: task.reminder_days ? JSON.parse(task.reminder_days) : undefined,
+      reminderDays: task.reminder_days ? safeJsonParse<number[]>(task.reminder_days, []) : undefined,
       reminderDatetime: task.reminder_datetime || undefined,
       createdAt: task.created_at,
       updatedAt: task.updated_at,
@@ -102,7 +103,7 @@ router.get('/:id', (req, res) => {
       client: task.client || undefined,
       link: task.link || undefined,
       status: task.status as 'pending' | 'in_progress' | 'completed',
-      reminderDays: task.reminder_days ? JSON.parse(task.reminder_days) : undefined,
+      reminderDays: task.reminder_days ? safeJsonParse<number[]>(task.reminder_days, []) : undefined,
       reminderDatetime: task.reminder_datetime || undefined,
       createdAt: task.created_at,
       updatedAt: task.updated_at,
@@ -171,7 +172,7 @@ router.post('/', (req, res) => {
       client: task.client || undefined,
       link: task.link || undefined,
       status: task.status as 'pending' | 'in_progress' | 'completed',
-      reminderDays: task.reminder_days ? JSON.parse(task.reminder_days) : undefined,
+      reminderDays: task.reminder_days ? safeJsonParse<number[]>(task.reminder_days, []) : undefined,
       reminderDatetime: task.reminder_datetime || undefined,
       createdAt: task.created_at,
       updatedAt: task.updated_at,
@@ -244,7 +245,7 @@ router.put('/:id', (req, res) => {
       client: task.client || undefined,
       link: task.link || undefined,
       status: task.status as 'pending' | 'in_progress' | 'completed',
-      reminderDays: task.reminder_days ? JSON.parse(task.reminder_days) : undefined,
+      reminderDays: task.reminder_days ? safeJsonParse<number[]>(task.reminder_days, []) : undefined,
       reminderDatetime: task.reminder_datetime || undefined,
       createdAt: task.created_at,
       updatedAt: task.updated_at,
@@ -306,7 +307,7 @@ router.patch('/:id/status', (req, res) => {
       client: task.client || undefined,
       link: task.link || undefined,
       status: task.status as 'pending' | 'in_progress' | 'completed',
-      reminderDays: task.reminder_days ? JSON.parse(task.reminder_days) : undefined,
+      reminderDays: task.reminder_days ? safeJsonParse<number[]>(task.reminder_days, []) : undefined,
       reminderDatetime: task.reminder_datetime || undefined,
       createdAt: task.created_at,
       updatedAt: task.updated_at,

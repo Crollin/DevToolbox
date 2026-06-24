@@ -17,12 +17,18 @@ function getDaysUntilExpiry(expiresAt: string | null): number | null {
 }
 
 /**
- * Détermine si une licence doit recevoir un rappel aujourd'hui
- * Rappels envoyés à 30 jours, 7 jours et 1 jour avant expiration
+ * Détermine si une licence doit recevoir un rappel aujourd'hui.
+ * Seuils : J-30, J-7, J-1, jour J (0), et un seul rappel le lendemain d'expiration (J+1).
  */
 function shouldSendReminder(daysUntilExpiry: number | null): boolean {
   if (daysUntilExpiry === null) return false;
-  return daysUntilExpiry <= 30 && (daysUntilExpiry === 30 || daysUntilExpiry === 7 || daysUntilExpiry === 1 || daysUntilExpiry < 0);
+  return (
+    daysUntilExpiry === 30 ||
+    daysUntilExpiry === 7 ||
+    daysUntilExpiry === 1 ||
+    daysUntilExpiry === 0 ||
+    daysUntilExpiry === -1
+  );
 }
 
 /**

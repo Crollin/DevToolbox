@@ -2,6 +2,7 @@ import db from '../db/database';
 import { sendTaskReminderEmail, TaskReminder, loadEmailPreferencesForUser } from './email';
 import { sendTelegramMessage } from './telegram';
 import { parseNotificationChannels, hasChannel } from './notificationChannels';
+import { safeJsonParse } from './json';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -201,14 +202,16 @@ function recordReminderSent(
  */
 export async function checkAndSendTaskReminders(): Promise<void> {
   try {
-    // Récupérer tous les utilisateurs
     const users = db.prepare(`
-      SELECT id, email, name
-      FROM users
+      SELECT u.id, u.email, u.name, nc.task_auto_reminders_enabled
+      FROM users u
+      INNER JOIN ntfy_configs nc ON u.id = nc.user_id
+      WHERE nc.task_auto_reminders_enabled = 1
     `).all() as Array<{
       id: string;
       email: string;
       name: string;
+      task_auto_reminders_enabled: number;
     }>;
 
     for (const user of users) {
@@ -252,10 +255,9 @@ export async function checkAndSendTaskReminders(): Promise<void> {
 
         // Vérifier les rappels "jours avant"
         if (task.reminder_days) {
-          try {
-            const reminderDays = JSON.parse(task.reminder_days) as number[];
-            
-            for (const daysBefore of reminderDays) {
+          const reminderDays = safeJsonParse<number[]>(task.reminder_days, []);
+
+          for (const daysBefore of reminderDays) {
               if (shouldSendDaysBeforeReminder(daysUntilDue, reminderDays, task.id, daysBefore)) {
                 const taskReminder: TaskReminder = {
                   title: task.title,
@@ -279,9 +281,6 @@ export async function checkAndSendTaskReminders(): Promise<void> {
                 }
               }
             }
-          } catch (error) {
-            console.error(`Erreur lors du parsing de reminder_days pour la tâche ${task.id}:`, error);
-          }
         }
 
         // Vérifier les rappels date/heure précise

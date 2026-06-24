@@ -3,6 +3,7 @@ import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
 import { validateBody, commandSchema } from '../lib/validate';
+import { safeJsonParse } from '../lib/json';
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.get('/', (req, res) => {
       command: c.command,
       description: c.description,
       category: c.category,
-      tags: c.tags ? JSON.parse(c.tags) : [],
+      tags: safeJsonParse<string[]>(c.tags, []),
       isFavorite: Boolean(c.is_favorite),
       createdAt: c.created_at,
       updatedAt: c.updated_at,

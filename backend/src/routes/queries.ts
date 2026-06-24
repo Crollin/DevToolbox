@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
+import { safeJsonParse } from '../lib/json';
 import { validateBody, querySchema } from '../lib/validate';
 
 const router = express.Router();
@@ -25,7 +26,7 @@ router.get('/', (req, res) => {
       id: q.id,
       name: q.name,
       description: q.description,
-      config: JSON.parse(q.config),
+      config: safeJsonParse(q.config, {}),
       createdAt: q.created_at,
       updatedAt: q.updated_at,
     }));

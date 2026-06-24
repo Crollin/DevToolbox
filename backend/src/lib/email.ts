@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import db from '../db/database';
+import { getFrontendUrl } from './frontendUrl';
 
 type EmailProvider = 'resend' | 'smtp';
 
@@ -244,7 +245,7 @@ export async function sendConfirmationEmail(email: string, name: string, prefs?:
             <p>Bonjour <strong>${name}</strong>,</p>
             ${welcomeBody}
             <p style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" class="button">Accéder à ${d.companyName}</a>
+              <a href="${getFrontendUrl()}" class="button">Accéder à ${d.companyName}</a>
             </p>
             <p>Si vous avez des questions ou besoin d'aide, n'hésitez pas à nous contacter.</p>
             <p>Cordialement,<br>${d.signature}</p>
@@ -264,7 +265,7 @@ export async function sendConfirmationEmail(email: string, name: string, prefs?:
         
         Vous pouvez maintenant accéder à tous les outils disponibles et commencer à utiliser votre boîte à outils de développement.
         
-        Accédez à DevToolbox : ${process.env.FRONTEND_URL || 'http://localhost:5173'}
+        Accédez à DevToolbox : ${getFrontendUrl()}
         
         Si vous avez des questions ou besoin d'aide, n'hésitez pas à nous contacter.
         
@@ -417,7 +418,7 @@ export async function sendLicenceExpirationEmail(
               ${licencesListHtml}
             </ul>
             <p style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/licence-key-hub" class="button">Gérer mes licences</a>
+              <a href="${getFrontendUrl()}/tools/licence-key-hub" class="button">Gérer mes licences</a>
             </p>
             <p>N'oubliez pas de renouveler vos licences avant leur expiration pour éviter toute interruption de service.</p>
             <p>Cordialement,<br>${d.signature}</p>
@@ -440,7 +441,7 @@ export async function sendLicenceExpirationEmail(
         ${expiredCount > 0 ? `${expiredCount} licence(s) expirée(s)` : ''}
         ${warningCount > 0 ? `${warningCount} licence(s) expirant bientôt` : ''}
         
-        Gérer mes licences : ${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/licence-key-hub
+        Gérer mes licences : ${getFrontendUrl()}/tools/licence-key-hub
         
         N'oubliez pas de renouveler vos licences avant leur expiration pour éviter toute interruption de service.
         
@@ -698,7 +699,7 @@ ${urgencyText ? `\n${urgencyText}` : ''}
             ${tasksIntro}
             ${taskDetailsHtml}
             <p style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/task-reminder" class="button">Voir mes tâches</a>
+              <a href="${getFrontendUrl()}/tools/task-reminder" class="button">Voir mes tâches</a>
             </p>
             <p>Cordialement,<br>${d.signature}</p>
           </div>
@@ -717,7 +718,7 @@ ${urgencyText ? `\n${urgencyText}` : ''}
         
         ${taskDetailsText}
         
-        Voir mes tâches : ${process.env.FRONTEND_URL || 'http://localhost:5173'}/tools/task-reminder
+        Voir mes tâches : ${getFrontendUrl()}/tools/task-reminder
         
         Cordialement,
         L'équipe DevToolbox
@@ -742,6 +743,39 @@ export function isEmailConfigured(): boolean {
 }
 
 export { loadSmtpConfig };
+
+/**
+ * Envoie un email de réinitialisation de mot de passe
+ */
+export async function sendPasswordResetEmail(
+  email: string,
+  name: string,
+  resetToken: string
+): Promise<boolean> {
+  const resetUrl = `${getFrontendUrl()}/?reset=${encodeURIComponent(resetToken)}`;
+  const d = getEmailDefaults();
+  const from = getFromAddress(d.companyName);
+
+  if (!getEmailProvider()) {
+    return false;
+  }
+
+  return dispatchEmail({
+    to: email,
+    from,
+    subject: `Réinitialisation de votre mot de passe — ${d.companyName}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Réinitialisation du mot de passe</h2>
+        <p>Bonjour <strong>${name}</strong>,</p>
+        <p>Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le lien ci-dessous (valide 1 heure) :</p>
+        <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:${d.primaryColor};color:white;text-decoration:none;border-radius:6px;">Réinitialiser mon mot de passe</a></p>
+        <p style="color:#6b7280;font-size:14px;">Si vous n'avez pas fait cette demande, ignorez cet email.</p>
+      </div>
+    `,
+    text: `Bonjour ${name},\n\nRéinitialisez votre mot de passe : ${resetUrl}\n\nCe lien expire dans 1 heure.`,
+  });
+}
 
 /**
  * Charge les préférences email d'un utilisateur depuis la base
