@@ -1,32 +1,33 @@
-# Configuration Docker Compose pour DevToolbox
-# Frontend : export Markdown (.md, PDF, DOCX)
+# DevToolbox — Docker Compose (Coolify / production)
 #
-# Pour le déploiement sur serveurs distants avec credentials Docker :
-# 1. Configurez les credentials avant de lancer docker-compose :
-#    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-# 2. Ou utilisez un fichier .env avec DOCKER_USERNAME et DOCKER_PASSWORD
-# 3. Voir docker/README-DEPLOY.md pour plus de détails
+# Images GHCR (pré-construites) :
+#   ghcr.io/crollin/devtoolbox-frontend:<tag>
+#   ghcr.io/crollin/devtoolbox-backend:<tag>
+#
+# Variables utiles :
+#   IMAGE_TAG=latest|1.0.0   — tag des images GHCR
+#   JWT_SECRET               — obligatoire (openssl rand -base64 32)
+#   CORS_ORIGIN, FRONTEND_URL — URL publique du frontend
 
 services:
   backend:
+    image: ghcr.io/crollin/devtoolbox-backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: devtoolbox-backend
-    # Pas de ports exposés : l'API est accessible uniquement via le frontend (/api). En local, utiliser docker-compose --env-file .env up et accéder au frontend.
     environment:
-      - NODE_ENV=${NODE_ENV:-production}
-      - PORT=${PORT:-1400}
-      - DB_PATH=${DB_PATH:-/app/data/devtoolbox.db}
-      # JWT obligatoire en production (Coolify affiche une alerte si vide). En local : docker-compose --env-file .env up
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET doit être défini (ex: openssl rand -base64 32)}
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:14001}
-      - SMTP_HOST=${SMTP_HOST:-}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-}
-      - SMTP_PASS=${SMTP_PASS:-}
-      - SMTP_FROM=${SMTP_FROM:-}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:14001}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-1400}
+      DB_PATH: ${DB_PATH:-/app/data/devtoolbox.db}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET doit être défini (ex: openssl rand -base64 32)}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:14001}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:14001}
     volumes:
       - devtoolbox_data:/app/data
     restart: unless-stopped
@@ -38,14 +39,16 @@ services:
       start_period: 40s
 
   frontend:
+    image: ghcr.io/crollin/devtoolbox-frontend:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
     container_name: devtoolbox-frontend
     ports:
-      - "14001:80"
+      - "${FRONTEND_PORT:-14001}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
@@ -57,4 +60,3 @@ services:
 volumes:
   devtoolbox_data:
     driver: local
-

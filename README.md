@@ -40,12 +40,18 @@ La méthode la plus simple pour démarrer DevToolbox est d'utiliser Docker Compo
 git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 
-# Démarrer tous les services (frontend + backend + base de données)
-docker-compose up -d
+# Configurer l'environnement
+cp .env.example .env
+# Éditer .env : JWT_SECRET obligatoire (openssl rand -base64 32)
+
+# Démarrer (build local ou pull GHCR selon IMAGE_TAG)
+docker compose up -d
 
 # Voir les logs
-docker-compose logs -f
+docker compose logs -f
 ```
+
+Images pré-construites : `ghcr.io/crollin/devtoolbox-frontend` et `ghcr.io/crollin/devtoolbox-backend` (voir [DOCKER.md](DOCKER.md)).
 
 L'application sera accessible sur :
 - **Frontend** : http://localhost:14001

@@ -1,0 +1,111 @@
+name: Docker Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag sémantique (ex. v1.0.0)"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: frontend
+            context: .
+            dockerfile: Dockerfile
+          - service: backend
+            context: ./backend
+            dockerfile: Dockerfile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Déterminer le tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW="${{ github.event.inputs.tag }}"
+          else
+            RAW="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${RAW#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "raw=${RAW}" >> "$GITHUB_OUTPUT"
+
+      - name: Connexion GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Métadonnées image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/crollin/devtoolbox-${{ matrix.service }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+
+      - name: Build et push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  release:
+    name: GitHub Release
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Déterminer le tag
+        id: version
+        run: |
+          RAW="${GITHUB_REF#refs/tags/}"
+          VERSION="${RAW#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Créer la release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## Images Docker (GHCR)
+
+            ```bash
+            # Frontend
+            docker pull ghcr.io/crollin/devtoolbox-frontend:${{ steps.version.outputs.version }}
+
+            # Backend
+            docker pull ghcr.io/crollin/devtoolbox-backend:${{ steps.version.outputs.version }}
+            ```
+
+            ## Déploiement Coolify
+
+            Définir `IMAGE_TAG=${{ steps.version.outputs.version }}` dans les variables d'environnement.

@@ -239,19 +239,36 @@ Pour développer avec Docker en mode watch :
 3. **Backup** : Automatisez les sauvegardes de la base de données
 4. **Monitoring** : Ajoutez des outils de monitoring (Prometheus, Grafana)
 
-### Déploiement
+### Images GHCR (recommandé en production)
+
+Les images Docker sont publiées sur GitHub Container Registry à chaque release :
+
+| Service | Image |
+|---------|-------|
+| Frontend | `ghcr.io/crollin/devtoolbox-frontend:<tag>` |
+| Backend | `ghcr.io/crollin/devtoolbox-backend:<tag>` |
 
 ```bash
-# Build des images
-docker-compose build
+# Tirer une version précise
+docker pull ghcr.io/crollin/devtoolbox-frontend:1.0.0
+docker pull ghcr.io/crollin/devtoolbox-backend:1.0.0
 
-# Tag et push vers un registry (optionnel)
-docker tag devtoolbox-frontend:latest registry.example.com/devtoolbox-frontend:latest
-docker push registry.example.com/devtoolbox-frontend:latest
+# Démarrer avec le compose (IMAGE_TAG=1.0.0 dans .env)
+IMAGE_TAG=1.0.0 docker compose up -d
+```
 
-# Déployer sur le serveur
-docker-compose pull
-docker-compose up -d
+**Publier une nouvelle version** : créer un tag Git `vX.Y.Z` — le workflow `.github/workflows/docker-release.yml` build, push sur GHCR et crée la release GitHub.
+
+Rendre les packages publics (une fois) : GitHub → Packages → devtoolbox-frontend → Package settings → Change visibility.
+
+### Déploiement local ou build à la volée
+
+```bash
+# Build des images localement
+docker compose build
+
+# Démarrer
+docker compose up -d
 ```
 
 ### Déploiement Coolify
@@ -278,7 +295,8 @@ DevToolbox peut être déployé sur [Coolify](https://coolify.io) en utilisant l
    Dans l’onglet **Environment** de la ressource, définir au minimum :
    - **JWT_SECRET** (obligatoire) : par ex. `openssl rand -base64 32`
    - **CORS_ORIGIN** : URL publique du frontend (ex. `https://devtoolbox.example.com`)
-   - **FRONTEND_URL** : même URL (pour les liens dans les e-mails)  
+   - **FRONTEND_URL** : même URL (pour les liens dans les e-mails)
+   - **IMAGE_TAG** : version GHCR à déployer (ex. `1.0.0` ou `latest`)  
    Optionnel : SMTP_*, PORT, DB_PATH. Pour **NODE_ENV** : si définie, la configurer en « Runtime only » (pas à la build) pour éviter les échecs de build.
 
 
@@ -291,20 +309,6 @@ DevToolbox peut être déployé sur [Coolify](https://coolify.io) en utilisant l
 **Astuce** : Avec un domaine géré par Coolify, vous pouvez utiliser les [variables magiques](https://coolify.io/docs/knowledge-base/docker/compose#coolifys-magic-environment-variables) (ex. `SERVICE_URL_FRONTEND`) pour `FRONTEND_URL` et `CORS_ORIGIN` afin d’éviter de ressaisir l’URL.
 
 ## Dépannage
-
-### Conflits lors d'un git pull
-
-Si `git pull` échoue avec des messages du type « Your local changes would be overwritten » ou « untracked working tree files would be overwritten » (fichiers comme `README.md`, `docker/README-DEPLOY.md`, `scripts/docker-build.sh`, `docker/SETUP-REMOTE.md`, `scripts/setup-docker-remote.sh`) :
-
-```bash
-# Option 1 : script dédié (stash des modifs, sauvegarde des non suivis, pull, stash pop)
-./scripts/fix-pull-conflicts.sh
-
-# Option 2 : mise à jour complète (inclut la gestion des fichiers non suivis)
-./scripts/git-update.sh
-```
-
-Les fichiers non suivis éventuellement écrasés sont sauvegardés dans un dossier `.backup-pull-*` ou `.backup-untracked-*`. Comparez avec les versions du dépôt puis supprimez le dossier de backup si tout est correct.
 
 ### Le backend ne démarre pas
 
