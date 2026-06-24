@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Bell, Palette } from "lucide-react";
+import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
+import {
+  NotificationChannel,
+  getNotificationChannelsFromConfig,
+} from "@/types/licence";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,15 +38,30 @@ interface SmtpConfig {
 }
 
 interface NtfyConfig {
+  enabled?: boolean;
   serverUrl: string;
   topic: string;
   token: string;
-  notificationType: "ntfy" | "email" | "both";
+  notificationType?: "ntfy" | "email" | "both" | "telegram";
+  notificationChannels?: NotificationChannel[];
+  telegramChatId?: string;
   autoRemindersEnabled: boolean;
   taskAutoRemindersEnabled?: boolean;
   reminderFrequency: "daily" | "weekly";
   emailConfigured?: boolean;
+  telegramConfigured?: boolean;
 }
+
+const CHANNEL_OPTIONS: Array<{
+  id: NotificationChannel;
+  label: string;
+  description: string;
+  icon: typeof Bell;
+}> = [
+  { id: "ntfy", label: "Ntfy", description: "Notifications push via ntfy.sh", icon: Bell },
+  { id: "email", label: "Email", description: "Notifications sur l'adresse de votre compte", icon: Mail },
+  { id: "telegram", label: "Telegram", description: "Messages via votre bot Telegram", icon: MessageCircle },
+];
 
 interface EmailPreferences {
   companyName: string;
@@ -80,15 +99,29 @@ const Account = () => {
     serverUrl: "https://ntfy.sh",
     topic: "",
     token: "",
-    notificationType: "ntfy",
+    notificationChannels: ["ntfy"],
     autoRemindersEnabled: false,
     taskAutoRemindersEnabled: false,
     reminderFrequency: "daily",
   });
+  const [notificationChannels, setNotificationChannels] = useState<NotificationChannel[]>(["ntfy"]);
+  const [telegramChatId, setTelegramChatId] = useState("");
   const [ntfyLoading, setNtfyLoading] = useState(false);
   const [ntfySaving, setNtfySaving] = useState(false);
   const [ntfyTesting, setNtfyTesting] = useState(false);
-  const [ntfyTestResult, setNtfyTestResult] = useState<{ ntfy?: boolean; email?: boolean } | null>(null);
+  const [ntfyTestResult, setNtfyTestResult] = useState<{ ntfy?: boolean; email?: boolean; telegram?: boolean } | null>(null);
+
+  const hasNtfy = notificationChannels.includes("ntfy");
+  const hasEmail = notificationChannels.includes("email");
+  const hasTelegram = notificationChannels.includes("telegram");
+
+  const toggleChannel = (channel: NotificationChannel) => {
+    setNotificationChannels((current) =>
+      current.includes(channel)
+        ? current.filter((item) => item !== channel)
+        : [...current, channel]
+    );
+  };
 
   const [emailPrefs, setEmailPrefs] = useState<EmailPreferences>({
     companyName: "",
@@ -126,23 +159,31 @@ const Account = () => {
     setNtfyLoading(true);
     try {
       const data = await api.get<NtfyConfig>("/account/ntfy-config");
+      const channels = getNotificationChannelsFromConfig(data);
+      setNotificationChannels(channels.length > 0 ? channels : ["ntfy"]);
+      setTelegramChatId(data.telegramChatId || "");
       setNtfyConfig({
         serverUrl: data.serverUrl || "https://ntfy.sh",
         topic: data.topic || "",
         token: data.token || "",
-        notificationType: (data.notificationType as "ntfy" | "email" | "both") || "ntfy",
+        notificationChannels: channels,
+        telegramChatId: data.telegramChatId,
         autoRemindersEnabled: data.autoRemindersEnabled ?? false,
         taskAutoRemindersEnabled: data.taskAutoRemindersEnabled ?? false,
         reminderFrequency: (data.reminderFrequency as "daily" | "weekly") || "daily",
         emailConfigured: data.emailConfigured,
+        telegramConfigured: data.telegramConfigured,
       });
     } catch {
+      setNotificationChannels(["ntfy"]);
+      setTelegramChatId("");
       setNtfyConfig({
         serverUrl: "https://ntfy.sh",
         topic: "",
         token: "",
-        notificationType: "ntfy",
+        notificationChannels: ["ntfy"],
         autoRemindersEnabled: false,
+        taskAutoRemindersEnabled: false,
         reminderFrequency: "daily",
       });
     } finally {
@@ -242,10 +283,39 @@ const Account = () => {
     }
   };
 
+  const validateNotificationConfig = (): string | null => {
+    if (notificationChannels.length === 0) {
+      return "Sélectionnez au moins un canal de notification.";
+    }
+    if (hasNtfy && !ntfyConfig.topic.trim()) {
+      return "Veuillez configurer un topic ntfy.";
+    }
+    if (hasTelegram && !telegramChatId.trim()) {
+      return "Veuillez renseigner votre Chat ID Telegram.";
+    }
+    if (hasEmail && !ntfyConfig.emailConfigured) {
+      return "Le service email n'est pas configuré sur le serveur.";
+    }
+    if (hasTelegram && !ntfyConfig.telegramConfigured) {
+      return "Le bot Telegram n'est pas configuré sur le serveur.";
+    }
+    return null;
+  };
+
   const handleNtfySave = async () => {
+    const validationError = validateNotificationConfig();
+    if (validationError) {
+      toast({ title: "Configuration incomplète", description: validationError, variant: "destructive" });
+      return;
+    }
     setNtfySaving(true);
     try {
-      await api.put("/account/ntfy-config", ntfyConfig);
+      await api.put("/account/ntfy-config", {
+        ...ntfyConfig,
+        enabled: notificationChannels.length > 0,
+        notificationChannels,
+        telegramChatId: telegramChatId || undefined,
+      });
       toast({ title: "Configuration enregistrée", description: "Les paramètres de notifications ont été mis à jour." });
       loadNtfyConfig();
     } catch (err) {
@@ -256,14 +326,20 @@ const Account = () => {
   };
 
   const handleNtfyTest = async () => {
+    const validationError = validateNotificationConfig();
+    if (validationError) {
+      toast({ title: "Configuration incomplète", description: validationError, variant: "destructive" });
+      return;
+    }
     setNtfyTesting(true);
     setNtfyTestResult(null);
     try {
-      const res = await api.post<{ results?: { ntfy?: boolean; email?: boolean } }>("/account/ntfy-config/test", {
-        notificationType: ntfyConfig.notificationType,
+      const res = await api.post<{ results?: { ntfy?: boolean; email?: boolean; telegram?: boolean } }>("/account/ntfy-config/test", {
+        notificationChannels,
         serverUrl: ntfyConfig.serverUrl,
         topic: ntfyConfig.topic,
         token: ntfyConfig.token || undefined,
+        telegramChatId: telegramChatId || undefined,
       });
       setNtfyTestResult(res.results ?? null);
       const msgs: string[] = [];
@@ -271,6 +347,8 @@ const Account = () => {
       else if (res.results?.ntfy === false) msgs.push("❌ Ntfy échoué");
       if (res.results?.email === true) msgs.push("✅ Email réussi");
       else if (res.results?.email === false) msgs.push("❌ Email échoué");
+      if (res.results?.telegram === true) msgs.push("✅ Telegram réussi");
+      else if (res.results?.telegram === false) msgs.push("❌ Telegram échoué");
       if (msgs.length) toast({ title: "Test effectué", description: msgs.join(", ") });
     } catch (err) {
       toast({ title: "Erreur de test", description: err instanceof Error ? err.message : "Impossible de tester.", variant: "destructive" });
@@ -412,8 +490,10 @@ const Account = () => {
           <TabsContent value="ntfy">
             <Card>
               <CardHeader>
-                <CardTitle>Notifications (ntfy)</CardTitle>
-                <CardDescription>Recevez des notifications push (licences et rappels de tâches) via ntfy.</CardDescription>
+                <CardTitle>Notifications</CardTitle>
+                <CardDescription>
+                  Canaux pour les rappels de licences et de tâches : Ntfy, email ou Telegram.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {ntfyLoading ? (
@@ -421,18 +501,46 @@ const Account = () => {
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <Label>Type de notification</Label>
-                      <div className="flex gap-4">
-                        {(["ntfy", "email", "both"] as const).map((t) => (
-                          <label key={t} className="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="ntfyType" checked={ntfyConfig.notificationType === t} onChange={() => setNtfyConfig((c) => ({ ...c, notificationType: t }))} />
-                            <span>{t === "ntfy" ? "Ntfy" : t === "email" ? "Email" : "Ntfy et Email"}</span>
+                      <Label>Canaux de communication</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Activez un ou plusieurs canaux selon vos préférences.
+                      </p>
+                      <div className="space-y-2">
+                        {CHANNEL_OPTIONS.map(({ id, label, description, icon: Icon }) => (
+                          <label
+                            key={id}
+                            className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={notificationChannels.includes(id)}
+                              onChange={() => toggleChannel(id)}
+                              className="mt-1 w-4 h-4"
+                            />
+                            <Icon className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-sm">{label}</span>
+                                {id === "email" && !ntfyConfig.emailConfigured && (
+                                  <span className="text-xs text-amber-500">(email non configuré)</span>
+                                )}
+                                {id === "telegram" && !ntfyConfig.telegramConfigured && (
+                                  <span className="text-xs text-amber-500">(bot Telegram non configuré)</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">{description}</p>
+                            </div>
                           </label>
                         ))}
                       </div>
                     </div>
-                    {(ntfyConfig.notificationType === "ntfy" || ntfyConfig.notificationType === "both") && (
-                      <>
+
+                    {hasNtfy && (
+                      <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <Bell className="w-4 h-4" />
+                          Configuration Ntfy
+                        </h3>
                         <div className="space-y-2">
                           <Label>URL du serveur ntfy</Label>
                           <Input value={ntfyConfig.serverUrl} onChange={(e) => setNtfyConfig((c) => ({ ...c, serverUrl: e.target.value }))} placeholder="https://ntfy.sh" />
@@ -445,8 +553,58 @@ const Account = () => {
                           <Label>Token (optionnel)</Label>
                           <Input type="password" value={ntfyConfig.token} onChange={(e) => setNtfyConfig((c) => ({ ...c, token: e.target.value }))} placeholder="tk_..." />
                         </div>
-                      </>
+                      </div>
                     )}
+
+                    {hasEmail && (
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                        <h3 className="text-sm font-semibold flex items-center gap-2 mb-2">
+                          <Mail className="w-4 h-4" />
+                          Configuration Email
+                        </h3>
+                        {ntfyConfig.emailConfigured ? (
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            Service email configuré — notifications envoyées à {user?.email}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-amber-500">
+                            Configurez SMTP/Resend dans l'onglet SMTP ou via les variables d'environnement du serveur.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {hasTelegram && (
+                      <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4" />
+                          Configuration Telegram
+                        </h3>
+                        {ntfyConfig.telegramConfigured ? (
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            Bot Telegram configuré sur le serveur
+                          </p>
+                        ) : (
+                          <p className="text-sm text-amber-500">
+                            Ajoutez TELEGRAM_BOT_TOKEN dans les variables d'environnement du backend.
+                          </p>
+                        )}
+                        <div className="space-y-2">
+                          <Label>Chat ID *</Label>
+                          <Input
+                            value={telegramChatId}
+                            onChange={(e) => setTelegramChatId(e.target.value)}
+                            placeholder="123456789"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Obtenez votre Chat ID via @userinfobot sur Telegram.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={ntfyConfig.autoRemindersEnabled} onChange={(e) => setNtfyConfig((c) => ({ ...c, autoRemindersEnabled: e.target.checked }))} />
@@ -472,9 +630,10 @@ const Account = () => {
                       </div>
                     )}
                     {ntfyTestResult && (
-                      <div className="p-3 rounded-lg bg-muted text-sm">
+                      <div className="p-3 rounded-lg bg-muted text-sm space-y-1">
                         {ntfyTestResult.ntfy !== undefined && <p>Ntfy: {ntfyTestResult.ntfy ? "✅" : "❌"}</p>}
                         {ntfyTestResult.email !== undefined && <p>Email: {ntfyTestResult.email ? "✅" : "❌"}</p>}
+                        {ntfyTestResult.telegram !== undefined && <p>Telegram: {ntfyTestResult.telegram ? "✅" : "❌"}</p>}
                       </div>
                     )}
                     <div className="flex gap-2">
