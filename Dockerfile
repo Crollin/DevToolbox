@@ -4,15 +4,16 @@ FROM node:20-alpine AS builder
 LABEL maintainer="DevToolbox"
 LABEL description="DevToolbox Frontend - Build Stage"
 
+# Garantit les devDependencies meme si Coolify injecte NODE_ENV=production au build
+ENV NODE_ENV=development
+
 WORKDIR /app
 
 # Copier tous les fichiers de configuration en une fois pour optimiser le cache
 COPY package*.json vite.config.ts tsconfig*.json tailwind.config.ts postcss.config.js components.json ./
 
 # Installer les dépendances (inclut devDependencies pour Vite/TypeScript)
-# Coolify injecte NODE_ENV=production à la build → npm omet les devDependencies
-# NODE_ENV=development forcé pour garantir l'installation de Vite/TypeScript
-RUN NODE_ENV=development npm ci --include=dev 2>/dev/null || NODE_ENV=development npm install --include=dev
+RUN npm ci --include=dev 2>/dev/null || npm install --include=dev
 
 # Copier le code source
 COPY src ./src

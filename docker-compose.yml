@@ -1,16 +1,16 @@
 # DevToolbox - Docker Compose (Coolify / production)
 #
-# Deploiement via images GHCR pre-construites (pas de build sur le serveur).
-# Local avec build : docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+# Coolify : build sur le serveur (images GHCR privees) ou pull si registry configure.
+# Local build explicite : docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 #
-# Variables Coolify (Runtime only) :
-#   IMAGE_TAG=1.0.0
-#   JWT_SECRET, CORS_ORIGIN, FRONTEND_URL
+# Variables Coolify (Runtime only) : JWT_SECRET, CORS_ORIGIN, FRONTEND_URL, IMAGE_TAG
 
 services:
   backend:
     image: ghcr.io/crollin/devtoolbox-backend:${IMAGE_TAG:-1.0.0}
-    pull_policy: always
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-1400}
@@ -35,7 +35,9 @@ services:
 
   frontend:
     image: ghcr.io/crollin/devtoolbox-frontend:${IMAGE_TAG:-1.0.0}
-    pull_policy: always
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "${FRONTEND_PORT:-14001}:80"
     depends_on:

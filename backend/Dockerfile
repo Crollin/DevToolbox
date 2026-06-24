@@ -4,15 +4,16 @@ FROM node:20-alpine AS builder
 LABEL maintainer="DevToolbox"
 LABEL description="DevToolbox Backend - Build Stage"
 
+# Garantit les devDependencies meme si Coolify injecte NODE_ENV=production au build
+ENV NODE_ENV=development
+
 WORKDIR /app
 
 # Copier les fichiers de configuration pour optimiser le cache
 COPY package*.json tsconfig.json ./
 
 # Installer les dépendances (inclut devDependencies pour tsc/TypeScript)
-# Coolify injecte NODE_ENV=production à la build → npm omet les devDependencies
-# NODE_ENV=development forcé pour garantir l'installation de TypeScript
-RUN NODE_ENV=development npm ci --include=dev 2>/dev/null || NODE_ENV=development npm install --include=dev
+RUN npm ci --include=dev 2>/dev/null || npm install --include=dev
 
 # Copier le code source
 COPY src ./src
