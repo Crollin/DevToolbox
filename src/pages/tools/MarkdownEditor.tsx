@@ -1,6 +1,4 @@
-import { useState, useCallback, useRef, DragEvent } from "react";
-import { marked } from "marked";
-import html2pdf from "html2pdf.js";
+import { useState, useCallback, useRef, useMemo, DragEvent } from "react";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -43,9 +41,11 @@ import {
   File,
   FileText,
   FileType,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { markdownToSafeHtml, PDF_PROSE_CLASS, PREVIEW_PROSE_CLASS } from "@/lib/markdown";
 
 // DOCX processor (Markdown → .docx), created once
 const docxProcessor = unified()
@@ -55,6 +55,54 @@ const docxProcessor = unified()
 
 // Supported text file extensions
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".text", ".log", ".csv", ".json", ".xml", ".html", ".htm", ".css", ".js", ".ts", ".jsx", ".tsx", ".py", ".php", ".sql", ".sh", ".bash", ".yaml", ".yml", ".ini", ".conf", ".env"];
+
+type ToolbarButton =
+  | { separator: true }
+  | { icon: LucideIcon; action: () => void; title: string };
+
+function waitForPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+function MarkdownToolbar({ buttons }: { buttons: ToolbarButton[] }) {
+  return (
+    <div className="flex flex-wrap gap-1 p-2 bg-muted/30 rounded-t-lg border border-b-0 border-border/50">
+      {buttons.map((btn, index) =>
+        btn.separator ? (
+          <div key={index} className="w-px h-6 bg-border mx-1" />
+        ) : (
+          <Button
+            key={index}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={btn.action}
+            title={btn.title}
+          >
+            <btn.icon className="w-4 h-4" />
+          </Button>
+        )
+      )}
+    </div>
+  );
+}
+
+function MarkdownPreview({
+  html,
+  className,
+}: {
+  html: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(PREVIEW_PROSE_CLASS, className)}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
 
 const MarkdownEditor = () => {
   const tool = tools.find((t) => t.id === "markdown-editor")!;
@@ -86,6 +134,17 @@ Bonne édition !
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mobileTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const desktopTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const previewHtml = useMemo(() => markdownToSafeHtml(content), [content]);
+
+  const getActiveTextarea = useCallback((): HTMLTextAreaElement | null => {
+    if (window.matchMedia("(min-width: 1024px)").matches) {
+      return desktopTextareaRef.current;
+    }
+    return mobileTextareaRef.current;
+  }, []);
 
   // Check if file is a text file
   const isTextFile = (file: File): boolean => {
@@ -216,7 +275,7 @@ Bonne édition !
 
   // Insert text at cursor position
   const insertText = useCallback((before: string, after: string = "", placeholder: string = "") => {
-    const textarea = document.getElementById("markdown-textarea") as HTMLTextAreaElement;
+    const textarea = getActiveTextarea();
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -232,11 +291,11 @@ Bonne édition !
       const newCursorPos = start + before.length + selectedText.length;
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
-  }, [content]);
+  }, [content, getActiveTextarea]);
 
   // Insert at line start
   const insertAtLineStart = useCallback((prefix: string) => {
-    const textarea = document.getElementById("markdown-textarea") as HTMLTextAreaElement;
+    const textarea = getActiveTextarea();
     if (!textarea) return;
 
     const start = textarea.selectionStart;
@@ -249,9 +308,9 @@ Bonne édition !
       textarea.focus();
       textarea.setSelectionRange(start + prefix.length, start + prefix.length);
     }, 0);
-  }, [content]);
+  }, [content, getActiveTextarea]);
 
-  const toolbarButtons = [
+  const toolbarButtons: ToolbarButton[] = [
     { icon: Bold, action: () => insertText("**", "**", "texte gras"), title: "Gras" },
     { icon: Italic, action: () => insertText("*", "*", "texte italique"), title: "Italique" },
     { icon: Strikethrough, action: () => insertText("~~", "~~", "texte barré"), title: "Barré" },
@@ -288,38 +347,45 @@ Bonne édition !
     const toastId = toast.loading("Génération du PDF en cours...");
     let container: HTMLDivElement | null = null;
     try {
+      const { default: html2pdf } = await import("html2pdf.js");
+
       container = document.createElement("div");
       container.style.position = "fixed";
-      container.style.left = "-9999px";
       container.style.top = "0";
+      container.style.left = "0";
+      container.style.opacity = "0";
+      container.style.pointerEvents = "none";
+      container.style.zIndex = "-1";
       container.style.width = "210mm";
       container.style.padding = "20px";
-      container.style.background = "white";
+      container.style.background = "#ffffff";
       container.style.color = "#1a1a1a";
-      container.className = cn(
-        "prose prose-sm max-w-none",
-        "prose-headings:text-foreground prose-p:text-foreground/90",
-        "prose-a:text-primary prose-strong:text-foreground",
-        "prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:rounded",
-        "prose-pre:bg-muted prose-pre:border prose-pre:border-border/50",
-        "prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground",
-        "prose-hr:border-border"
-      );
-      container.innerHTML = getHtmlContent();
+      container.className = PDF_PROSE_CLASS;
+      container.innerHTML = previewHtml;
       document.body.appendChild(container);
+      await waitForPaint();
+
       await html2pdf()
         .set({
           filename: `${fileName || "document"}.pdf`,
           margin: 10,
           image: { type: "jpeg", quality: 0.95 },
-          html2canvas: { scale: 2 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            logging: false,
+          },
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          pagebreak: { mode: ["css", "legacy"], avoid: ["table", "pre", "img"] },
         })
         .from(container)
         .save();
+
       toast.success("PDF exporté avec succès", { id: toastId });
     } catch (error) {
-      toast.error("Échec de l'export PDF. Document peut-être trop long.", { id: toastId });
+      console.error("PDF export failed:", error);
+      toast.error("Échec de l'export PDF. Réessayez ou réduisez la taille du document.", { id: toastId });
     } finally {
       if (container?.parentNode) {
         container.parentNode.removeChild(container);
@@ -352,10 +418,6 @@ Bonne édition !
   const handleClear = () => {
     setContent("");
     toast.success("Contenu effacé");
-  };
-
-  const getHtmlContent = () => {
-    return marked(content, { breaks: true, gfm: true }) as string;
   };
 
   return (
@@ -451,27 +513,9 @@ Bonne édition !
             </TabsList>
 
             <TabsContent value="edit" className="mt-4">
-              {/* Toolbar */}
-              <div className="flex flex-wrap gap-1 p-2 bg-muted/30 rounded-t-lg border border-b-0 border-border/50">
-                {toolbarButtons.map((btn, index) =>
-                  btn.separator ? (
-                    <div key={index} className="w-px h-6 bg-border mx-1" />
-                  ) : (
-                    <Button
-                      key={index}
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={btn.action}
-                      title={btn.title}
-                    >
-                      <btn.icon className="w-4 h-4" />
-                    </Button>
-                  )
-                )}
-              </div>
+              <MarkdownToolbar buttons={toolbarButtons} />
               <Textarea
-                id="markdown-textarea"
+                ref={mobileTextareaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-[400px] font-mono text-sm rounded-t-none resize-none"
@@ -480,9 +524,9 @@ Bonne édition !
             </TabsContent>
 
             <TabsContent value="preview" className="mt-4">
-              <div
-                className="prose prose-invert max-w-none p-4 bg-muted/20 rounded-lg border border-border/50 min-h-[400px]"
-                dangerouslySetInnerHTML={{ __html: getHtmlContent() }}
+              <MarkdownPreview
+                html={previewHtml}
+                className="p-4 bg-muted/20 rounded-lg border border-border/50 min-h-[400px]"
               />
             </TabsContent>
           </Tabs>
@@ -490,28 +534,10 @@ Bonne édition !
 
         {/* Desktop Split View */}
         <div className="hidden lg:grid lg:grid-cols-2 gap-4">
-          {/* Editor */}
           <div>
-            <div className="flex flex-wrap gap-1 p-2 bg-muted/30 rounded-t-lg border border-b-0 border-border/50">
-              {toolbarButtons.map((btn, index) =>
-                btn.separator ? (
-                  <div key={index} className="w-px h-6 bg-border mx-1" />
-                ) : (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={btn.action}
-                    title={btn.title}
-                  >
-                    <btn.icon className="w-4 h-4" />
-                  </Button>
-                )
-              )}
-            </div>
+            <MarkdownToolbar buttons={toolbarButtons} />
             <Textarea
-              id="markdown-textarea"
+              ref={desktopTextareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[500px] font-mono text-sm rounded-t-none resize-none"
@@ -519,23 +545,14 @@ Bonne édition !
             />
           </div>
 
-          {/* Preview */}
           <div>
             <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-t-lg border border-b-0 border-border/50 h-[44px]">
               <Eye className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Aperçu</span>
             </div>
-            <div
-              className={cn(
-                "prose prose-invert max-w-none p-4 bg-muted/20 rounded-b-lg border border-border/50 min-h-[500px] overflow-auto",
-                "prose-headings:text-foreground prose-p:text-foreground/90",
-                "prose-a:text-primary prose-strong:text-foreground",
-                "prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:rounded",
-                "prose-pre:bg-muted prose-pre:border prose-pre:border-border/50",
-                "prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground",
-                "prose-hr:border-border"
-              )}
-              dangerouslySetInnerHTML={{ __html: getHtmlContent() }}
+            <MarkdownPreview
+              html={previewHtml}
+              className="p-4 bg-muted/20 rounded-b-lg border border-border/50 min-h-[500px] overflow-auto"
             />
           </div>
         </div>

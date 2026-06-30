@@ -166,7 +166,7 @@ export const tools: Tool[] = [
   {
     id: "markdown-editor",
     name: "Markdown Editor",
-    description: "Éditeur Markdown WYSIWYG avec prévisualisation temps réel et export.",
+    description: "Éditeur Markdown avec aperçu temps réel et export.",
     category: "utilitaires",
     icon: "FileText",
     url: "#",
