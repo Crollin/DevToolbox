@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { markdownToSafeHtml, PDF_PROSE_CLASS, PREVIEW_PROSE_CLASS } from "@/lib/markdown";
+import { markdownToSafeHtml, buildPdfHtml, PREVIEW_PROSE_CLASS } from "@/lib/markdown";
 
 // DOCX processor (Markdown → .docx), created once
 const docxProcessor = unified()
@@ -59,12 +59,6 @@ const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".text", ".log", ".csv", ".
 type ToolbarButton =
   | { separator: true }
   | { icon: LucideIcon; action: () => void; title: string };
-
-function waitForPaint(): Promise<void> {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-  });
-}
 
 function MarkdownToolbar({ buttons }: { buttons: ToolbarButton[] }) {
   return (
@@ -345,25 +339,8 @@ Bonne édition !
 
   const handleExportPdf = async () => {
     const toastId = toast.loading("Génération du PDF en cours...");
-    let container: HTMLDivElement | null = null;
     try {
       const { default: html2pdf } = await import("html2pdf.js");
-
-      container = document.createElement("div");
-      container.style.position = "fixed";
-      container.style.top = "0";
-      container.style.left = "0";
-      container.style.opacity = "0";
-      container.style.pointerEvents = "none";
-      container.style.zIndex = "-1";
-      container.style.width = "210mm";
-      container.style.padding = "20px";
-      container.style.background = "#ffffff";
-      container.style.color = "#1a1a1a";
-      container.className = PDF_PROSE_CLASS;
-      container.innerHTML = previewHtml;
-      document.body.appendChild(container);
-      await waitForPaint();
 
       await html2pdf()
         .set({
@@ -379,17 +356,13 @@ Bonne édition !
           jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
           pagebreak: { mode: ["css", "legacy"], avoid: ["table", "pre", "img"] },
         })
-        .from(container)
+        .from(buildPdfHtml(previewHtml), "string")
         .save();
 
       toast.success("PDF exporté avec succès", { id: toastId });
     } catch (error) {
       console.error("PDF export failed:", error);
       toast.error("Échec de l'export PDF. Réessayez ou réduisez la taille du document.", { id: toastId });
-    } finally {
-      if (container?.parentNode) {
-        container.parentNode.removeChild(container);
-      }
     }
   };
 
