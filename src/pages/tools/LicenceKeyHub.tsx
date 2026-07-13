@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Key, Plus, Search, Bell, Filter } from "lucide-react";
+import { Key, Plus, Search, Bell, Filter, ShieldCheck, Clock3, Layers3 } from "lucide-react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { useLicences } from "@/hooks/useLicences";
@@ -35,6 +35,9 @@ const LicenceKeyHub = () => {
     });
   }, [licences]);
 
+  const activeLicences = licences.filter((licence) => getLicenceStatus(licence) !== "expired").length;
+  const lifetimeLicences = licences.filter((licence) => licence.isLifetime).length;
+
   const handleSave = (licenceData: Omit<Licence, "id" | "createdAt">) => {
     if (editingLicence) {
       updateLicence(editingLicence.id, licenceData);
@@ -56,14 +59,13 @@ const LicenceKeyHub = () => {
 
   return (
     <ToolLayout tool={tool}>
-      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <div className="tool-workspace max-w-5xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Gestionnaire de Licences</h2>
-            <p className="text-muted-foreground text-sm">
-              {licences.length} licence{licences.length !== 1 ? "s" : ""} enregistrée{licences.length !== 1 ? "s" : ""}
-            </p>
+            <p className="tool-kicker"><Key className="w-3.5 h-3.5" /> Coffre de projets</p>
+            <h2 className="text-2xl font-bold text-foreground mb-1">Vos licences, prêtes à l’emploi</h2>
+            <p className="text-muted-foreground text-sm">Un accès rapide aux clés, sièges et renouvellements de votre stack.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -86,6 +88,12 @@ const LicenceKeyHub = () => {
               <span className="hidden sm:inline">Ajouter</span>
             </button>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="insight-card"><ShieldCheck className="insight-icon text-emerald-400" /><div><strong>{activeLicences}</strong><span>actives</span></div></div>
+          <div className="insight-card"><Clock3 className="insight-icon text-accent" /><div><strong>{licencesToRenew.length}</strong><span>à surveiller</span></div></div>
+          <div className="insight-card"><Layers3 className="insight-icon text-primary" /><div><strong>{lifetimeLicences}</strong><span>à vie</span></div></div>
         </div>
 
         {/* Search & Filters */}

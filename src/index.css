@@ -122,6 +122,8 @@
     background-size: 24px 24px;
   }
 
+  button, input, select, textarea { font-family: inherit; }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
     letter-spacing: -0.04em;
@@ -168,6 +170,29 @@
 }
 
 @layer components {
+  .tool-workspace {
+    position: relative;
+  }
+
+  .tool-kicker {
+    @apply inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.16em] text-primary;
+  }
+
+  .insight-card {
+    @apply flex items-center gap-3 rounded-xl border border-border/80 bg-card/80 px-4 py-3;
+    box-shadow: var(--shadow-card);
+  }
+
+  .insight-card strong {
+    @apply block text-xl font-semibold leading-none text-foreground;
+  }
+
+  .insight-card span {
+    @apply mt-1 block text-[11px] uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  .insight-icon { @apply h-5 w-5 shrink-0; }
+
   .tool-card {
     @apply relative overflow-hidden rounded-md bg-card border border-border/80 p-5 transition-all duration-200;
     box-shadow: var(--shadow-card);
