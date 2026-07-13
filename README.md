@@ -232,6 +232,7 @@ Une extension Raycast locale permet de rechercher, copier, créer, modifier, sup
 
 - Extension non publiée dans le Raycast Store
 - Authentification par Personal Access Token dédié et révocable
+- Création et révocation des tokens directement depuis **Mon compte → Raycast**
 - Installation et configuration : [Guide d'installation Raycast](raycast/README.md)
 
 ## Commandes utiles

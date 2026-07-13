@@ -11,6 +11,7 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 - Extension Raycast privée pour rechercher et gérer les licences DevToolbox
 - Personal Access Tokens `dt_...` hashés, révocables et limités au scope `licences`
 - Endpoints de création, liste et révocation des tokens privés
+- Gestion des tokens Raycast depuis les paramètres **Mon compte → Raycast**
 - Guide d'installation de l'extension Raycast
 
 ### Modifié
