@@ -253,8 +253,8 @@ Les images Docker sont publiées sur GitHub Container Registry à chaque release
 docker pull ghcr.io/crollin/devtoolbox-frontend:1.0.0
 docker pull ghcr.io/crollin/devtoolbox-backend:1.0.0
 
-# Démarrer avec le compose (IMAGE_TAG=1.0.0 dans .env)
-IMAGE_TAG=1.0.0 docker compose up -d
+# Démarrer avec le compose (latest par défaut, ou une version précise)
+IMAGE_TAG=latest docker compose up -d
 ```
 
 **Publier une nouvelle version** : créer un tag Git `vX.Y.Z` — le workflow `.github/workflows/docker-release.yml` build, push sur GHCR et crée la release GitHub.
@@ -293,7 +293,7 @@ Coolify **ne doit pas recompiler** l'application sur le serveur (risque OOM / ti
 
    | Variable | Exemple | Buildtime |
    |----------|---------|-----------|
-   | `IMAGE_TAG` | `1.0.0` | Non |
+   | `IMAGE_TAG` | `latest` | Non |
    | `JWT_SECRET` | `openssl rand -base64 32` | Non |
    | `CORS_ORIGIN` | `https://devtoolbox.example.com` | Non |
    | `FRONTEND_URL` | idem | Non |
@@ -408,4 +408,3 @@ Pour toute question ou problème :
 1. Vérifiez les logs : `docker-compose logs`
 2. Consultez la documentation du projet
 3. Ouvrez une issue sur le dépôt GitHub
-

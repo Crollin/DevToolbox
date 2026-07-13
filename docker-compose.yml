@@ -7,7 +7,7 @@
 
 services:
   backend:
-    image: ghcr.io/crollin/devtoolbox-backend:${IMAGE_TAG:-1.0.0}
+    image: ghcr.io/crollin/devtoolbox-backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -38,7 +38,7 @@ services:
       start_period: 40s
 
   frontend:
-    image: ghcr.io/crollin/devtoolbox-frontend:${IMAGE_TAG:-1.0.0}
+    image: ghcr.io/crollin/devtoolbox-frontend:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
