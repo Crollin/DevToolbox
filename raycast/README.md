@@ -13,6 +13,18 @@ Cette extension est privée et destinée à un usage personnel. Elle n'est pas p
 
 Le token permet à Raycast d'accéder uniquement aux licences. Il est affiché une seule fois lors de sa création.
 
+### Méthode recommandée : depuis DevToolbox
+
+1. Ouvrez **Mon compte** dans DevToolbox.
+2. Ouvrez l'onglet **Raycast**.
+3. Saisissez un nom, par exemple `Raycast`, puis choisissez éventuellement une date d'expiration.
+4. Cliquez sur **Créer le token**.
+5. Copiez immédiatement le token affiché.
+
+La page permet également de consulter les tokens existants et de les révoquer sans utiliser le terminal.
+
+### Méthode alternative : via l'API
+
 Depuis un terminal, connectez-vous d'abord pour obtenir un JWT de session :
 
 ```bash

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2, Copy, KeyRound, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import {
@@ -74,6 +74,15 @@ interface EmailPreferences {
   tasksText: string;
 }
 
+interface PersonalAccessToken {
+  id: string;
+  name: string;
+  scope: string[];
+  expiresAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
 const Account = () => {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
@@ -135,6 +144,13 @@ const Account = () => {
   });
   const [emailPrefsLoading, setEmailPrefsLoading] = useState(false);
   const [emailPrefsSaving, setEmailPrefsSaving] = useState(false);
+
+  const [personalTokens, setPersonalTokens] = useState<PersonalAccessToken[]>([]);
+  const [personalTokensLoading, setPersonalTokensLoading] = useState(false);
+  const [personalTokenSaving, setPersonalTokenSaving] = useState(false);
+  const [personalTokenName, setPersonalTokenName] = useState("Raycast");
+  const [personalTokenExpiresAt, setPersonalTokenExpiresAt] = useState("");
+  const [createdPersonalToken, setCreatedPersonalToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -221,11 +237,68 @@ const Account = () => {
     }
   };
 
+  const loadPersonalTokens = async () => {
+    setPersonalTokensLoading(true);
+    try {
+      const data = await api.get<{ personalAccessTokens: PersonalAccessToken[] }>("/auth/personal-tokens");
+      setPersonalTokens(data.personalAccessTokens);
+    } catch {
+      setPersonalTokens([]);
+    } finally {
+      setPersonalTokensLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadSmtpConfig();
     loadNtfyConfig();
     loadEmailPrefs();
+    loadPersonalTokens();
   }, []);
+
+  const handlePersonalTokenCreate = async () => {
+    const trimmedName = personalTokenName.trim();
+    if (!trimmedName) {
+      toast({ title: "Nom requis", description: "Donnez un nom à ce token.", variant: "destructive" });
+      return;
+    }
+
+    setPersonalTokenSaving(true);
+    try {
+      const response = await api.post<{
+        token: string;
+        personalAccessToken: PersonalAccessToken;
+      }>("/auth/personal-tokens", {
+        name: trimmedName,
+        expiresAt: personalTokenExpiresAt || null,
+      });
+      setCreatedPersonalToken(response.token);
+      setPersonalTokenExpiresAt("");
+      await loadPersonalTokens();
+      toast({ title: "Token créé", description: "Copiez-le maintenant : il ne sera plus affiché ensuite." });
+    } catch (err) {
+      toast({ title: "Création impossible", description: err instanceof Error ? err.message : "Une erreur est survenue.", variant: "destructive" });
+    } finally {
+      setPersonalTokenSaving(false);
+    }
+  };
+
+  const handlePersonalTokenCopy = async () => {
+    if (!createdPersonalToken) return;
+    await navigator.clipboard.writeText(createdPersonalToken);
+    toast({ title: "Token copié", description: "Enregistrez-le dans les préférences de l'extension Raycast." });
+  };
+
+  const handlePersonalTokenRevoke = async (token: PersonalAccessToken) => {
+    if (!window.confirm(`Révoquer le token « ${token.name} » ? Cette action est irréversible.`)) return;
+    try {
+      await api.delete(`/auth/personal-tokens/${token.id}`);
+      await loadPersonalTokens();
+      toast({ title: "Token révoqué", description: "L'extension Raycast ne pourra plus accéder aux licences." });
+    } catch (err) {
+      toast({ title: "Révocation impossible", description: err instanceof Error ? err.message : "Une erreur est survenue.", variant: "destructive" });
+    }
+  };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -389,7 +462,7 @@ const Account = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         <Tabs defaultValue="profil" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profil" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Profil
@@ -405,6 +478,10 @@ const Account = () => {
             <TabsTrigger value="emails">
               <Palette className="w-4 h-4 mr-2" />
               Emails
+            </TabsTrigger>
+            <TabsTrigger value="raycast">
+              <KeyRound className="w-4 h-4 mr-2" />
+              Raycast
             </TabsTrigger>
           </TabsList>
 
@@ -696,6 +773,98 @@ const Account = () => {
                     <Button onClick={handleEmailPrefsSave} disabled={emailPrefsSaving}>Sauvegarder</Button>
                   </>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="raycast">
+            <Card>
+              <CardHeader>
+                <CardTitle>Extension Raycast</CardTitle>
+                <CardDescription>
+                  Gérez l'accès de votre extension Raycast privée aux licences DevToolbox.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">
+                  <p className="font-medium">Le token n'est affiché qu'une seule fois.</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Après création, copiez-le dans les préférences Raycast. Si vous le perdez, révoquez-le et créez-en un nouveau.
+                  </p>
+                </div>
+
+                <div className="space-y-4 rounded-lg border border-border p-4">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-sm font-semibold">
+                      <KeyRound className="h-4 w-4" />
+                      Créer un accès Raycast
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">Le token est limité à la gestion des licences.</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="raycast-token-name">Nom</Label>
+                      <Input id="raycast-token-name" value={personalTokenName} onChange={(e) => setPersonalTokenName(e.target.value)} placeholder="Raycast" disabled={personalTokenSaving} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="raycast-token-expiry">Expiration (optionnelle)</Label>
+                      <Input id="raycast-token-expiry" type="date" value={personalTokenExpiresAt} onChange={(e) => setPersonalTokenExpiresAt(e.target.value)} min={new Date().toISOString().slice(0, 10)} disabled={personalTokenSaving} />
+                    </div>
+                  </div>
+                  <Button onClick={handlePersonalTokenCreate} disabled={personalTokenSaving}>
+                    {personalTokenSaving ? "Création..." : "Créer le token"}
+                  </Button>
+                </div>
+
+                {createdPersonalToken && (
+                  <div className="space-y-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Token prêt à copier</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Copiez-le maintenant, puis collez-le dans les préférences de l'extension Raycast.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input value={createdPersonalToken} readOnly className="font-mono text-xs" />
+                      <Button variant="outline" onClick={handlePersonalTokenCopy} aria-label="Copier le token">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setCreatedPersonalToken(null)}>J'ai copié le token</Button>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Tokens existants</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">Révoquez immédiatement un token si vous n'en avez plus besoin.</p>
+                  </div>
+                  {personalTokensLoading ? (
+                    <p className="text-sm text-muted-foreground">Chargement...</p>
+                  ) : personalTokens.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">Aucun token Raycast créé.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {personalTokens.map((token) => (
+                        <div key={token.id} className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{token.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Scope : {token.scope.join(", ")} · Créé le {new Date(token.createdAt).toLocaleDateString()}
+                              {token.expiresAt ? ` · Expire le ${new Date(token.expiresAt).toLocaleDateString()}` : " · Sans expiration"}
+                            </p>
+                          </div>
+                          {token.revokedAt ? (
+                            <span className="text-xs text-muted-foreground">Révoqué</span>
+                          ) : (
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handlePersonalTokenRevoke(token)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Révoquer
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
