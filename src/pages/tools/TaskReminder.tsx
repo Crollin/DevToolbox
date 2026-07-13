@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Filter, CheckSquare } from "lucide-react";
+import { Plus, Search, Filter, CheckSquare, CalendarClock, CircleAlert, ListTodo } from "lucide-react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { useTasks } from "@/hooks/useTasks";
@@ -57,6 +57,15 @@ const TaskReminder = () => {
   const completedTasks = useMemo(() => {
     return tasks.filter((t) => t.status === "completed").length;
   }, [tasks]);
+
+  const today = new Date();
+  const dueSoonTasks = tasks.filter((task) => {
+    if (task.status === "completed") return false;
+    const due = new Date(task.dueDate);
+    const days = (due.getTime() - today.getTime()) / 86400000;
+    return days >= 0 && days <= 3;
+  }).length;
+  const overdueTasks = tasks.filter((task) => task.status !== "completed" && new Date(task.dueDate) < today).length;
 
   const handleSave = async (taskData: CreateTaskInput) => {
     try {
@@ -130,16 +139,13 @@ const TaskReminder = () => {
 
   return (
     <ToolLayout tool={tool}>
-      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <div className="tool-workspace max-w-5xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Gestionnaire de Tâches</h2>
-            <p className="text-muted-foreground text-sm">
-              {tasks.length} tâche{tasks.length !== 1 ? "s" : ""} enregistrée{tasks.length !== 1 ? "s" : ""}
-              {pendingTasks > 0 && ` • ${pendingTasks} en attente`}
-              {inProgressTasks > 0 && ` • ${inProgressTasks} en cours`}
-            </p>
+            <p className="tool-kicker"><CalendarClock className="w-3.5 h-3.5" /> Cadence de travail</p>
+            <h2 className="text-2xl font-bold text-foreground mb-1">Le prochain geste est clair</h2>
+            <p className="text-muted-foreground text-sm">Planifiez, relancez et fermez les boucles sans perdre le fil.</p>
           </div>
           <button
             onClick={openNewModal}
@@ -148,6 +154,12 @@ const TaskReminder = () => {
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Nouvelle tâche</span>
           </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="insight-card"><ListTodo className="insight-icon text-primary" /><div><strong>{pendingTasks + inProgressTasks}</strong><span>à traiter</span></div></div>
+          <div className="insight-card"><CircleAlert className="insight-icon text-accent" /><div><strong>{overdueTasks}</strong><span>en retard</span></div></div>
+          <div className="insight-card"><CalendarClock className="insight-icon text-blue-400" /><div><strong>{dueSoonTasks}</strong><span>dans les 3 jours</span></div></div>
         </div>
 
         {/* Stats */}

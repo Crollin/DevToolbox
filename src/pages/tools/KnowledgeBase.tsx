@@ -24,6 +24,8 @@ import {
   Tag,
   Archive,
   BookOpen,
+  Layers3,
+  Sparkles,
 } from "lucide-react";
 
 function useQueryParams() {
@@ -114,6 +116,7 @@ const KnowledgeBase = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [status, setStatus] = useState<"active" | "archived">("active");
+  const [sort, setSort] = useState<"updated_desc" | "created_desc" | "created_asc" | "title_asc" | "title_desc">("updated_desc");
   const [showSettings, setShowSettings] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -164,7 +167,7 @@ const KnowledgeBase = () => {
       categoryId: selectedCategoryId,
       tagIds: selectedTagIds.length ? selectedTagIds : undefined,
       status,
-      sort: "updated_desc",
+      sort,
       page: 1,
       pageSize: 50,
     }).catch((e) => {
@@ -174,7 +177,7 @@ const KnowledgeBase = () => {
         variant: "destructive",
       });
     });
-  }, [isLoaded, query, favoritesOnly, selectedCategoryId, selectedTagIds, status, refreshEntries]);
+  }, [isLoaded, query, favoritesOnly, selectedCategoryId, selectedTagIds, status, sort, refreshEntries]);
 
   // Sort entries: favorites first, then by original order
   const sortedEntries = useMemo(() => {
@@ -289,7 +292,19 @@ const KnowledgeBase = () => {
 
   return (
     <ToolLayout tool={tool}>
-      <div className="space-y-4">
+      <div className="tool-workspace max-w-6xl mx-auto space-y-5">
+        <div className="flex flex-col gap-1">
+          <p className="tool-kicker"><Sparkles className="w-3.5 h-3.5" /> Mémoire de travail</p>
+          <h2 className="text-2xl font-bold tracking-tight">Retrouvez ce qui vous a déjà aidé</h2>
+          <p className="text-sm text-muted-foreground">Liens, notes et décisions réunis dans un espace qui reste actionnable.</p>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="insight-card"><BookOpen className="insight-icon text-primary" /><div><strong>{entries.length}</strong><span>ressources visibles</span></div></div>
+          <div className="insight-card"><Star className="insight-icon text-yellow-400" /><div><strong>{entries.filter((e) => e.isFavorite).length}</strong><span>favoris</span></div></div>
+          <div className="insight-card"><Layers3 className="insight-icon text-accent" /><div><strong>{categories.length}</strong><span>catégories</span></div></div>
+          <div className="insight-card"><Tag className="insight-icon text-blue-400" /><div><strong>{tags.length}</strong><span>tags actifs</span></div></div>
+        </div>
         {/* Top bar: search + actions */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-xl">
@@ -353,6 +368,20 @@ const KnowledgeBase = () => {
                   Réinitialiser
                 </Button>
               )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="kb-sort" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Trier</label>
+              <select
+                id="kb-sort"
+                className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+                onChange={(e) => setSort(e.target.value as "updated_desc" | "created_desc" | "created_asc" | "title_asc" | "title_desc")}
+                value={sort}
+              >
+                <option value="updated_desc">Récemment modifiées</option>
+                <option value="created_desc">Plus récentes</option>
+                <option value="title_asc">Titre A → Z</option>
+              </select>
             </div>
 
             {/* Status + Favorites row */}
@@ -583,6 +612,19 @@ const KnowledgeBase = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium">Résumé (optionnel)</label>
               <Textarea value={draft.summary} onChange={(e) => setDraft((d) => ({ ...d, summary: e.target.value }))} />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="kb-category" className="text-sm font-medium">Catégorie</label>
+              <select
+                id="kb-category"
+                value={draft.categoryId || ""}
+                onChange={(e) => setDraft((d) => ({ ...d, categoryId: e.target.value || null }))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Sans catégorie</option>
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </select>
             </div>
 
             <div className="space-y-2">
