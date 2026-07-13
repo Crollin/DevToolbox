@@ -203,6 +203,9 @@ Le backend expose une API REST complète pour tous les modules. Consultez le [RE
 - `POST /api/auth/login` - Se connecter
 - `GET /api/auth/me` - Récupérer l'utilisateur actuel
 - `PUT /api/auth/change-password` - Changer le mot de passe (authentification requise)
+- `POST /api/auth/personal-tokens` - Créer un token privé pour une intégration
+- `GET /api/auth/personal-tokens` - Lister les tokens privés
+- `DELETE /api/auth/personal-tokens/:id` - Révoquer un token privé
 
 #### Données utilisateur
 - `/api/snippets` - Gestion des snippets de code (authentification requise)
@@ -221,6 +224,15 @@ Le backend expose une API REST complète pour tous les modules. Consultez le [RE
 **Note** : 
 - L'outil Image Resizer fonctionne entièrement côté client et n'utilise pas l'API backend
 - Toutes les routes de données nécessitent une authentification JWT (sauf `/health`)
+- Les routes `/api/licences` acceptent aussi un Personal Access Token `dt_...` limité au scope `licences`
+
+### Intégration Raycast privée
+
+Une extension Raycast locale permet de rechercher, copier, créer, modifier, supprimer et ouvrir les licences depuis Raycast.
+
+- Extension non publiée dans le Raycast Store
+- Authentification par Personal Access Token dédié et révocable
+- Installation et configuration : [Guide d'installation Raycast](raycast/README.md)
 
 ## Commandes utiles
 
@@ -519,6 +531,7 @@ Outil complet de redimensionnement et d'optimisation d'images pour WordPress :
 
 - [Guide Docker](DOCKER.md) - Instructions complètes pour Docker
 - [Backend API](backend/README.md) - Documentation de l'API backend
+- [Extension Raycast privée](raycast/README.md) - Guide d'installation et de révocation du token
 - [Base de données](backend/src/db/README.md) - Structure de la base de données
 
 ## Contribution

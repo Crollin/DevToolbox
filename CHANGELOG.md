@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [Unreleased]
+
+### Ajouté
+
+- Extension Raycast privée pour rechercher et gérer les licences DevToolbox
+- Personal Access Tokens `dt_...` hashés, révocables et limités au scope `licences`
+- Endpoints de création, liste et révocation des tokens privés
+- Guide d'installation de l'extension Raycast
+
+### Modifié
+
+- Les routes `/api/licences` acceptent désormais les Personal Access Tokens dédiés aux intégrations privées
+- README principal et documentation backend mis à jour avec les endpoints Raycast
+
 ## [1.1.0] - 2026-06-24
 
 ### Ajouté
@@ -39,5 +53,6 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 Version initiale : 16 outils, auth JWT, notifications multi-canaux (Ntfy, email, Telegram), déploiement Docker.
 
+[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/Crollin/DevToolbox/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Crollin/DevToolbox/releases/tag/v1.0.0
