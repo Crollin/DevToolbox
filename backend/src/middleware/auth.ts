@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import db from '../db/database';
 
 // Étendre l'interface Request pour inclure user
@@ -31,9 +32,47 @@ export interface JWTPayload {
   email: string;
 }
 
+function getBearerToken(req: Request): string | undefined {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return undefined;
+  const [scheme, token] = authHeader.split(' ');
+  return scheme?.toLowerCase() === 'bearer' ? token : undefined;
+}
+
+export function hashTokenForStorage(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function authenticatePersonalAccessToken(req: Request, token: string, requiredScope: string): boolean {
+  const record = db.prepare(`
+    SELECT pat.scope, pat.expires_at, pat.revoked_at,
+           users.id, users.email, users.name, users.preferences
+    FROM personal_access_tokens pat
+    INNER JOIN users ON users.id = pat.user_id
+    WHERE pat.token_hash = ?
+  `).get(hashTokenForStorage(token)) as {
+    scope: string;
+    expires_at: string | null;
+    revoked_at: string | null;
+    id: string;
+    email: string;
+    name: string;
+    preferences?: string | null;
+  } | undefined;
+
+  if (!record || record.revoked_at || (record.expires_at && new Date(record.expires_at) <= new Date())) return false;
+  if (!record.scope.split(/\s+/).includes(requiredScope)) return false;
+
+  let preferences: Record<string, unknown> | undefined;
+  if (record.preferences) {
+    try { preferences = JSON.parse(record.preferences) as Record<string, unknown>; } catch { preferences = {}; }
+  }
+  req.user = { id: record.id, email: record.email, name: record.name, preferences };
+  return true;
+}
+
 export function authenticateToken(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+  const token = getBearerToken(req);
 
   if (!token) {
     return res.status(401).json({ error: 'Token d\'authentification manquant' });
@@ -83,11 +122,22 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   }
 }
 
+export function authenticateTokenOrPersonalAccessToken(requiredScope: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const token = getBearerToken(req);
+    if (!token) return res.status(401).json({ error: "Token d'authentification manquant" });
+    if (token.startsWith('dt_')) {
+      if (authenticatePersonalAccessToken(req, token, requiredScope)) return next();
+      return res.status(401).json({ error: 'Token personnel invalide, expiré ou révoqué' });
+    }
+    return authenticateToken(req, res, next);
+  };
+}
+
 export function generateToken(payload: JWTPayload): string {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: '7d', // Token valide 7 jours
   });
 }
-
 
 

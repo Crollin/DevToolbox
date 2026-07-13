@@ -1,0 +1,60 @@
+{
+  "name": "devtoolbox-licences-raycast",
+  "title": "DevToolbox Licences",
+  "description": "Accéder rapidement à ses licences DevToolbox depuis Raycast",
+  "version": "1.0.0",
+  "author": "Crollin",
+  "license": "GPL-3.0-NC",
+  "icon": "icon.png",
+  "platforms": [
+    "macOS"
+  ],
+  "categories": [
+    "Productivity",
+    "Developer Tools"
+  ],
+  "scripts": {
+    "dev": "ray develop",
+    "build": "ray build",
+    "lint": "ray lint"
+  },
+  "dependencies": {
+    "@raycast/api": "^1.99.5"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.0.4",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  },
+  "commands": [
+    {
+      "name": "search-licences",
+      "title": "Search Licences",
+      "description": "Rechercher dans les licences DevToolbox",
+      "mode": "view"
+    },
+    {
+      "name": "create-licence",
+      "title": "Create Licence",
+      "description": "Créer une licence dans DevToolbox",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "apiBaseUrl",
+      "title": "DevToolbox API URL",
+      "description": "URL de base de l'API, incluant /api",
+      "type": "textfield",
+      "required": true,
+      "placeholder": "https://devtoolbox.example.com/api"
+    },
+    {
+      "name": "personalAccessToken",
+      "title": "Personal Access Token",
+      "description": "Token privé avec le scope licences.",
+      "type": "password",
+      "required": true
+    }
+  ]
+}

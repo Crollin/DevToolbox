@@ -1,7 +1,7 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateTokenOrPersonalAccessToken } from '../middleware/auth';
 import { ExpiringLicence } from '../lib/email';
 import { checkAndSendReminders } from '../lib/licenceReminders';
 import {
@@ -16,7 +16,7 @@ import { sendLicenceNotifications, testNotifications, NotificationDispatchConfig
 const router = express.Router();
 
 // Toutes les routes nécessitent une authentification
-router.use(authenticateToken);
+router.use(authenticateTokenOrPersonalAccessToken('licences'));
 
 type SavedNotificationConfig = {
   notification_type: string | null;
@@ -520,4 +520,3 @@ router.delete('/:id', (req, res) => {
 });
 
 export default router;
-

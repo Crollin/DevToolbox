@@ -4,10 +4,14 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/database';
-import { generateToken, authenticateToken } from '../middleware/auth';
+import { generateToken, authenticateToken, hashTokenForStorage } from '../middleware/auth';
 import { sendConfirmationEmail, sendPasswordResetEmail, isEmailConfigured } from '../lib/email';
 
 const router = express.Router();
+
+function serializePersonalAccessToken(row: { id: string; name: string; scope: string; expires_at: string | null; revoked_at: string | null; created_at: string }) {
+  return { id: row.id, name: row.name, scope: row.scope.split(/\s+/).filter(Boolean), expiresAt: row.expires_at, revokedAt: row.revoked_at, createdAt: row.created_at };
+}
 
 // Rate limiter pour login et register : 10 requêtes / 15 min par IP (désactivé en test)
 const authRateLimiter = rateLimit({
@@ -157,6 +161,47 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response) => {
     console.error('Erreur lors de la connexion:', error);
     res.status(500).json({ error: 'Erreur lors de la connexion' });
   }
+});
+
+router.post('/personal-tokens', authenticateToken, (req: Request, res: Response) => {
+  const { name, expiresAt } = req.body as { name?: string; expiresAt?: string | null };
+  const trimmedName = typeof name === 'string' ? name.trim() : '';
+  if (!trimmedName) return res.status(400).json({ error: 'Le nom du token est requis' });
+  if (trimmedName.length > 100) return res.status(400).json({ error: 'Le nom du token est trop long' });
+
+  let normalizedExpiry: string | null = null;
+  if (expiresAt !== undefined && expiresAt !== null && expiresAt !== '') {
+    const expiry = new Date(expiresAt);
+    if (Number.isNaN(expiry.getTime()) || expiry <= new Date()) return res.status(400).json({ error: "La date d'expiration est invalide" });
+    normalizedExpiry = expiry.toISOString();
+  }
+
+  const id = uuidv4();
+  const rawToken = `dt_${crypto.randomBytes(32).toString('hex')}`;
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO personal_access_tokens (id, user_id, name, token_hash, scope, expires_at, created_at)
+    VALUES (?, ?, ?, ?, 'licences', ?, ?)
+  `).run(id, req.user!.id, trimmedName, hashTokenForStorage(rawToken), normalizedExpiry, now);
+
+  res.status(201).json({ token: rawToken, personalAccessToken: { id, name: trimmedName, scope: ['licences'], expiresAt: normalizedExpiry, revokedAt: null, createdAt: now } });
+});
+
+router.get('/personal-tokens', authenticateToken, (req: Request, res: Response) => {
+  const rows = db.prepare(`
+    SELECT id, name, scope, expires_at, revoked_at, created_at
+    FROM personal_access_tokens WHERE user_id = ? ORDER BY created_at DESC
+  `).all(req.user!.id) as Array<{ id: string; name: string; scope: string; expires_at: string | null; revoked_at: string | null; created_at: string }>;
+  res.json({ personalAccessTokens: rows.map(serializePersonalAccessToken) });
+});
+
+router.delete('/personal-tokens/:id', authenticateToken, (req: Request, res: Response) => {
+  const result = db.prepare(`
+    UPDATE personal_access_tokens SET revoked_at = ?
+    WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+  `).run(new Date().toISOString(), req.params.id, req.user!.id) as { changes: number };
+  if (result.changes === 0) return res.status(404).json({ error: 'Token non trouvé' });
+  res.json({ success: true });
 });
 
 const VALID_THEMES = ['light', 'dark', 'system'];
@@ -366,4 +411,3 @@ router.get('/me', authenticateToken, (req: Request, res: Response) => {
 });
 
 export default router;
-

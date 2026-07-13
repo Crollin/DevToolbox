@@ -273,6 +273,20 @@ export function initializeDatabase() {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS personal_access_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      scope TEXT NOT NULL DEFAULT 'licences',
+      expires_at TEXT,
+      revoked_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Table pour les licences
   db.exec(`
     CREATE TABLE IF NOT EXISTS licences (
@@ -647,6 +661,7 @@ export function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_wp_hooks_created_at ON wp_hooks(created_at)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_wp_queries_created_at ON wp_queries(created_at)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_personal_access_tokens_user_id ON personal_access_tokens(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_task_reminders_task_id ON task_reminders(task_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tool_order_user_id ON tool_order(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_ntfy_configs_user_id ON ntfy_configs(user_id)`);
@@ -665,4 +680,3 @@ export function initializeDatabase() {
 }
 
 export default db;
-

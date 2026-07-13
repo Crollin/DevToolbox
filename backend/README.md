@@ -69,7 +69,15 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
   - Body: `{ newPassword: string }`
   - Retourne: `{ success: true, message: string }`
 
-**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`.
+- `POST /api/auth/personal-tokens` - Créer un token privé pour une intégration
+  - Headers: `Authorization: Bearer <JWT de session>`
+  - Body: `{ name: string, expiresAt?: string | null }`
+  - Le token brut est retourné une seule fois dans `token`
+  - Le token est limité au scope `licences` et peut être révoqué
+- `GET /api/auth/personal-tokens` - Lister les tokens privés de l'utilisateur
+- `DELETE /api/auth/personal-tokens/:id` - Révoquer un token privé
+
+**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences` acceptent également un Personal Access Token `dt_...` limité au scope `licences`.
 
 ### Snippets
 - `GET /api/snippets` - Liste tous les snippets
@@ -283,4 +291,3 @@ FRONTEND_URL=https://devtoolbox.example.com
 ## Docker
 
 Voir le fichier `DOCKER.md` à la racine du projet pour les instructions Docker complètes.
-
