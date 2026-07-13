@@ -43,7 +43,7 @@ const CategoryFilter = ({ selectedCategory, onCategoryChange, toolCounts }: Cate
               "category-badge border gap-1.5",
               isSelected
                 ? cn(colors.bg, colors.text, colors.border)
-                : "bg-transparent text-muted-foreground border-border hover:border-muted-foreground/50 hover:text-foreground"
+                : "bg-transparent text-muted-foreground border-border hover:border-primary/60 hover:text-foreground"
             )}
           >
             {categoryIcons[category]}

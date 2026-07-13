@@ -6,7 +6,7 @@ import ToolGrid from "@/components/ToolGrid";
 import StatsBar from "@/components/StatsBar";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { GripVertical, Check } from "lucide-react";
+import { GripVertical, Check, ArrowUpRight } from "lucide-react";
 import { tools, ToolCategory, categoryLabels } from "@/data/tools";
 import { useToolOrder } from "@/hooks/useToolOrder";
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,16 +80,24 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-10 lg:py-14">
         {/* Hero Section */}
-        <section className="mb-10 animate-fade-in">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
-              Votre <span className="gradient-text">boîte à outils</span> dev
-            </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">
-              Tous vos outils, scripts et utilitaires de développement centralisés en un seul endroit.
-            </p>
+        <section className="mb-14 animate-fade-in">
+          <div className="grid gap-8 lg:grid-cols-[1fr_280px] lg:items-end mb-10">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary mb-4">/ workspace / index</p>
+              <h2 className="max-w-3xl text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-[0.98]">
+                Le bon outil,<br /><span className="gradient-text">au bon moment.</span>
+              </h2>
+              <p className="text-muted-foreground max-w-xl mt-5 leading-relaxed">
+                Une collection locale de scripts, références et petits utilitaires pour garder le travail en mouvement.
+              </p>
+            </div>
+            <div className="border-l border-primary pl-5 pb-1">
+              <p className="font-mono text-xs text-muted-foreground mb-2">SESSION NOTE</p>
+              <p className="text-sm text-foreground leading-relaxed">18 outils prêts à l’emploi. Cherchez par nom, usage ou technologie.</p>
+              <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-primary"><ArrowUpRight className="w-3.5 h-3.5" /> Ouvrir un outil</div>
+            </div>
           </div>
 
           {/* Stats */}
@@ -104,7 +112,7 @@ const Index = () => {
         {/* Search & Filters */}
         <section className="mb-8 space-y-4 animate-fade-in" style={{ animationDelay: "100ms" }}>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            <div className="w-full sm:max-w-xl"><SearchBar value={searchQuery} onChange={setSearchQuery} /></div>
             <div className="flex items-center gap-4">
               {isAuthenticated && (
                 <Button
@@ -126,7 +134,7 @@ const Index = () => {
                   )}
                 </Button>
               )}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground font-mono whitespace-nowrap">
                 {filteredTools.length} outil{filteredTools.length !== 1 ? "s" : ""} trouvé{filteredTools.length !== 1 ? "s" : ""}
               </p>
             </div>
@@ -139,7 +147,7 @@ const Index = () => {
         </section>
 
         {/* Tools Grid */}
-        <section>
+        <section className="border-t border-border pt-5">
           {filteredTools.length > 0 ? (
             <ToolGrid
               tools={orderedTools}
@@ -155,8 +163,8 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 mt-16">
         <div className="container mx-auto px-4 py-6">
-          <p className="text-center text-xs text-muted-foreground">
-            DevToolbox — Boîte à outils personnelle pour développeurs
+          <p className="text-center text-[11px] text-muted-foreground font-mono">
+            DEVTOOLBOX / local utilities / 2025
           </p>
         </div>
       </footer>

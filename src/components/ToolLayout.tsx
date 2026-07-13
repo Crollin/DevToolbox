@@ -15,12 +15,12 @@ const ToolLayout = ({ tool, children }: ToolLayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-border bg-background/90 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/")}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm">Retour</span>
@@ -32,7 +32,7 @@ const ToolLayout = ({ tool, children }: ToolLayoutProps) => {
               <span className={cn("category-badge border", colors.bg, colors.text, colors.border)}>
                 {categoryLabels[tool.category]}
               </span>
-              <h1 className="font-mono font-semibold text-foreground">
+              <h1 className="font-mono font-medium text-foreground tracking-tight">
                 {tool.name}
               </h1>
             </div>

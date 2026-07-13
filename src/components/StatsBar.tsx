@@ -14,18 +14,18 @@ const StatsBar = ({ totalTools, totalCategories }: StatsBarProps) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border border border-border rounded-md overflow-hidden">
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg bg-card border border-border/50"
+          className="flex items-center gap-3 px-4 py-4 bg-card"
         >
           <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
             <stat.icon className="w-4 h-4 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-lg font-semibold text-foreground font-mono">{stat.value}</p>
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
+            <p className="text-xl font-semibold text-foreground font-mono leading-none">{stat.value}</p>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground mt-1">{stat.label}</p>
           </div>
         </div>
       ))}

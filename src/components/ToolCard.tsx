@@ -57,17 +57,17 @@ const ToolCard = ({ tool, index, isDragging = false, isEditMode = false }: ToolC
   return (
     <article
       className={cn(
-        "tool-card group animate-fade-in",
+        "tool-card group animate-fade-in min-h-[220px] flex flex-col",
         isDragging ? "cursor-grabbing" : isEditMode ? "cursor-grab" : "cursor-pointer"
       )}
       style={{ animationDelay: `${index * 50}ms` }}
       onClick={handleClick}
     >
-      {/* Category Badge */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <span className={cn("category-badge border", colors.bg, colors.text, colors.border)}>
           {categoryLabels[tool.category]}
         </span>
+        <span className="font-mono text-[10px] text-muted-foreground/60">{String(index + 1).padStart(2, "0")}</span>
         {!isInternal && (
           <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         )}
@@ -76,29 +76,29 @@ const ToolCard = ({ tool, index, isDragging = false, isEditMode = false }: ToolC
       {/* Icon & Title */}
       <div className="flex items-start gap-3 mb-3">
         <div className={cn(
-          "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+          "w-9 h-9 rounded-md flex items-center justify-center shrink-0",
           colors.bg, colors.border, "border"
         )}>
           <IconComponent className={cn("w-5 h-5", colors.text)} />
         </div>
         <div className="min-w-0">
-          <h3 className="font-mono font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+          <h3 className="font-mono font-medium text-[15px] text-foreground group-hover:text-primary transition-colors truncate">
             {tool.name}
           </h3>
         </div>
       </div>
 
       {/* Description */}
-      <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+      <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 line-clamp-3">
         {tool.description}
       </p>
 
       {/* Tags */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 mt-auto">
         {tool.tags.map((tag) => (
           <span
             key={tag}
-            className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium"
+            className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground font-mono"
           >
             #{tag}
           </span>

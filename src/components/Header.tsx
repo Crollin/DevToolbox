@@ -1,4 +1,4 @@
-import { Terminal, LogOut, User, Key, Settings, LogIn, Cloud } from "lucide-react";
+import { Terminal, LogOut, User, Key, Settings, LogIn, Cloud, Command } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,8 +23,8 @@ const Header = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
-    <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
+    <header className="border-b border-border bg-background/90 backdrop-blur-md sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div
             className="flex items-center gap-3 cursor-pointer"
@@ -34,18 +34,15 @@ const Header = () => {
             tabIndex={0}
           >
             <div className="relative">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center">
-                <Terminal className="w-5 h-5 text-primary" />
+              <div className="w-9 h-9 rounded-md bg-primary text-primary-foreground flex items-center justify-center">
+                <Terminal className="w-5 h-5" />
               </div>
-              <div className="absolute -inset-1 bg-primary/20 rounded-lg blur-lg opacity-50" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground font-mono tracking-tight">
+              <h1 className="text-lg font-bold text-foreground font-mono tracking-tight">
                 DevToolbox
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Boîte à outils personnelle
-              </p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Personal dev utility</p>
             </div>
           </div>
 
@@ -56,6 +53,7 @@ const Header = () => {
                 Synchronisé
               </span>
             )}
+            <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono mr-2"><Command className="w-3 h-3" /> local / ready</div>
             <ThemeToggle />
             {isAuthenticated && user ? (
               <DropdownMenu>
