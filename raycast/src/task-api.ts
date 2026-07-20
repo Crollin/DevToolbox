@@ -19,6 +19,8 @@ export interface TaskInput {
   dueDate: string;
   client?: string;
   link?: string;
+  reminderDays?: number[];
+  reminderDatetime?: string;
 }
 
 export function listTasks(status?: TaskStatus) {
