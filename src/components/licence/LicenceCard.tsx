@@ -42,9 +42,13 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
   };
 
   return (
-    <div className="group p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-all">
+    <article className={cn(
+      "group relative overflow-hidden rounded-xl bg-card border border-border/70 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40",
+      colors.border
+    )}>
+      <span className={cn("absolute inset-y-0 left-0 w-1", colors.bg.replace("/10", "/70"))} aria-hidden="true" />
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-start gap-3 pl-1">
           <div className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
             colors.bg, colors.border, "border"
@@ -53,8 +57,8 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h3 className="font-semibold text-foreground">{licence.name}</h3>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h3 className="truncate font-semibold text-foreground">{licence.name}</h3>
               <span className={cn(
                 "px-2 py-0.5 rounded-full text-xs font-medium border",
                 colors.bg, colors.text, colors.border
@@ -70,8 +74,8 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
             </div>
 
             {/* Key */}
-            <div className="flex items-center gap-2 mt-2">
-              <code className="text-sm font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/50 p-2">
+              <code className="min-w-0 flex-1 truncate text-sm font-mono text-foreground" title={isKeyVisible ? licence.key : undefined}>
                 {isKeyVisible ? licence.key : maskKey(licence.key)}
               </code>
               <button
@@ -88,16 +92,17 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
               <button
                 onClick={copyKey}
                 className={cn(
-                  "p-1.5 rounded-lg transition-colors",
-                  isCopied ? "bg-emerald-500/10 text-emerald-400" : "hover:bg-muted text-muted-foreground"
+                  "inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors",
+                  isCopied ? "bg-emerald-500/10 text-emerald-400" : "bg-card text-muted-foreground hover:text-foreground"
                 )}
-                title="Copier"
+                aria-label="Copier la clé"
               >
                 {isCopied ? (
                   <Check className="w-4 h-4" />
                 ) : (
                   <Copy className="w-4 h-4" />
                 )}
+                <span className="hidden sm:inline">{isCopied ? "Copiée" : "Copier"}</span>
               </button>
             </div>
 
@@ -119,7 +124,7 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
           <button
             onClick={() => onEdit(licence)}
             className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -136,7 +141,7 @@ const LicenceCard = ({ licence, onEdit, onDelete }: LicenceCardProps) => {
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

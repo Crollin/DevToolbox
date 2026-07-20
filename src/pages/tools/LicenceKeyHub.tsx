@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Key, Plus, Search, Bell, Filter, ShieldCheck, Clock3, Layers3 } from "lucide-react";
+import { Key, Plus, Search, Bell, ShieldCheck, Clock3, Layers3, SlidersHorizontal } from "lucide-react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { useLicences } from "@/hooks/useLicences";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 const LicenceKeyHub = () => {
   const tool = tools.find((t) => t.id === "licence-key-hub")!;
-  const { licences, ntfyConfig, addLicence, updateLicence, deleteLicence, updateNtfyConfig } = useLicences();
+  const { licences, ntfyConfig, addLicence, updateLicence, deleteLicence, updateNtfyConfig, isLoaded } = useLicences();
   
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<LicenceType | "all">("all");
@@ -27,6 +27,16 @@ const LicenceKeyHub = () => {
       return matchesSearch && matchesType;
     });
   }, [licences, search, typeFilter]);
+
+  const groupedLicences = useMemo(() => {
+    const order: LicenceType[] = ["wordpress", "saas", "api", "autre"];
+    return order
+      .map((type) => ({
+        type,
+        licences: filteredLicences.filter((licence) => licence.type === type),
+      }))
+      .filter((group) => group.licences.length > 0);
+  }, [filteredLicences]);
 
   const licencesToRenew = useMemo(() => {
     return licences.filter((l) => {
@@ -59,13 +69,13 @@ const LicenceKeyHub = () => {
 
   return (
     <ToolLayout tool={tool}>
-      <div className="tool-workspace max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className="tool-workspace max-w-6xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
-            <p className="tool-kicker"><Key className="w-3.5 h-3.5" /> Coffre de projets</p>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Vos licences, prêtes à l’emploi</h2>
-            <p className="text-muted-foreground text-sm">Un accès rapide aux clés, sièges et renouvellements de votre stack.</p>
+            <p className="tool-kicker"><Key className="w-3.5 h-3.5" /> Bibliothèque de clés</p>
+            <h2 className="text-2xl font-bold text-foreground mb-1">Trouvez la bonne clé en un coup d’œil</h2>
+            <p className="text-muted-foreground text-sm">Chaque licence est regroupée par usage, statut et échéance.</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -97,19 +107,21 @@ const LicenceKeyHub = () => {
         </div>
 
         {/* Search & Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className="search-panel">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Rechercher une licence..."
+              aria-label="Rechercher une licence"
+              placeholder="Rechercher par nom..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="search-input"
             />
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            <SlidersHorizontal className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />
+            <span className="sr-only">Filtrer par type</span>
             <button
               onClick={() => setTypeFilter("all")}
               className={cn(
@@ -142,15 +154,32 @@ const LicenceKeyHub = () => {
         </div>
 
         {/* Licences List */}
-        <div className="space-y-3">
-          {filteredLicences.length > 0 ? (
-            filteredLicences.map((licence) => (
-              <LicenceCard
-                key={licence.id}
-                licence={licence}
-                onEdit={handleEdit}
-                onDelete={deleteLicence}
-              />
+        <div className="space-y-7">
+          {!isLoaded ? (
+            <div className="space-y-3" aria-label="Chargement des licences">
+              {[1, 2, 3].map((item) => <div key={item} className="licence-skeleton" />)}
+            </div>
+          ) : groupedLicences.length > 0 ? (
+            groupedLicences.map((group) => (
+              <section key={group.type} aria-labelledby={`licence-group-${group.type}`}>
+                <div className="mb-3 flex items-center gap-3">
+                  <h3 id={`licence-group-${group.type}`} className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    {licenceTypeLabels[group.type]}
+                  </h3>
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="font-mono text-xs text-muted-foreground">{group.licences.length}</span>
+                </div>
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {group.licences.map((licence) => (
+                    <LicenceCard
+                      key={licence.id}
+                      licence={licence}
+                      onEdit={handleEdit}
+                      onDelete={deleteLicence}
+                    />
+                  ))}
+                </div>
+              </section>
             ))
           ) : (
             <div className="text-center py-12">
