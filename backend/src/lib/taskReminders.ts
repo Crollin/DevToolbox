@@ -235,7 +235,7 @@ export async function checkAndSendTaskReminders(): Promise<void> {
 
       // Récupérer les tâches non complétées de l'utilisateur
       const tasks = db.prepare(`
-        SELECT id, title, description, due_date, client, link, reminder_days, reminder_datetime
+        SELECT id, title, description, due_date, client, link, tags, notification_channels, reminder_days, reminder_datetime
         FROM tasks
         WHERE user_id = ? AND status != 'completed'
       `).all(user.id) as Array<{
@@ -245,6 +245,8 @@ export async function checkAndSendTaskReminders(): Promise<void> {
         due_date: string;
         client: string | null;
         link: string | null;
+        tags: string | null;
+        notification_channels: string | null;
         reminder_days: string | null;
         reminder_datetime: string | null;
       }>;
@@ -268,9 +270,12 @@ export async function checkAndSendTaskReminders(): Promise<void> {
                   daysUntilDue,
                 };
 
+                const taskChannels = task.notification_channels
+                  ? parseNotificationChannels(null, task.notification_channels)
+                  : channels;
                 const notificationSent = ntfyConfig
-                  ? await sendTaskNotifications(channels, ntfyConfig, user, taskReminder, emailPrefs)
-                  : hasChannel(channels, 'email')
+                  ? await sendTaskNotifications(taskChannels, ntfyConfig, user, taskReminder, emailPrefs)
+                  : hasChannel(taskChannels, 'email')
                   ? await sendTaskReminderEmail(user.email, user.name, taskReminder, emailPrefs)
                   : false;
 
@@ -295,9 +300,12 @@ export async function checkAndSendTaskReminders(): Promise<void> {
               daysUntilDue,
             };
 
+            const taskChannels = task.notification_channels
+              ? parseNotificationChannels(null, task.notification_channels)
+              : channels;
             const notificationSent = ntfyConfig
-              ? await sendTaskNotifications(channels, ntfyConfig, user, taskReminder, emailPrefs)
-              : hasChannel(channels, 'email')
+              ? await sendTaskNotifications(taskChannels, ntfyConfig, user, taskReminder, emailPrefs)
+              : hasChannel(taskChannels, 'email')
               ? await sendTaskReminderEmail(user.email, user.name, taskReminder, emailPrefs)
               : false;
 

@@ -515,11 +515,33 @@ export function initializeDatabase() {
       due_date TEXT NOT NULL,
       client TEXT,
       link TEXT,
+      tags TEXT, -- JSON array de tags
+      priority TEXT NOT NULL DEFAULT 'normal',
+      notification_channels TEXT, -- JSON array; null = configuration globale
       status TEXT NOT NULL DEFAULT 'pending',
       reminder_days TEXT, -- JSON array des jours avant (ex: [7, 3, 1])
       reminder_datetime TEXT, -- Date/heure précise du rappel (optionnel)
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Évolution des tâches : ces colonnes sont ajoutées aux bases existantes.
+  const taskColumns = db.prepare("PRAGMA table_info(tasks)").all() as Array<{ name: string }>;
+  const taskColumnNames = taskColumns.map((column) => column.name);
+  if (!taskColumnNames.includes('tags')) db.exec(`ALTER TABLE tasks ADD COLUMN tags TEXT`);
+  if (!taskColumnNames.includes('priority')) db.exec(`ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'normal'`);
+  if (!taskColumnNames.includes('notification_channels')) db.exec(`ALTER TABLE tasks ADD COLUMN notification_channels TEXT`);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_clients (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(user_id, name),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
@@ -663,6 +685,7 @@ export function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_personal_access_tokens_user_id ON personal_access_tokens(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_task_reminders_task_id ON task_reminders(task_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_task_clients_user_id ON task_clients(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tool_order_user_id ON tool_order(user_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_ntfy_configs_user_id ON ntfy_configs(user_id)`);
 
