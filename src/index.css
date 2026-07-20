@@ -208,6 +208,15 @@
   }
 
   .search-input {
-    @apply w-full bg-input border border-border rounded-md px-4 py-3 pl-11 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/70 focus:border-primary transition-all;
+    @apply w-full bg-input border border-border rounded-lg px-4 py-3 pl-11 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all;
+  }
+
+  .search-panel {
+    @apply flex flex-col gap-3 rounded-xl border border-border/80 bg-card/70 p-3 sm:flex-row sm:items-center;
+    box-shadow: var(--shadow-card);
+  }
+
+  .licence-skeleton {
+    @apply h-[154px] animate-pulse rounded-xl border border-border/70 bg-card/70;
   }
 }
