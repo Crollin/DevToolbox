@@ -1,4 +1,4 @@
-import { Form, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Form, showToast, Toast } from "@raycast/api";
 import { createTask } from "./task-api";
 
 export default function CreateTask() {
@@ -23,8 +23,11 @@ export default function CreateTask() {
 
   return (
     <Form
-      actions={<Form.SubmitFormAction title="Créer la tâche" />}
-      onSubmit={handleSubmit}
+      actions={
+        <ActionPanel>
+          <Action.SubmitForm title="Créer la tâche" onSubmit={handleSubmit} />
+        </ActionPanel>
+      }
     >
       <Form.TextField id="title" title="Titre" autoFocus />
       <Form.TextField

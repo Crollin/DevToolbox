@@ -1,4 +1,4 @@
-import { Form, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Form, showToast, Toast } from "@raycast/api";
 import {
   Licence,
   LicenceInput,
@@ -47,11 +47,13 @@ export function LicenceForm({
   return (
     <Form
       actions={
-        <Form.SubmitFormAction
-          title={licence ? "Update Licence" : "Create Licence"}
-        />
+        <ActionPanel>
+          <Action.SubmitForm
+            title={licence ? "Update Licence" : "Create Licence"}
+            onSubmit={handleSubmit}
+          />
+        </ActionPanel>
       }
-      onSubmit={handleSubmit}
     >
       <Form.TextField
         id="name"
