@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/database';
-import { generateToken, authenticateToken, hashTokenForStorage } from '../middleware/auth';
+import { generateToken, authenticateToken, hashTokenForStorage, PERSONAL_ACCESS_TOKEN_SCOPES, PersonalAccessTokenScope } from '../middleware/auth';
 import { sendConfirmationEmail, sendPasswordResetEmail, isEmailConfigured } from '../lib/email';
 
 const router = express.Router();
@@ -164,7 +164,7 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response) => {
 });
 
 router.post('/personal-tokens', authenticateToken, (req: Request, res: Response) => {
-  const { name, expiresAt } = req.body as { name?: string; expiresAt?: string | null };
+  const { name, expiresAt, scopes } = req.body as { name?: string; expiresAt?: string | null; scopes?: unknown };
   const trimmedName = typeof name === 'string' ? name.trim() : '';
   if (!trimmedName) return res.status(400).json({ error: 'Le nom du token est requis' });
   if (trimmedName.length > 100) return res.status(400).json({ error: 'Le nom du token est trop long' });
@@ -176,15 +176,26 @@ router.post('/personal-tokens', authenticateToken, (req: Request, res: Response)
     normalizedExpiry = expiry.toISOString();
   }
 
+  const requestedScopes = Array.isArray(scopes) ? scopes : ['licences'];
+  const normalizedScopes = [...new Set(
+    requestedScopes.filter((scope): scope is PersonalAccessTokenScope =>
+      typeof scope === 'string' && PERSONAL_ACCESS_TOKEN_SCOPES.includes(scope as PersonalAccessTokenScope)
+    )
+  )];
+  if (normalizedScopes.length === 0) {
+    return res.status(400).json({ error: 'Sélectionnez au moins un périmètre pour le token' });
+  }
+  const scope = normalizedScopes.join(' ');
+
   const id = uuidv4();
   const rawToken = `dt_${crypto.randomBytes(32).toString('hex')}`;
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO personal_access_tokens (id, user_id, name, token_hash, scope, expires_at, created_at)
-    VALUES (?, ?, ?, ?, 'licences', ?, ?)
-  `).run(id, req.user!.id, trimmedName, hashTokenForStorage(rawToken), normalizedExpiry, now);
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, req.user!.id, trimmedName, hashTokenForStorage(rawToken), scope, normalizedExpiry, now);
 
-  res.status(201).json({ token: rawToken, personalAccessToken: { id, name: trimmedName, scope: ['licences'], expiresAt: normalizedExpiry, revokedAt: null, createdAt: now } });
+  res.status(201).json({ token: rawToken, personalAccessToken: { id, name: trimmedName, scope: normalizedScopes, expiresAt: normalizedExpiry, revokedAt: null, createdAt: now } });
 });
 
 router.get('/personal-tokens', authenticateToken, (req: Request, res: Response) => {

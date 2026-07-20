@@ -1,13 +1,13 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateTokenOrPersonalAccessToken } from '../middleware/auth';
 import { safeJsonParse } from '../lib/json';
 
 const router = express.Router();
 
 // Toutes les routes nécessitent une authentification
-router.use(authenticateToken);
+router.use(authenticateTokenOrPersonalAccessToken('tasks'));
 
 const VALID_STATUS = ['pending', 'in_progress', 'completed'] as const;
 

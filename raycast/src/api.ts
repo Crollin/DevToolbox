@@ -40,7 +40,10 @@ function apiUrl(path: string) {
   return `${preferences().apiBaseUrl.replace(/\/$/, "")}${path}`;
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
   const { personalAccessToken } = preferences();
   const response = await fetch(apiUrl(path), {
     ...init,

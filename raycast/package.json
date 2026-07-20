@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "Crollin",
   "license": "GPL-3.0-NC",
-  "icon": "icon.png",
+  "icon": "icon.svg",
   "platforms": [
     "macOS"
   ],
@@ -37,6 +37,24 @@
       "name": "create-licence",
       "title": "Create Licence",
       "description": "Créer une licence dans DevToolbox",
+      "mode": "view"
+    },
+    {
+      "name": "search-tasks",
+      "title": "Search Tasks",
+      "description": "Rechercher et mettre à jour les tâches DevToolbox",
+      "mode": "view"
+    },
+    {
+      "name": "create-task",
+      "title": "Create Task",
+      "description": "Créer une tâche dans DevToolbox",
+      "mode": "view"
+    },
+    {
+      "name": "search-knowledge-base",
+      "title": "Search Knowledge Base",
+      "description": "Rechercher dans la base de connaissances DevToolbox",
       "mode": "view"
     }
   ],

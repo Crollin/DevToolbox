@@ -83,6 +83,12 @@ interface PersonalAccessToken {
   createdAt: string;
 }
 
+const PERSONAL_TOKEN_SCOPE_OPTIONS = [
+  { value: "licences", label: "Licences", description: "Lire et gérer les clés de licence" },
+  { value: "tasks", label: "Tâches", description: "Consulter et mettre à jour les tâches" },
+  { value: "knowledge_base", label: "Knowledge Base", description: "Rechercher et ouvrir vos notes" },
+] as const;
+
 const Account = () => {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
@@ -150,6 +156,7 @@ const Account = () => {
   const [personalTokenSaving, setPersonalTokenSaving] = useState(false);
   const [personalTokenName, setPersonalTokenName] = useState("Raycast");
   const [personalTokenExpiresAt, setPersonalTokenExpiresAt] = useState("");
+  const [personalTokenScopes, setPersonalTokenScopes] = useState<string[]>(["licences"]);
   const [createdPersonalToken, setCreatedPersonalToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -271,6 +278,7 @@ const Account = () => {
       }>("/auth/personal-tokens", {
         name: trimmedName,
         expiresAt: personalTokenExpiresAt || null,
+        scopes: personalTokenScopes,
       });
       setCreatedPersonalToken(response.token);
       setPersonalTokenExpiresAt("");
@@ -799,7 +807,7 @@ const Account = () => {
                       <KeyRound className="h-4 w-4" />
                       Créer un accès Raycast
                     </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">Le token est limité à la gestion des licences.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Choisissez précisément les outils accessibles depuis Raycast.</p>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
@@ -809,6 +817,28 @@ const Account = () => {
                     <div className="space-y-2">
                       <Label htmlFor="raycast-token-expiry">Expiration (optionnelle)</Label>
                       <Input id="raycast-token-expiry" type="date" value={personalTokenExpiresAt} onChange={(e) => setPersonalTokenExpiresAt(e.target.value)} min={new Date().toISOString().slice(0, 10)} disabled={personalTokenSaving} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Périmètres d’accès</Label>
+                    <div className="space-y-2">
+                      {PERSONAL_TOKEN_SCOPE_OPTIONS.map((scope) => (
+                        <label key={scope.value} className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 hover:bg-muted/50">
+                          <input
+                            type="checkbox"
+                            checked={personalTokenScopes.includes(scope.value)}
+                            onChange={(event) => setPersonalTokenScopes((current) => event.target.checked
+                              ? [...current, scope.value]
+                              : current.filter((value) => value !== scope.value))}
+                            disabled={personalTokenSaving}
+                            className="mt-1 h-4 w-4"
+                          />
+                          <span>
+                            <span className="block text-sm font-medium">{scope.label}</span>
+                            <span className="block text-xs text-muted-foreground">{scope.description}</span>
+                          </span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                   <Button onClick={handlePersonalTokenCreate} disabled={personalTokenSaving}>

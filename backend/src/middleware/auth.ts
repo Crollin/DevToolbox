@@ -32,6 +32,9 @@ export interface JWTPayload {
   email: string;
 }
 
+export const PERSONAL_ACCESS_TOKEN_SCOPES = ['licences', 'tasks', 'knowledge_base'] as const;
+export type PersonalAccessTokenScope = (typeof PERSONAL_ACCESS_TOKEN_SCOPES)[number];
+
 function getBearerToken(req: Request): string | undefined {
   const authHeader = req.headers.authorization;
   if (!authHeader) return undefined;
@@ -139,5 +142,4 @@ export function generateToken(payload: JWTPayload): string {
     expiresIn: '7d', // Token valide 7 jours
   });
 }
-
 

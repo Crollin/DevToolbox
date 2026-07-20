@@ -22,6 +22,12 @@ declare namespace Preferences {
   export type SearchLicences = ExtensionPreferences & {}
   /** Preferences accessible in the `create-licence` command */
   export type CreateLicence = ExtensionPreferences & {}
+  /** Preferences accessible in the `search-tasks` command */
+  export type SearchTasks = ExtensionPreferences & {}
+  /** Preferences accessible in the `create-task` command */
+  export type CreateTask = ExtensionPreferences & {}
+  /** Preferences accessible in the `search-knowledge-base` command */
+  export type SearchKnowledgeBase = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -29,5 +35,11 @@ declare namespace Arguments {
   export type SearchLicences = {}
   /** Arguments passed to the `create-licence` command */
   export type CreateLicence = {}
+  /** Arguments passed to the `search-tasks` command */
+  export type SearchTasks = {}
+  /** Arguments passed to the `create-task` command */
+  export type CreateTask = {}
+  /** Arguments passed to the `search-knowledge-base` command */
+  export type SearchKnowledgeBase = {}
 }
 
