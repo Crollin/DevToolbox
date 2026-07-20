@@ -38,6 +38,24 @@
       "title": "Create Licence",
       "description": "Créer une licence dans DevToolbox",
       "mode": "view"
+    },
+    {
+      "name": "search-tasks",
+      "title": "Search Tasks",
+      "description": "Rechercher et mettre à jour les tâches DevToolbox",
+      "mode": "view"
+    },
+    {
+      "name": "create-task",
+      "title": "Create Task",
+      "description": "Créer une tâche dans DevToolbox",
+      "mode": "view"
+    },
+    {
+      "name": "search-knowledge-base",
+      "title": "Search Knowledge Base",
+      "description": "Rechercher dans la base de connaissances DevToolbox",
+      "mode": "view"
     }
   ],
   "preferences": [

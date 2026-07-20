@@ -11,15 +11,16 @@ Cette extension est privée et destinée à un usage personnel. Elle n'est pas p
 
 ## 1. Créer le Personal Access Token
 
-Le token permet à Raycast d'accéder uniquement aux licences. Il est affiché une seule fois lors de sa création.
+Le token permet à Raycast d'accéder uniquement aux outils sélectionnés. Il est affiché une seule fois lors de sa création.
 
 ### Méthode recommandée : depuis DevToolbox
 
 1. Ouvrez **Mon compte** dans DevToolbox.
 2. Ouvrez l'onglet **Raycast**.
 3. Saisissez un nom, par exemple `Raycast`, puis choisissez éventuellement une date d'expiration.
-4. Cliquez sur **Créer le token**.
-5. Copiez immédiatement le token affiché.
+4. Sélectionnez les périmètres nécessaires : **Licences**, **Tâches** et/ou **Knowledge Base**.
+5. Cliquez sur **Créer le token**.
+6. Copiez immédiatement le token affiché.
 
 La page permet également de consulter les tokens existants et de les révoquer sans utiliser le terminal.
 
@@ -69,6 +70,11 @@ Les commandes suivantes sont ensuite disponibles dans Raycast :
 
 - **Search Licences** : rechercher, copier, modifier, supprimer ou ouvrir une licence ;
 - **Create Licence** : créer une nouvelle licence.
+- **Search Tasks** : rechercher une tâche, changer son statut ou ouvrir son lien ;
+- **Create Task** : créer rapidement une tâche ;
+- **Search Knowledge Base** : rechercher une note, copier son contenu ou ouvrir son lien.
+
+Chaque commande nécessite le périmètre correspondant dans le token. Par exemple, un token avec uniquement `tasks` ne pourra pas accéder aux licences ou à la Knowledge Base.
 
 Les clés ne sont jamais affichées dans la liste ; elles sont uniquement copiées après l'action explicite **Copy Licence Key**.
 

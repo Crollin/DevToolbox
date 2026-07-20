@@ -1,12 +1,12 @@
 import express from 'express';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateTokenOrPersonalAccessToken } from '../middleware/auth';
 import { validateBody, kbCategorySchema, kbTagSchema, kbEntryCreateSchema, kbEntryUpdateSchema } from '../lib/validate';
 
 const router = express.Router();
 
-router.use(authenticateToken);
+router.use(authenticateTokenOrPersonalAccessToken('knowledge_base'));
 
 function hasKBFts(): boolean {
   try {
@@ -622,4 +622,3 @@ router.post('/entries/:id/opened', (req, res) => {
 });
 
 export default router;
-
