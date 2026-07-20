@@ -5,6 +5,9 @@ export interface Task {
   dueDate: string;
   client?: string;
   link?: string;
+  tags: string[];
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  notificationChannels: Array<'ntfy' | 'email' | 'telegram'>;
   status: 'pending' | 'in_progress' | 'completed';
   reminderDays?: number[];
   reminderDatetime?: string;
@@ -18,6 +21,9 @@ export interface CreateTaskInput {
   dueDate: string;
   client?: string;
   link?: string;
+  tags?: string[];
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  notificationChannels?: Array<'ntfy' | 'email' | 'telegram'>;
   reminderDays?: number[];
   reminderDatetime?: string;
 }

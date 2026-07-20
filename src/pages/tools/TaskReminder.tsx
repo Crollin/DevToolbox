@@ -16,6 +16,7 @@ const TaskReminder = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
   const [showCompleted, setShowCompleted] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -31,20 +32,24 @@ const TaskReminder = () => {
     return Array.from(clientSet).sort();
   }, [tasks]);
 
+  const tags = useMemo(() => Array.from(new Set(tasks.flatMap((task) => task.tags || []))).sort(), [tasks]);
+
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const matchesSearch = 
         task.title.toLowerCase().includes(search.toLowerCase()) ||
         (task.description && task.description.toLowerCase().includes(search.toLowerCase())) ||
-        (task.client && task.client.toLowerCase().includes(search.toLowerCase()));
+        (task.client && task.client.toLowerCase().includes(search.toLowerCase())) ||
+        (task.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
       
       const matchesStatus = statusFilter === "all" || task.status === statusFilter;
       const matchesClient = clientFilter === "all" || task.client === clientFilter;
+      const matchesTag = tagFilter === "all" || (task.tags || []).includes(tagFilter);
       const matchesCompleted = showCompleted || task.status !== "completed";
       
-      return matchesSearch && matchesStatus && matchesClient && matchesCompleted;
+      return matchesSearch && matchesStatus && matchesClient && matchesTag && matchesCompleted;
     });
-  }, [tasks, search, statusFilter, clientFilter, showCompleted]);
+  }, [tasks, search, statusFilter, clientFilter, tagFilter, showCompleted]);
 
   const pendingTasks = useMemo(() => {
     return tasks.filter((t) => t.status === "pending").length;
@@ -253,6 +258,17 @@ const TaskReminder = () => {
                   ))}
                 </select>
               </>
+            )}
+
+            {tags.length > 0 && (
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-muted text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="all">Tous les tags</option>
+                {tags.map((tag) => <option key={tag} value={tag}>#{tag}</option>)}
+              </select>
             )}
             
             <span className="text-muted-foreground mx-1">•</span>

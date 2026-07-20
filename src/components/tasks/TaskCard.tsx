@@ -1,7 +1,7 @@
 import { Task } from "@/types/task";
 import TaskStatusBadge from "./TaskStatusBadge";
 import { cn } from "@/lib/utils";
-import { Pencil, Trash2, CheckCircle2, ExternalLink, Calendar, User, Link as LinkIcon } from "lucide-react";
+import { Pencil, Trash2, CheckCircle2, ExternalLink, Calendar, User, Link as LinkIcon, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -49,7 +49,10 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => 
             <div className="flex items-center gap-2 flex-wrap mb-2">
               <h3 className="font-semibold text-foreground">{task.title}</h3>
               <TaskStatusBadge task={task} />
+              {task.priority !== 'normal' && <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-medium", task.priority === 'urgent' ? "bg-red-500/15 text-red-400" : task.priority === 'high' ? "bg-amber-500/15 text-amber-400" : "bg-muted text-muted-foreground")}>{task.priority === 'urgent' ? 'Urgente' : task.priority === 'high' ? 'Haute' : 'Faible'}</span>}
             </div>
+
+            {task.tags?.length > 0 && <div className="mb-3 flex flex-wrap gap-1.5">{task.tags.map((tag) => <span key={tag} className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary"><Tag className="h-3 w-3" />{tag}</span>)}</div>}
 
             {task.description && (
               <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
