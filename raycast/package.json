@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "Crollin",
   "license": "GPL-3.0-NC",
-  "icon": "icon.png",
+  "icon": "icon.svg",
   "platforms": [
     "macOS"
   ],
