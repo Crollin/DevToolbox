@@ -1,0 +1,9 @@
+# Accès local hors Coolify : mappe le frontend sur l'hôte (images GHCR ou déjà buildées).
+# Usage : docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+#
+# Ne pas utiliser sur Coolify — le proxy gère le routage sans bind de port hôte.
+
+services:
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-14001}:80"

@@ -32,8 +32,8 @@ cp .env.example .env
 ### 2. Démarrer les services
 
 ```bash
-# Construire et démarrer tous les services
-docker compose up -d
+# Construire et démarrer tous les services (port hôte 14001)
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d
 
 # Voir les logs
 docker compose logs -f
@@ -186,17 +186,16 @@ FRONTEND_URL=http://localhost:14001
 
 ### Ports
 
-Par défaut :
-- **Frontend** : port 14001 (seul service exposé sur l’hôte)
-- **Backend** : non exposé ; l’API est accessible uniquement via le frontend (chemin `/api`)
+- **Coolify** : aucun port hôte n’est publié ; le reverse proxy (Traefik/Caddy) joint le frontend sur le port conteneur `80`. Cela évite les conflits (`port is already allocated`) quand plusieurs instances (prod + preview) tournent sur le même serveur.
+- **Local** : le frontend est mappé sur l’hôte via `docker-compose.build.yml` ou `docker-compose.local.yml` (défaut **14001**).
+- **Backend** : jamais exposé ; l’API passe par le frontend (`/api`).
 
-Pour changer le port du frontend, modifiez `docker-compose.yml` :
+```bash
+# Local avec build
+FRONTEND_PORT=14001 docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 
-```yaml
-services:
-  frontend:
-    ports:
-      - "14001:80"  # Changer 14001 selon vos besoins
+# Local avec images GHCR déjà tirées
+FRONTEND_PORT=14001 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 ```
 
 ### Volumes
@@ -253,8 +252,8 @@ Les images Docker sont publiées sur GitHub Container Registry à chaque release
 docker pull ghcr.io/crollin/devtoolbox-frontend:1.2.0
 docker pull ghcr.io/crollin/devtoolbox-backend:1.2.0
 
-# Démarrer avec le compose (latest par défaut, ou une version précise)
-IMAGE_TAG=latest docker compose up -d
+# Démarrer en local avec mapping du port hôte (latest par défaut, ou version précise)
+IMAGE_TAG=latest docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 ```
 
 **Publier une nouvelle version** : créer un tag Git `vX.Y.Z` — le workflow `.github/workflows/docker-release.yml` build, push sur GHCR et crée la release GitHub.
@@ -264,11 +263,8 @@ Rendre les packages publics (une fois) : GitHub → Packages → devtoolbox-fron
 ### Déploiement local ou build à la volée
 
 ```bash
-# Build des images localement
-docker compose build
-
-# Démarrer
-docker compose up -d
+# Build + démarrage local (mappe le port 14001)
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build -d
 ```
 
 ### Déploiement Coolify (recommandé : images GHCR)
@@ -285,7 +281,8 @@ Coolify **ne doit pas recompiler** l'application sur le serveur (risque OOM / ti
    Coolify → **Settings** → **Docker Registries** → ajouter `ghcr.io` avec un PAT GitHub (`read:packages`).
 
 4. **Domaine**  
-   Assigner un domaine au service **`frontend`** uniquement.
+   Assigner un domaine au service **`frontend`** uniquement (port conteneur `80`).  
+   Ne pas publier de port hôte : le `docker-compose.yml` utilise `expose` (pas `ports`) pour permettre plusieurs instances (branche preview + prod) sans conflit `14001`.
 
 5. **Variables d'environnement — toutes en « Runtime only »**  
    Ne cocher **aucune** variable en « Available at Buildtime » (y compris `NODE_ENV`, `JWT_SECRET`, `PORT`, etc.).  
@@ -298,7 +295,8 @@ Coolify **ne doit pas recompiler** l'application sur le serveur (risque OOM / ti
    | `CORS_ORIGIN` | `https://devtoolbox.example.com` | Non |
    | `FRONTEND_URL` | idem | Non |
 
-   Optionnel : `SMTP_*`, `PORT`, `DB_PATH`, `FRONTEND_PORT`.
+   Optionnel : `SMTP_*`, `PORT`, `DB_PATH`.  
+   Ne pas définir `FRONTEND_PORT` sur Coolify (réservé au compose local).
 
 6. **Stockage**  
    Volume `devtoolbox_data` — la base SQLite est conservée entre déploiements. **Ne jamais** lancer `docker compose down -v` en production.
@@ -327,6 +325,10 @@ docker compose logs backend
 docker compose build --no-cache backend
 docker compose up -d backend
 ```
+
+### Échec Coolify : `Bind for 0.0.0.0:14001 failed: port is already allocated`
+
+Une autre instance DevToolbox (souvent la prod) occupe déjà le port hôte. Le `docker-compose.yml` n’expose plus de port hôte (`expose: "80"` uniquement) : Coolify proxifie via le domaine assigné au service `frontend`. Redeployer après ce correctif ; ne pas définir `FRONTEND_PORT` dans Coolify.
 
 ### Échec du build Coolify (exit 127, « command not found »)
 

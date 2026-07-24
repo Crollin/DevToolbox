@@ -42,8 +42,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "${FRONTEND_PORT:-14001}:80"
+    # Pas de ports hôte : Coolify (Traefik/Caddy) proxifie vers le conteneur.
+    # Évite "Bind … port is already allocated" si plusieurs instances coexistent.
+    # Accès local : docker-compose.build.yml mappe FRONTEND_PORT (défaut 14001).
+    expose:
+      - "80"
     depends_on:
       backend:
         condition: service_healthy

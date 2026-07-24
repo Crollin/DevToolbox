@@ -1,5 +1,7 @@
-# Override local : build les images au lieu de tirer GHCR
+# Override local : build les images + expose le frontend sur l'hôte
 # Usage : docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+#
+# Ne pas utiliser ce fichier sur Coolify (conflit de ports entre instances).
 
 services:
   backend:
@@ -11,3 +13,5 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-14001}:80"
