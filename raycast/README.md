@@ -1,55 +1,46 @@
-# DevToolbox Licences — guide d'installation Raycast
+# DevToolbox — extension Raycast
 
-Cette extension est privée et destinée à un usage personnel. Elle n'est pas publiée dans le Raycast Store.
+Commandes Raycast pour les licences, tâches et Knowledge Base de votre instance DevToolbox. L’extension s’installe en local (hors Raycast Store).
 
-## Pré-requis
+## Prérequis
 
-- Raycast installé sur le Mac ;
-- Node.js 22 ou plus récent ;
-- une instance DevToolbox accessible depuis le Mac ;
-- une API accessible en HTTPS en production (ou `http://localhost:1400` en local).
+- Raycast sur macOS
+- Node.js 22+
+- Une instance DevToolbox joignable (ex. `http://localhost:1400` ou votre domaine HTTPS)
 
-## 1. Créer le Personal Access Token
+## 1. Créer un Personal Access Token
 
-Le token permet à Raycast d'accéder uniquement aux outils sélectionnés. Il est affiché une seule fois lors de sa création.
+Le token `dt_...` est affiché **une seule fois** à la création.
 
-### Méthode recommandée : depuis DevToolbox
+### Depuis DevToolbox (recommandé)
 
-1. Ouvrez **Mon compte** dans DevToolbox.
-2. Ouvrez l'onglet **Raycast**.
-3. Saisissez un nom, par exemple `Raycast`, puis choisissez éventuellement une date d'expiration.
-4. Sélectionnez les périmètres nécessaires : **Licences**, **Tâches** et/ou **Knowledge Base**.
-5. Cliquez sur **Créer le token**.
-6. Copiez immédiatement le token affiché.
+1. **Mon compte** → onglet **Raycast**
+2. Nommez le token, choisissez une expiration optionnelle
+3. Scopes : **Licences**, **Tâches** et/ou **Knowledge Base**
+4. **Créer le token** → copiez-le immédiatement
 
-La page permet également de consulter les tokens existants et de les révoquer sans utiliser le terminal.
+Vous pouvez lister et révoquer les tokens depuis la même page.
 
-### Méthode alternative : via l'API
-
-Depuis un terminal, connectez-vous d'abord pour obtenir un JWT de session :
+### Via l’API
 
 ```bash
+# JWT de session
 curl -s -X POST https://votre-domaine.example/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"vous@example.com","password":"VOTRE_MOT_DE_PASSE"}'
-```
 
-Puis créez le token Raycast en remplaçant `VOTRE_JWT` :
-
-```bash
+# Token Raycast (scopes optionnels)
 curl -s -X POST https://votre-domaine.example/api/auth/personal-tokens \
   -H 'Authorization: Bearer VOTRE_JWT' \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Raycast"}'
+  -d '{"name":"Raycast","scopes":["licences","tasks","knowledge_base"]}'
 ```
 
-Copiez immédiatement la valeur `token` retournée. Elle ne pourra pas être récupérée plus tard.
+En local, remplacez l’URL par `http://localhost:1400`.
 
-Pour une installation locale, remplacez l'URL par `http://localhost:1400`.
+## 2. Installer l’extension
 
-## 2. Installer l'extension localement
-
-Depuis la racine du projet :
+Depuis la racine du dépôt :
 
 ```bash
 cd raycast
@@ -57,45 +48,37 @@ npm install
 npm run dev
 ```
 
-Raycast charge alors l'extension en mode développement. Elle reste locale et privée.
+Dans Raycast : **Manage Extensions → + → Import Extension** → dossier `raycast`.
 
-## 3. Configurer Raycast
+## 3. Configurer
 
-Dans Raycast, ouvrez les préférences de l'extension et renseignez :
+Préférences de l’extension :
 
-- **DevToolbox API URL** : l'URL incluant `/api`, par exemple `https://votre-domaine.example/api` ;
-- **Personal Access Token** : la valeur `dt_...` copiée à l'étape précédente.
+- **DevToolbox API URL** : URL avec `/api` (ex. `https://votre-domaine.example/api`)
+- **Personal Access Token** : valeur `dt_...`
 
-Les commandes suivantes sont ensuite disponibles dans Raycast :
+Commandes :
 
-- **Search Licences** : rechercher, copier, modifier, supprimer ou ouvrir une licence ;
-- **Create Licence** : créer une nouvelle licence.
-- **Search Tasks** : rechercher une tâche, changer son statut ou ouvrir son lien ;
-- **Create Task** : créer rapidement une tâche ;
-- **Search Knowledge Base** : rechercher une note, copier son contenu ou ouvrir son lien.
+| Commande | Scope requis |
+|----------|--------------|
+| Search / Create Licences | `licences` |
+| Search / Create Tasks | `tasks` |
+| Search Knowledge Base | `knowledge_base` |
 
-Chaque commande nécessite le périmètre correspondant dans le token. Par exemple, un token avec uniquement `tasks` ne pourra pas accéder aux licences ou à la Knowledge Base.
+Les clés de licence ne s’affichent pas dans la liste : uniquement via **Copy Licence Key**.
 
-Les clés ne sont jamais affichées dans la liste ; elles sont uniquement copiées après l'action explicite **Copy Licence Key**.
-
-## Révoquer l'accès
-
-Listez les tokens avec votre JWT de session :
+## Révoquer l’accès
 
 ```bash
 curl -s https://votre-domaine.example/api/auth/personal-tokens \
   -H 'Authorization: Bearer VOTRE_JWT'
-```
 
-Puis révoquez le token avec son `id` :
-
-```bash
 curl -X DELETE https://votre-domaine.example/api/auth/personal-tokens/ID_DU_TOKEN \
   -H 'Authorization: Bearer VOTRE_JWT'
 ```
 
 ## Dépannage
 
-- **Token invalide** : créez un nouveau token et remplacez la valeur dans les préférences Raycast.
-- **API inaccessible** : vérifiez l'URL, le port, le HTTPS et que le serveur est joignable depuis le Mac.
-- **L'extension n'apparaît pas** : relancez `npm run dev` depuis le dossier `raycast`.
+- **Token invalide** : créez un nouveau token et mettez à jour les préférences Raycast
+- **API inaccessible** : vérifiez URL, HTTPS, firewall
+- **Extension absente** : relancez `npm run dev` dans `raycast/`

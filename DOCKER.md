@@ -25,7 +25,7 @@ git clone https://github.com/Crollin/DevToolbox
 cd DevToolbox
 
 # Fichier d'environnement (JWT_SECRET est obligatoire pour le backend)
-cp backend/.env.example .env
+cp .env.example .env
 # Éditer .env et définir JWT_SECRET (ex: openssl rand -base64 32)
 ```
 
@@ -33,14 +33,14 @@ cp backend/.env.example .env
 
 ```bash
 # Construire et démarrer tous les services
-docker-compose up -d
+docker compose up -d
 
 # Voir les logs
-docker-compose logs -f
+docker compose logs -f
 
 # Voir les logs d'un service spécifique
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f frontend
 ```
 
 ### 3. Accéder à l'application
@@ -55,60 +55,60 @@ docker-compose logs -f frontend
 
 ```bash
 # Démarrer les services
-docker-compose up -d
+docker compose up -d
 
 # Arrêter les services
-docker-compose down
+docker compose down
 
 # Arrêter et supprimer les volumes (⚠️ supprime les données)
-docker-compose down -v
+docker compose down -v
 
 # Redémarrer un service
-docker-compose restart backend
-docker-compose restart frontend
+docker compose restart backend
+docker compose restart frontend
 
 # Rebuild après modifications
-docker-compose up -d --build
+docker compose up -d --build
 
 # Rebuild un service spécifique
-docker-compose build backend
-docker-compose up -d backend
+docker compose build backend
+docker compose up -d backend
 ```
 
 ### Logs et débogage
 
 ```bash
 # Voir tous les logs
-docker-compose logs -f
+docker compose logs -f
 
 # Logs d'un service
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f frontend
 
 # Dernières 100 lignes
-docker-compose logs --tail=100
+docker compose logs --tail=100
 
 # Exécuter une commande dans un conteneur
-docker-compose exec backend sh
-docker-compose exec frontend sh
+docker compose exec backend sh
+docker compose exec frontend sh
 
 # Vérifier le statut
-docker-compose ps
+docker compose ps
 ```
 
 ### Base de données
 
 ```bash
 # Accéder à la base de données SQLite
-docker-compose exec backend sh
+docker compose exec backend sh
 cd /app/data
 sqlite3 devtoolbox.db
 
 # Sauvegarder la base de données
-docker-compose exec backend cp /app/data/devtoolbox.db /app/data/devtoolbox.db.backup
+docker compose exec backend cp /app/data/devtoolbox.db /app/data/devtoolbox.db.backup
 
 # Restaurer depuis un backup
-docker-compose exec backend cp /app/data/devtoolbox.db.backup /app/data/devtoolbox.db
+docker compose exec backend cp /app/data/devtoolbox.db.backup /app/data/devtoolbox.db
 ```
 
 ## Configuration
@@ -182,7 +182,7 @@ FRONTEND_URL=http://localhost:14001
 - `JWT_SECRET` est **obligatoire** : le Compose refuse de démarrer s’il est vide. Générez un secret fort avec : `openssl rand -base64 32`
 - Ne jamais utiliser le secret par défaut en production
 - Les variables SMTP sont optionnelles. L’application fonctionne sans elles, mais aucun email de confirmation ne sera envoyé
-- En local, vous pouvez aussi lancer avec `docker-compose --env-file .env up` pour charger explicitement le .env
+- En local, vous pouvez aussi lancer avec `docker compose --env-file .env up` pour charger explicitement le .env
 
 ### Ports
 
@@ -204,7 +204,7 @@ services:
 Les données sont persistées dans le volume nommé **devtoolbox_data** (monté sur `/app/data` dans le backend) :
 
 - Base de données SQLite : dans le volume `devtoolbox_data`
-- Les données sont conservées après `docker-compose down` ; pour tout supprimer : `docker-compose down -v`
+- Les données sont conservées après `docker compose down` ; pour tout supprimer : `docker compose down -v`
 
 ## Développement
 
@@ -228,7 +228,7 @@ npm run dev  # Port 8080
 Pour développer avec Docker en mode watch :
 
 1. Modifier `docker-compose.yml` pour monter les volumes en développement
-2. Utiliser `docker-compose -f docker-compose.dev.yml up` (si créé)
+2. Utiliser `docker compose -f docker-compose.dev.yml up` (si créé)
 
 ## Production
 
@@ -250,8 +250,8 @@ Les images Docker sont publiées sur GitHub Container Registry à chaque release
 
 ```bash
 # Tirer une version précise
-docker pull ghcr.io/crollin/devtoolbox-frontend:1.0.0
-docker pull ghcr.io/crollin/devtoolbox-backend:1.0.0
+docker pull ghcr.io/crollin/devtoolbox-frontend:1.2.0
+docker pull ghcr.io/crollin/devtoolbox-backend:1.2.0
 
 # Démarrer avec le compose (latest par défaut, ou une version précise)
 IMAGE_TAG=latest docker compose up -d
@@ -318,14 +318,14 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 
 ```bash
 # Vérifier les logs
-docker-compose logs backend
+docker compose logs backend
 
 # Vérifier que JWT_SECRET est défini (obligatoire)
 # En local : créer .env depuis .env.example et y mettre JWT_SECRET
 
 # Rebuild le conteneur
-docker-compose build --no-cache backend
-docker-compose up -d backend
+docker compose build --no-cache backend
+docker compose up -d backend
 ```
 
 ### Échec du build Coolify (exit 127, « command not found »)
@@ -334,9 +334,9 @@ Coolify injecte `NODE_ENV=production` pendant le build, ce qui fait que `npm ci`
 
 ### Le frontend ne se connecte pas à l'API
 
-1. Vérifier que le backend est démarré : `docker-compose ps`
-2. Vérifier la configuration Nginx : `docker-compose exec frontend cat /etc/nginx/conf.d/default.conf`
-3. Tester l’API via le proxy du frontend ou depuis le conteneur backend : `docker-compose exec backend wget -q -O- http://localhost:1400/health`
+1. Vérifier que le backend est démarré : `docker compose ps`
+2. Vérifier la configuration Nginx : `docker compose exec frontend cat /etc/nginx/conf.d/default.conf`
+3. Tester l’API via le proxy du frontend ou depuis le conteneur backend : `docker compose exec backend wget -q -O- http://localhost:1400/health`
 
 ### Problèmes de permissions
 
@@ -346,13 +346,13 @@ Les données sont dans le volume nommé `devtoolbox_data`. Si le conteneur backe
 
 ```bash
 # Arrêter et supprimer conteneurs et volumes (⚠️ perte des données)
-docker-compose down -v
+docker compose down -v
 
 # Supprimer les images
-docker-compose rm -f
+docker compose rm -f
 
 # Redémarrer
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## Architecture
@@ -405,6 +405,6 @@ Ce script vérifie :
 ## Support
 
 Pour toute question ou problème :
-1. Vérifiez les logs : `docker-compose logs`
+1. Vérifiez les logs : `docker compose logs`
 2. Consultez la documentation du projet
 3. Ouvrez une issue sur le dépôt GitHub

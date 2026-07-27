@@ -790,7 +790,7 @@ const Account = () => {
               <CardHeader>
                 <CardTitle>Extension Raycast</CardTitle>
                 <CardDescription>
-                  Gérez l'accès de votre extension Raycast privée aux licences DevToolbox.
+                  Gérez l'accès de votre extension Raycast aux outils DevToolbox (licences, tâches, Knowledge Base).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">

@@ -66,18 +66,19 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 
 - `PUT /api/auth/change-password` - Changer le mot de passe (authentification requise)
   - Headers: `Authorization: Bearer <token>`
-  - Body: `{ newPassword: string }`
+  - Body: `{ currentPassword: string, newPassword: string }`
   - Retourne: `{ success: true, message: string }`
 
-- `POST /api/auth/personal-tokens` - Créer un token privé pour une intégration
+- `POST /api/auth/personal-tokens` - Créer un Personal Access Token pour une intégration (ex. Raycast)
   - Headers: `Authorization: Bearer <JWT de session>`
-  - Body: `{ name: string, expiresAt?: string | null }`
+  - Body: `{ name: string, expiresAt?: string | null, scopes?: ('licences' | 'tasks' | 'knowledge_base')[] }`
+  - Par défaut : `scopes: ['licences']` si omis
   - Le token brut est retourné une seule fois dans `token`
-  - Le token est limité au scope `licences` et peut être révoqué
-- `GET /api/auth/personal-tokens` - Lister les tokens privés de l'utilisateur
-- `DELETE /api/auth/personal-tokens/:id` - Révoquer un token privé
+  - Le token est hashé côté serveur et peut être révoqué
+- `GET /api/auth/personal-tokens` - Lister les tokens de l'utilisateur
+- `DELETE /api/auth/personal-tokens/:id` - Révoquer un token
 
-**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences` acceptent également un Personal Access Token `dt_...` limité au scope `licences`.
+**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences`, `/api/tasks` et `/api/kb` acceptent également un Personal Access Token `dt_...` si le scope correspondant est présent.
 
 ### Snippets
 - `GET /api/snippets` - Liste tous les snippets

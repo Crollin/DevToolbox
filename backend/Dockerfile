@@ -26,7 +26,7 @@ FROM node:20-alpine
 
 LABEL maintainer="DevToolbox"
 LABEL description="DevToolbox Backend - Production"
-LABEL version="1.0"
+LABEL version="1.2.0"
 
 # Installer wget pour le healthcheck
 RUN apk add --no-cache wget

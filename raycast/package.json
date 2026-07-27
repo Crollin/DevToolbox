@@ -2,9 +2,9 @@
   "name": "devtoolbox-licences-raycast",
   "title": "DevToolbox Licences",
   "description": "Accéder rapidement à ses licences DevToolbox depuis Raycast",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "author": "Crollin",
-  "license": "GPL-3.0-NC",
+  "license": "GPL-3.0-only",
   "icon": "icon.svg",
   "platforms": [
     "macOS"

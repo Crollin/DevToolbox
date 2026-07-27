@@ -6,18 +6,25 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-27
+
 ### Ajouté
 
-- Extension Raycast privée pour rechercher et gérer les licences DevToolbox
-- Personal Access Tokens `dt_...` hashés, révocables et limités au scope `licences`
-- Endpoints de création, liste et révocation des tokens privés
-- Gestion des tokens Raycast depuis les paramètres **Mon compte → Raycast**
-- Guide d'installation de l'extension Raycast
+- Extension Raycast pour licences, tâches et Knowledge Base
+- Personal Access Tokens `dt_...` hashés, révocables, scopes `licences` / `tasks` / `knowledge_base`
+- Gestion des tokens depuis **Mon compte → Raycast**
+- Rappels de tâches enrichis (Raycast + API)
+- Préparation release publique : GPL-3.0-only, CONTRIBUTING, SECURITY, hygiene repo
 
 ### Modifié
 
-- Les routes `/api/licences` acceptent désormais les Personal Access Tokens dédiés aux intégrations privées
-- README principal et documentation backend mis à jour avec les endpoints Raycast
+- Documentation Docker unifiée (`cp .env.example .env`, `docker compose`)
+- Ton et guides Raycast pour usage public (hors Store)
+- Labels Docker alignés sur la version `1.2.0`
+
+### Corrigé
+
+- Binding `const` dans MarkdownEditor (conversion de titres)
 
 ## [1.1.0] - 2026-06-24
 
@@ -54,6 +61,7 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 Version initiale : 16 outils, auth JWT, notifications multi-canaux (Ntfy, email, Telegram), déploiement Docker.
 
-[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Crollin/DevToolbox/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Crollin/DevToolbox/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Crollin/DevToolbox/releases/tag/v1.0.0
