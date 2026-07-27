@@ -488,23 +488,6 @@ export function initializeDatabase() {
     console.log('Migration code_snippets (is_favorite) déjà effectuée ou table n\'existe pas encore');
   }
 
-  // Table pour les calculs électriques
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS electricalc_settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      settings TEXT NOT NULL, -- JSON
-      updated_at TEXT NOT NULL
-    )
-  `);
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS electricalc_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      calculation TEXT NOT NULL, -- JSON
-      created_at TEXT NOT NULL
-    )
-  `);
-
   // Table pour les tâches
   db.exec(`
     CREATE TABLE IF NOT EXISTS tasks (

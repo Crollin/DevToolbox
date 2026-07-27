@@ -16,7 +16,6 @@ import NotFound from "./pages/NotFound";
 
 const LicenceKeyHub = lazy(() => import("./pages/tools/LicenceKeyHub"));
 const CsvPreviewPro = lazy(() => import("./pages/tools/CsvPreviewPro"));
-const MonCalculEnergie = lazy(() => import("./pages/tools/MonCalculEnergie"));
 const WPScriptLibrary = lazy(() => import("./pages/tools/WPScriptLibrary"));
 const ColorPaletteGen = lazy(() => import("./pages/tools/ColorPaletteGen"));
 const WPCLIGlossary = lazy(() => import("./pages/tools/WPCLIGlossary"));
@@ -67,7 +66,6 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/tools/licence-key-hub" element={<ProtectedRoute><LicenceKeyHub /></ProtectedRoute>} />
                 <Route path="/tools/csv-preview-pro" element={<ProtectedRoute><CsvPreviewPro /></ProtectedRoute>} />
-                <Route path="/tools/mon-calcul-energie" element={<ProtectedRoute><MonCalculEnergie /></ProtectedRoute>} />
                 <Route path="/tools/wp-script-library" element={<ProtectedRoute><WPScriptLibrary /></ProtectedRoute>} />
                 <Route path="/tools/color-palette-gen" element={<ProtectedRoute><ColorPaletteGen /></ProtectedRoute>} />
                 <Route path="/tools/wpcli-glossary" element={<ProtectedRoute><WPCLIGlossary /></ProtectedRoute>} />

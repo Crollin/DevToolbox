@@ -74,16 +74,6 @@ export const tools: Tool[] = [
     color: "accent",
   },
   {
-    id: "mon-calcul-energie",
-    name: "Mon Calcul Énergie",
-    description: "Calculateur de consommation énergétique et estimation des coûts pour vos projets.",
-    category: "utilitaires",
-    icon: "Zap",
-    url: "#",
-    tags: ["énergie", "calcul", "estimation"],
-    color: "emerald",
-  },
-  {
     id: "wpcli-glossary",
     name: "WP-CLI Glossary",
     description: "Glossaire de commandes WP-CLI avec catégories, favoris et recherche rapide.",

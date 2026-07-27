@@ -160,12 +160,6 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 - `POST /api/licences/check-expiring` - Déclenche manuellement la vérification et l'envoi des rappels automatiques
   - Retourne: `{ message: string }`
 
-### Calculateur électrique
-- `GET /api/electricalc/settings` - Récupère les paramètres
-- `PUT /api/electricalc/settings` - Met à jour les paramètres
-- `GET /api/electricalc/history` - Récupère l'historique
-- `POST /api/electricalc/history` - Ajoute un calcul à l'historique
-
 ### Health Check
 - `GET /health` - Vérifie l'état du serveur
 
@@ -224,7 +218,6 @@ backend/
 │   ├── lib/
 │   │   ├── email.ts          # Service d'envoi d'emails (Nodemailer) et notifications de licences
 │   │   └── licenceReminders.ts  # Logique de vérification et envoi des rappels automatiques
-│   │   └── electricalc.ts    # Routes pour le calculateur
 │   └── index.ts              # Point d'entrée du serveur
 ├── data/                     # Dossier pour la base de données
 ├── dist/                     # Fichiers compilés

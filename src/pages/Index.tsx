@@ -95,7 +95,7 @@ const Index = () => {
             </div>
             <div className="border-l border-primary pl-5 pb-1">
               <p className="font-mono text-xs text-muted-foreground mb-2">SESSION NOTE</p>
-              <p className="text-sm text-foreground leading-relaxed">18 outils prêts à l’emploi. Cherchez par nom, usage ou technologie.</p>
+              <p className="text-sm text-foreground leading-relaxed">{tools.length} outils prêts à l’emploi. Cherchez par nom, usage ou technologie.</p>
               <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-primary"><ArrowUpRight className="w-3.5 h-3.5" /> Ouvrir un outil</div>
             </div>
           </div>

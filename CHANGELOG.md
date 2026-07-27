@@ -6,6 +6,10 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+### Retiré
+
+- Outil **Mon Calcul Énergie** (ElectriCalc) et API `/api/electricalc`
+
 ## [1.2.0] - 2026-07-27
 
 ### Ajouté

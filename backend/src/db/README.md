@@ -63,8 +63,6 @@ La base de données SQLite est utilisée pour stocker toutes les données de Dev
   - `notes` (TEXT) - Notes
   - `created_at` (TEXT) - Date de création
   - `updated_at` (TEXT) - Date de mise à jour
-- `electricalc_settings` - Paramètres du calculateur électrique
-- `electricalc_history` - Historique des calculs
 
 ## Migration
 
