@@ -1,9 +1,11 @@
 # DevToolbox - Docker Compose (Coolify / production)
 #
 # Coolify : build sur le serveur (images GHCR privees) ou pull si registry configure.
-# Local build explicite : docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+# Local build : docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+# Local (images tirees) : docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 #
 # Variables Coolify (Runtime only) : JWT_SECRET, CORS_ORIGIN, FRONTEND_URL, IMAGE_TAG
+# Ne pas binder de port hote ici : Coolify proxifie le service frontend (expose 80).
 
 services:
   backend:
@@ -42,8 +44,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "${FRONTEND_PORT:-14001}:80"
+    # Pas de ports hôte : Coolify (Traefik/Caddy) proxifie vers le conteneur.
+    # Évite "Bind … port is already allocated" si plusieurs instances coexistent.
+    # Accès local : docker-compose.build.yml mappe FRONTEND_PORT (défaut 14001).
+    expose:
+      - "80"
     depends_on:
       backend:
         condition: service_healthy
