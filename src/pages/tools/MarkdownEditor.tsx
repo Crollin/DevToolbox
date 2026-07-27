@@ -194,7 +194,7 @@ Bonne édition !
     }
 
     // For plain text, preserve structure and add basic formatting
-    let markdown = text;
+    const markdown = text;
     
     // Convert lines that look like titles (short lines followed by empty lines)
     const lines = markdown.split("\n");
