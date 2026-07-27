@@ -6,6 +6,20 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
+## Aperçu
+
+**Accueil** — workspace, stats et recherche d’outils :
+
+![Accueil DevToolbox](.github/screenshots/home.png)
+
+**Catalogue d’outils** — 18 outils filtrables par catégorie :
+
+![Catalogue d'outils DevToolbox](.github/screenshots/tools-grid.png)
+
+**Authentification** — connexion / inscription (données fictives) :
+
+![Authentification DevToolbox](.github/screenshots/auth-modal.png)
+
 ## Fonctionnalités
 
 - **18 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, tâches, Knowledge Base, générateurs wp-config / plugin header, calcul énergie
