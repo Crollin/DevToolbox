@@ -6,6 +6,11 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+### Ajouté
+
+- Outil **Domain Hub** : comparateur multi-registrar (Cloudflare, Hostinger, OVH), portefeuille (client / payeur / dates), sync Hostinger, alertes d’expiration, brouillons facture Qonto
+- API `/api/domains` (scope PAT `domains`)
+
 ### Retiré
 
 - Outil **Mon Calcul Énergie** (ElectriCalc) et API `/api/electricalc`

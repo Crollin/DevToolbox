@@ -96,6 +96,42 @@ export const kbEntryCreateSchema = z.object({
 
 export const kbEntryUpdateSchema = kbEntryCreateSchema.partial();
 
+// =========================
+// Domain Hub
+// =========================
+export const domainCompareSchema = z.object({
+  name: z.string().min(1).max(253),
+  tlds: z.array(z.string().min(1).max(63)).max(12).optional(),
+});
+
+export const domainPortfolioCreateSchema = z.object({
+  name: z.string().min(1).max(253),
+  registrar: z.enum(['cloudflare', 'hostinger', 'ovh', 'o2switch', 'other']),
+  clientName: z.string().max(MAX_NAME).optional().nullable(),
+  clientEmail: z
+    .union([z.string().email().max(255), z.literal(''), z.null()])
+    .optional(),
+  payer: z.enum(['agency', 'client']).optional().default('agency'),
+  costYearly: z.number().nonnegative().optional().nullable(),
+  sellYearly: z.number().nonnegative().optional().nullable(),
+  currency: z.string().min(1).max(10).optional().default('EUR'),
+  expiresAt: z.string().max(50).optional().nullable(),
+  autoRenew: z.boolean().optional().default(false),
+  notes: z.string().max(MAX_DESCRIPTION).optional().nullable(),
+  externalId: z.string().max(255).optional().nullable(),
+  notificationsEnabled: z.boolean().optional().default(true),
+  qontoClientId: z.string().uuid().optional().nullable(),
+});
+
+export const domainPortfolioUpdateSchema = domainPortfolioCreateSchema.partial();
+
+export const domainQontoDraftSchema = z.object({
+  clientId: z.string().uuid().optional(),
+  vatRate: z.number().min(0).max(1).optional().default(0.2),
+  dueDays: z.number().int().min(1).max(120).optional().default(30),
+  description: z.string().max(500).optional(),
+});
+
 export function validateBody<T>(schema: ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {

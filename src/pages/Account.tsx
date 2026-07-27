@@ -87,6 +87,7 @@ const PERSONAL_TOKEN_SCOPE_OPTIONS = [
   { value: "licences", label: "Licences", description: "Lire et gérer les clés de licence" },
   { value: "tasks", label: "Tâches", description: "Consulter et mettre à jour les tâches" },
   { value: "knowledge_base", label: "Knowledge Base", description: "Rechercher et ouvrir vos notes" },
+  { value: "domains", label: "Domaines", description: "Comparer et gérer le portefeuille Domain Hub" },
 ] as const;
 
 const Account = () => {

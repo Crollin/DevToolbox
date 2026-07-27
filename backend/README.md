@@ -71,14 +71,14 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 
 - `POST /api/auth/personal-tokens` - Créer un Personal Access Token pour une intégration (ex. Raycast)
   - Headers: `Authorization: Bearer <JWT de session>`
-  - Body: `{ name: string, expiresAt?: string | null, scopes?: ('licences' | 'tasks' | 'knowledge_base')[] }`
+  - Body: `{ name: string, expiresAt?: string | null, scopes?: ('licences' | 'tasks' | 'knowledge_base' | 'domains')[] }`
   - Par défaut : `scopes: ['licences']` si omis
   - Le token brut est retourné une seule fois dans `token`
   - Le token est hashé côté serveur et peut être révoqué
 - `GET /api/auth/personal-tokens` - Lister les tokens de l'utilisateur
 - `DELETE /api/auth/personal-tokens/:id` - Révoquer un token
 
-**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences`, `/api/tasks` et `/api/kb` acceptent également un Personal Access Token `dt_...` si le scope correspondant est présent.
+**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences`, `/api/tasks`, `/api/kb` et `/api/domains` acceptent également un Personal Access Token `dt_...` si le scope correspondant est présent.
 
 ### Snippets
 - `GET /api/snippets` - Liste tous les snippets
@@ -160,6 +160,21 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 - `POST /api/licences/check-expiring` - Déclenche manuellement la vérification et l'envoi des rappels automatiques
   - Retourne: `{ message: string }`
 
+### Domains (Domain Hub) — authentification JWT ou PAT scope `domains`
+
+- `POST /api/domains/compare` — Comparateur multi-registrar (Cloudflare, Hostinger, OVH)
+  - Body: `{ name: string, tlds?: string[] }`
+  - Retourne disponibilité + prix création/renouvellement ; providers non configurés → `status: skipped`
+- `GET /api/domains` — Portefeuille domaines de l'utilisateur
+- `POST /api/domains` — Ajoute un domaine au portefeuille
+- `PUT /api/domains/:id` — Met à jour un domaine
+- `DELETE /api/domains/:id` — Supprime un domaine
+- `POST /api/domains/sync/hostinger` — Importe/met à jour les dates d'expiration depuis Hostinger
+- `POST /api/domains/:id/qonto-draft` — Crée un **brouillon** de facture Qonto (à valider dans Qonto)
+  - Body optionnel: `{ clientId?, vatRate?, dueDays?, description? }`
+
+Variables registrar / Qonto (toutes optionnelles) : `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HOSTINGER_API_TOKEN`, `OVH_APP_KEY`, `OVH_APP_SECRET`, `OVH_CONSUMER_KEY`, `OVH_SUBSIDIARY`, `DOMAIN_USD_EUR_RATE`, `QONTO_API_KEY`, `QONTO_STAGING_TOKEN`, `QONTO_BASE_URL`.
+
 ### Health Check
 - `GET /health` - Vérifie l'état du serveur
 
@@ -214,6 +229,8 @@ backend/
 │   │   ├── git.ts            # Routes pour Git
 │   │   ├── icons.ts          # Routes pour les icônes
 │   │   ├── licences.ts       # Routes pour les licences et notifications (authentification requise)
+│   │   ├── domains.ts        # Domain Hub : compare, portefeuille, sync, Qonto
+│   │   ├── tasks.ts          # Routes pour les tâches
 │   │   └── ...
 │   ├── lib/
 │   │   ├── email.ts          # Service d'envoi d'emails (Nodemailer) et notifications de licences

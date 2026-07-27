@@ -1,6 +1,7 @@
 import app from './app';
 import { checkAndSendReminders } from './lib/licenceReminders';
 import { checkAndSendTaskReminders } from './lib/taskReminders';
+import { checkAndSendDomainReminders } from './lib/domainReminders';
 
 const PORT = process.env.PORT || 1400;
 
@@ -23,6 +24,11 @@ app.listen(PORT, () => {
     checkAndSendTaskReminders().catch((error) => {
       console.error('Erreur lors de la vérification initiale des rappels de tâches:', error);
     });
+
+    console.log('🌐 Vérification initiale des rappels de domaines...');
+    checkAndSendDomainReminders().catch((error) => {
+      console.error('Erreur lors de la vérification initiale des rappels domaines:', error);
+    });
   }, 5000); // 5 secondes après le démarrage
   
   // Puis exécuter périodiquement
@@ -35,6 +41,11 @@ app.listen(PORT, () => {
     console.log('📋 Vérification périodique des rappels de tâches...');
     checkAndSendTaskReminders().catch((error) => {
       console.error('Erreur lors de la vérification périodique des rappels de tâches:', error);
+    });
+
+    console.log('🌐 Vérification périodique des rappels de domaines...');
+    checkAndSendDomainReminders().catch((error) => {
+      console.error('Erreur lors de la vérification périodique des rappels domaines:', error);
     });
   }, REMINDER_CHECK_INTERVAL);
   

@@ -20,6 +20,7 @@ import authRoutes from './routes/auth';
 import accountRoutes from './routes/account';
 import tasksRoutes from './routes/tasks';
 import toolsRoutes from './routes/tools';
+import domainsRoutes from './routes/domains';
 import kbRoutes from './routes/kb';
 
 validateEnv();
@@ -64,6 +65,7 @@ app.use('/api/licences', licencesRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api/kb', kbRoutes);
+app.use('/api/domains', domainsRoutes);
 
 // Route de santé (vérifie la connexion à la base de données)
 app.get('/health', (_req, res) => {

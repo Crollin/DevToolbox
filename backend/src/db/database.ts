@@ -682,6 +682,35 @@ export function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entry_tags_tag_id ON kb_entry_tags(tag_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entry_tags_entry_id ON kb_entry_tags(entry_id)`);
 
+  // Domain Hub — portefeuille
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS domains (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      registrar TEXT NOT NULL,
+      client_name TEXT,
+      client_email TEXT,
+      payer TEXT NOT NULL DEFAULT 'agency',
+      cost_yearly REAL,
+      sell_yearly REAL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      expires_at TEXT,
+      auto_renew INTEGER NOT NULL DEFAULT 0,
+      notes TEXT,
+      external_id TEXT,
+      notifications_enabled INTEGER NOT NULL DEFAULT 1,
+      qonto_client_id TEXT,
+      last_invoice_id TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_user_id ON domains(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_expires_at ON domains(expires_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_user_id_name ON domains(user_id, name)`);
+
   console.log('Base de données initialisée avec succès');
 }
 

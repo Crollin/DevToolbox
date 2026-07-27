@@ -64,6 +64,14 @@ La base de données SQLite est utilisée pour stocker toutes les données de Dev
   - `created_at` (TEXT) - Date de création
   - `updated_at` (TEXT) - Date de mise à jour
 
+- `domains` - Portefeuille Domain Hub
+  - `id`, `user_id`, `name`, `registrar`
+  - `client_name`, `client_email`, `payer` (`agency` | `client`)
+  - `cost_yearly`, `sell_yearly`, `currency`
+  - `expires_at`, `auto_renew`, `notes`, `external_id`
+  - `notifications_enabled`, `qonto_client_id`, `last_invoice_id`
+  - `created_at`, `updated_at`
+
 ## Migration
 
 La base de données est initialisée automatiquement au démarrage du serveur via `initializeDatabase()` dans `database.ts`.

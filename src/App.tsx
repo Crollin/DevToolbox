@@ -29,6 +29,7 @@ const WPQueryBuilder = lazy(() => import("./pages/tools/WPQueryBuilder"));
 const ImageResizer = lazy(() => import("./pages/tools/ImageResizer"));
 const TaskReminder = lazy(() => import("./pages/tools/TaskReminder"));
 const KnowledgeBase = lazy(() => import("./pages/tools/KnowledgeBase"));
+const DomainHub = lazy(() => import("./pages/tools/DomainHub"));
 const WPConfigGenerator = lazy(() => import("./pages/tools/WPConfigGenerator"));
 const PluginHeaderBuilder = lazy(() => import("./pages/tools/PluginHeaderBuilder"));
 const Account = lazy(() => import("./pages/Account"));
@@ -80,6 +81,7 @@ const App = () => (
                 <Route path="/tools/task-reminder" element={<ProtectedRoute><TaskReminder /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base/new" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
+                <Route path="/tools/domain-hub" element={<ProtectedRoute><DomainHub /></ProtectedRoute>} />
                 <Route path="/tools/wp-config-generator" element={<ProtectedRoute><WPConfigGenerator /></ProtectedRoute>} />
                 <Route path="/tools/plugin-header-builder" element={<ProtectedRoute><PluginHeaderBuilder /></ProtectedRoute>} />
                 <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />

@@ -16,6 +16,19 @@ const envSchema = z.object({
   RESEND_FROM: z.string().optional(),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   FRONTEND_URL: z.string().optional(),
+  // Domain Hub — registrars (optionnels)
+  CLOUDFLARE_API_TOKEN: z.string().optional(),
+  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
+  HOSTINGER_API_TOKEN: z.string().optional(),
+  OVH_APP_KEY: z.string().optional(),
+  OVH_APP_SECRET: z.string().optional(),
+  OVH_CONSUMER_KEY: z.string().optional(),
+  OVH_SUBSIDIARY: z.string().optional(),
+  DOMAIN_USD_EUR_RATE: z.string().optional(),
+  // Domain Hub — Qonto (optionnel, V3)
+  QONTO_API_KEY: z.string().optional(),
+  QONTO_STAGING_TOKEN: z.string().optional(),
+  QONTO_BASE_URL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

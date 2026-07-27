@@ -12,7 +12,7 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 
 ![Accueil DevToolbox](.github/screenshots/home.png)
 
-**Catalogue d’outils** — 17 outils filtrables par catégorie :
+**Catalogue d’outils** — 18 outils filtrables par catégorie :
 
 ![Catalogue d'outils DevToolbox](.github/screenshots/tools-grid.png)
 
@@ -22,7 +22,7 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 
 ## Fonctionnalités
 
-- **17 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, tâches, Knowledge Base, générateurs wp-config / plugin header
+- **18 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, Domain Hub, tâches, Knowledge Base, générateurs wp-config / plugin header
 - **Auth JWT** multi-comptes, reset mot de passe, Personal Access Tokens (`dt_…`) pour Raycast
 - **Backend** Express + SQLite, notifications (email, Ntfy, Telegram)
 - **Docker Compose** prêt pour self-host (images GHCR)
