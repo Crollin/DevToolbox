@@ -1,4 +1,4 @@
-import { Terminal, LogOut, User, Key, Settings, LogIn, Cloud, Command } from "lucide-react";
+import { LogOut, User, Key, Settings, LogIn, Cloud, Command } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,8 +34,8 @@ const Header = () => {
             tabIndex={0}
           >
             <div className="relative">
-              <div className="w-9 h-9 rounded-md bg-primary text-primary-foreground flex items-center justify-center">
-                <Terminal className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-md overflow-hidden flex items-center justify-center">
+                <img src="/favicon.svg" alt="" className="w-full h-full" />
               </div>
             </div>
             <div>
