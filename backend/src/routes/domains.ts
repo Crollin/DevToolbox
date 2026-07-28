@@ -7,8 +7,11 @@ import {
   domainCompareSchema,
   domainPortfolioCreateSchema,
   domainPortfolioUpdateSchema,
+  domainBillingUpdateSchema,
+  domainBillingExportQuerySchema,
 } from '../lib/validate';
 import { compareDomains } from '../lib/registrars/compare';
+import { buildBillingCsv, filterBillingRows, type BillingExportRow } from '../lib/domainBillingExport';
 
 const router = express.Router();
 
@@ -341,6 +344,63 @@ router.post('/sync/hostinger', async (req, res) => {
   } catch (error) {
     console.error('Erreur sync hostinger:', error);
     res.status(500).json({ error: 'Erreur lors de la synchronisation Hostinger' });
+  }
+});
+
+// Export CSV facturation
+router.get('/export/billing.csv', (req, res) => {
+  try {
+    const parsed = domainBillingExportQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Paramètres invalides' });
+    }
+
+    const rows = db.prepare(`
+      SELECT name, registrar, client_name, client_email, payer,
+             sell_yearly, cost_yearly, currency, expires_at, billing_status
+      FROM domains WHERE user_id = ?
+    `).all(req.user!.id) as BillingExportRow[];
+
+    const filtered = filterBillingRows(rows, parsed.data);
+    const csv = buildBillingCsv(filtered);
+    const filename = `domaines-facturation-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Erreur export billing CSV:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'export CSV' });
+  }
+});
+
+// Mise à jour statut facturation
+router.patch('/:id/billing', validateBody(domainBillingUpdateSchema), (req, res) => {
+  try {
+    const existing = db.prepare('SELECT * FROM domains WHERE id = ? AND user_id = ?').get(
+      req.params.id,
+      req.user!.id
+    ) as DomainRow | undefined;
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Domaine introuvable' });
+    }
+
+    const { billingStatus } = req.body as { billingStatus: string };
+    const now = new Date().toISOString();
+    const lastBilledAt =
+      billingStatus === 'invoiced' || billingStatus === 'paid' ? now : existing.last_billed_at;
+
+    db.prepare(`
+      UPDATE domains SET billing_status = ?, last_billed_at = ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    `).run(billingStatus, lastBilledAt, now, req.params.id, req.user!.id);
+
+    const row = db.prepare('SELECT * FROM domains WHERE id = ?').get(req.params.id) as DomainRow;
+    res.json({ domain: serializeDomain(row) });
+  } catch (error) {
+    console.error('Erreur billing status:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour du statut facturation' });
   }
 });
 
