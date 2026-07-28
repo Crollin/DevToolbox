@@ -1,6 +1,7 @@
 import db from '../db/database';
 import { parseNotificationChannels } from './notificationChannels';
-import { sendLicenceNotifications, NotificationDispatchConfig } from './notificationDispatch';
+import { sendDomainNotifications, NotificationDispatchConfig } from './notificationDispatch';
+import { loadEmailPreferencesForUser } from './email';
 
 function getDaysUntilExpiry(expiresAt: string | null): number | null {
   if (!expiresAt) return null;
@@ -60,24 +61,36 @@ export async function checkAndSendDomainReminders(): Promise<void> {
       }
 
       const domains = db.prepare(`
-        SELECT id, name, expires_at, payer, client_name, notifications_enabled
+        SELECT name, client_name, client_email, payer, sell_yearly, currency, expires_at
         FROM domains
         WHERE user_id = ? AND (notifications_enabled IS NULL OR notifications_enabled = 1)
       `).all(user.id) as Array<{
-        id: string;
         name: string;
-        expires_at: string | null;
-        payer: string;
         client_name: string | null;
-        notifications_enabled: number | null;
+        client_email: string | null;
+        payer: string;
+        sell_yearly: number | null;
+        currency: string;
+        expires_at: string | null;
       }>;
 
       const toNotify = domains
-        .map((d) => ({
-          ...d,
-          daysUntilExpiry: getDaysUntilExpiry(d.expires_at),
-        }))
-        .filter((d) => shouldSendReminder(d.daysUntilExpiry));
+        .map((d) => {
+          const daysUntilExpiry = getDaysUntilExpiry(d.expires_at);
+          return {
+            name: d.name,
+            clientName: d.client_name,
+            clientEmail: d.client_email,
+            payer: d.payer,
+            sellYearly: d.sell_yearly,
+            currency: d.currency || 'EUR',
+            daysUntilExpiry: daysUntilExpiry ?? 0,
+            isExpired: (daysUntilExpiry ?? 0) < 0,
+            _daysUntilExpiry: daysUntilExpiry,
+          };
+        })
+        .filter((d) => shouldSendReminder(d._daysUntilExpiry))
+        .map(({ _daysUntilExpiry, ...domain }) => domain);
 
       if (toNotify.length === 0) continue;
 
@@ -94,17 +107,12 @@ export async function checkAndSendDomainReminders(): Promise<void> {
         telegramChatId: user.telegram_chat_id,
       };
 
-      const fakeLicences = toNotify.map((d) => ({
-        name: `Domaine ${d.name}${d.client_name ? ` (${d.client_name})` : ''} — payeur: ${d.payer}`,
-        daysUntilExpiry: d.daysUntilExpiry || 0,
-        isExpired: (d.daysUntilExpiry || 0) < 0,
-      }));
-
-      await sendLicenceNotifications(
+      const emailPrefs = loadEmailPreferencesForUser(user.id);
+      await sendDomainNotifications(
         config,
         { email: user.email, name: user.name },
-        fakeLicences,
-        null
+        toNotify,
+        emailPrefs
       );
     }
   } catch (error) {

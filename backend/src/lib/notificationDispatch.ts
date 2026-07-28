@@ -1,4 +1,4 @@
-import { sendLicenceExpirationEmail, sendTestEmail, ExpiringLicence, EmailPreferences } from './email';
+import { sendLicenceExpirationEmail, sendDomainExpirationEmail, sendTestEmail, ExpiringLicence, EmailPreferences } from './email';
 import { sendTelegramMessage } from './telegram';
 import { hasChannel, NotificationChannel } from './notificationChannels';
 
@@ -30,6 +30,45 @@ function formatLicenceMessage(licences: ExpiringLicence[]): string {
       return `⚠️ ${licence.name} - ${licence.daysUntilExpiry} jours restants`;
     })
     .join('\n');
+}
+
+export interface ExpiringDomain {
+  name: string;
+  clientName: string | null;
+  clientEmail: string | null;
+  payer: string;
+  sellYearly: number | null;
+  currency: string;
+  daysUntilExpiry: number;
+  isExpired: boolean;
+}
+
+export function formatDomainMessage(domains: ExpiringDomain[]): string {
+  return domains
+    .map((domain) => {
+      const label = domain.clientName
+        ? `${domain.name} (${domain.clientName})`
+        : domain.name;
+      const expiryLine = domain.isExpired
+        ? `❌ Expiré depuis ${Math.abs(domain.daysUntilExpiry)} jours`
+        : `⚠️ ${domain.daysUntilExpiry} jours restants`;
+
+      const billingLines: string[] = [];
+      if (domain.payer === 'client') {
+        billingLines.push('💶 À facturer au client');
+        if (domain.sellYearly != null && domain.sellYearly > 0) {
+          billingLines.push(`   Montant : ${domain.sellYearly.toFixed(2)} ${domain.currency} HT/an`);
+        }
+        if (domain.clientEmail) {
+          billingLines.push(`   Email : ${domain.clientEmail}`);
+        }
+      } else {
+        billingLines.push('🏢 Renouvellement agence');
+      }
+
+      return `${label}\n${expiryLine}\n${billingLines.join('\n')}`;
+    })
+    .join('\n\n');
 }
 
 async function sendNtfyMessage(
@@ -180,6 +219,74 @@ export async function sendLicenceNotifications(
         );
       } catch (error) {
         console.error('Erreur lors de l\'envoi Telegram:', error);
+        results.telegram = false;
+      }
+    }
+  }
+
+  return results;
+}
+
+export async function sendDomainNotifications(
+  config: NotificationDispatchConfig,
+  user: { email: string; name: string },
+  domains: ExpiringDomain[],
+  emailPrefs?: EmailPreferences | null
+): Promise<NotificationDispatchResults> {
+  const results: NotificationDispatchResults = {};
+  const message = formatDomainMessage(domains);
+  const hasExpired = domains.some((domain) => domain.isExpired);
+  const billableCount = domains.filter((d) => d.payer === 'client').length;
+
+  if (hasChannel(config.channels, 'ntfy')) {
+    if (!config.topic) {
+      results.ntfy = false;
+    } else {
+      try {
+        const title =
+          billableCount > 0
+            ? `Domaines à renouveler (${domains.length}, ${billableCount} à facturer)`
+            : `Domaines à renouveler (${domains.length})`;
+        results.ntfy = await sendNtfyMessage(
+          config,
+          title,
+          message,
+          hasExpired ? 'warning,globe' : 'globe',
+          hasExpired ? 'high' : 'default'
+        );
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi Ntfy (domaines):', error);
+        results.ntfy = false;
+      }
+    }
+  }
+
+  if (hasChannel(config.channels, 'email')) {
+    try {
+      results.email = await sendDomainExpirationEmail(
+        user.email,
+        user.name,
+        domains,
+        emailPrefs
+      );
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi email (domaines):', error);
+      results.email = false;
+    }
+  }
+
+  if (hasChannel(config.channels, 'telegram')) {
+    if (!config.telegramChatId) {
+      results.telegram = false;
+    } else {
+      try {
+        const header =
+          billableCount > 0
+            ? `🌐 Domaines à renouveler (${domains.length}, ${billableCount} à facturer)\n\n`
+            : `🌐 Domaines à renouveler (${domains.length})\n\n`;
+        results.telegram = await sendTelegramMessage(config.telegramChatId, header + message);
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi Telegram (domaines):', error);
         results.telegram = false;
       }
     }

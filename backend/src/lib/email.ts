@@ -293,6 +293,103 @@ export interface ExpiringLicence {
   isExpired: boolean;
 }
 
+export interface ExpiringDomainEmail {
+  name: string;
+  clientName: string | null;
+  clientEmail: string | null;
+  payer: string;
+  sellYearly: number | null;
+  currency: string;
+  daysUntilExpiry: number;
+  isExpired: boolean;
+}
+
+/**
+ * Envoie un email de notification d'expiration de domaines
+ */
+export async function sendDomainExpirationEmail(
+  email: string,
+  name: string,
+  domains: ExpiringDomainEmail[],
+  prefs?: EmailPreferences | null
+): Promise<boolean> {
+  if (!getEmailProvider()) {
+    console.warn('Service email non configuré - email de notification domaines non envoyé');
+    return false;
+  }
+
+  if (domains.length === 0) {
+    return false;
+  }
+
+  const billableCount = domains.filter((d) => d.payer === 'client').length;
+
+  const domainsListHtml = domains
+    .map((domain) => {
+      const label = domain.clientName
+        ? `${domain.name} (${domain.clientName})`
+        : domain.name;
+      const status = domain.isExpired
+        ? `<span style="color: #dc2626; font-weight: bold;">❌ Expiré depuis ${Math.abs(domain.daysUntilExpiry)} jours</span>`
+        : `<span style="color: #f59e0b; font-weight: bold;">⚠️ ${domain.daysUntilExpiry} jours restants</span>`;
+      const billing =
+        domain.payer === 'client'
+          ? `<br><span style="color: #2563eb;">💶 À facturer${domain.sellYearly != null && domain.sellYearly > 0 ? ` — ${domain.sellYearly.toFixed(2)} ${domain.currency} HT/an` : ''}${domain.clientEmail ? ` — ${domain.clientEmail}` : ''}</span>`
+          : '<br><span style="color: #64748b;">🏢 Renouvellement agence</span>';
+      return `<li style="margin-bottom: 12px; padding: 12px; background: #fff; border-left: 3px solid ${domain.isExpired ? '#dc2626' : '#f59e0b'}; border-radius: 4px;">
+        <strong>${label}</strong><br>
+        ${status}${billing}
+      </li>`;
+    })
+    .join('');
+
+  const domainsListText = domains
+    .map((domain) => {
+      const label = domain.clientName
+        ? `${domain.name} (${domain.clientName})`
+        : domain.name;
+      const status = domain.isExpired
+        ? `❌ Expiré depuis ${Math.abs(domain.daysUntilExpiry)} jours`
+        : `⚠️ ${domain.daysUntilExpiry} jours restants`;
+      const billing =
+        domain.payer === 'client'
+          ? ` | À facturer${domain.sellYearly != null && domain.sellYearly > 0 ? ` ${domain.sellYearly.toFixed(2)} ${domain.currency} HT/an` : ''}`
+          : ' | Renouvellement agence';
+      return `- ${label} - ${status}${billing}`;
+    })
+    .join('\n');
+
+  const d = getEmailDefaults(prefs);
+  const fromAddr = getFromAddress(d.companyName);
+  const subjectSuffix = billableCount > 0 ? `, ${billableCount} à facturer` : '';
+
+  try {
+    const sent = await dispatchEmail({
+      from: fromAddr,
+      to: email,
+      subject: `🌐 Domaines à renouveler (${domains.length}${subjectSuffix})`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: ${d.primaryColor};">Domaines à renouveler</h2>
+          <p>Bonjour ${name},</p>
+          <p>Vous avez <strong>${domains.length} domaine(s)</strong> nécessitant votre attention :</p>
+          <ul style="list-style: none; padding: 0;">${domainsListHtml}</ul>
+          <p style="color: #64748b; font-size: 14px;">Exportez le CSV facturation depuis Domain Hub pour importer dans votre banque.</p>
+        </body>
+        </html>
+      `,
+      text: `Domaines à renouveler\n\nBonjour ${name},\n\n${domainsListText}\n\nExportez le CSV facturation depuis Domain Hub.`,
+    });
+    return sent;
+  } catch (error) {
+    console.error('Erreur envoi email domaines:', error);
+    return false;
+  }
+}
+
 /**
  * Envoie un email de notification d'expiration de licences
  */
