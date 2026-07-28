@@ -2,7 +2,7 @@
 
 Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, licences, tâches et plus — avec API, auth JWT et déploiement Docker.
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
@@ -23,11 +23,12 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 ## Fonctionnalités
 
 - **17 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, tâches, Knowledge Base, générateurs wp-config / plugin header
-- **Auth JWT** multi-comptes, reset mot de passe, Personal Access Tokens (`dt_…`) pour intégrations (Raycast, Hermes, API)
+- **Auth JWT** multi-comptes, reset mot de passe
 - **Backend** Express + SQLite, notifications (email, Ntfy, Telegram)
 - **Docker Compose** prêt pour self-host (images GHCR)
+- **Intégrations API** : Personal Access Tokens (`dt_…`) via **Mon compte → Accès API** — [guide](docs/integrations/personal-access-tokens.md)
 - **Extension [Raycast](raycast/README.md)** : licences, tâches, Knowledge Base
-- **Intégration [Hermes Agent](hermes/README.md)** : Task Reminder via API (prod)
+- **Agent [Hermes](hermes/README.md)** : Task Reminder via API
 
 ## Démarrage rapide (Docker)
 
@@ -76,11 +77,10 @@ Configurez `VITE_API_URL` si besoin (voir `.env.example`).
 
 ## Documentation
 
+- [Intégrations API](docs/integrations/README.md) · [Personal Access Tokens](docs/integrations/personal-access-tokens.md)
 - [Guide Docker](DOCKER.md)
 - [API backend](backend/README.md)
-- [Personal Access Tokens (Accès API)](docs/integrations/personal-access-tokens.md)
-- [Extension Raycast](raycast/README.md)
-- [Agent Hermes](hermes/README.md)
+- [Extension Raycast](raycast/README.md) · [Agent Hermes](hermes/README.md)
 - [CHANGELOG](CHANGELOG.md)
 - [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md)
 

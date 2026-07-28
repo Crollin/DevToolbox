@@ -249,8 +249,8 @@ Les images Docker sont publiées sur GitHub Container Registry à chaque release
 
 ```bash
 # Tirer une version précise
-docker pull ghcr.io/crollin/devtoolbox-frontend:1.2.0
-docker pull ghcr.io/crollin/devtoolbox-backend:1.2.0
+docker pull ghcr.io/crollin/devtoolbox-frontend:1.3.0
+docker pull ghcr.io/crollin/devtoolbox-backend:1.3.0
 
 # Démarrer en local avec mapping du port hôte (latest par défaut, ou version précise)
 IMAGE_TAG=latest docker compose -f docker-compose.yml -f docker-compose.local.yml up -d

@@ -48,7 +48,12 @@ cd backend && npm test
 ./scripts/verify-docker-build.sh
 ```
 
-## Extension Raycast
+## Intégrations API
+
+- [Hub Intégrations API](docs/integrations/README.md)
+- [Personal Access Tokens](docs/integrations/personal-access-tokens.md) — tokens `dt_...` via **Mon compte → Accès API**
+- [Extension Raycast](raycast/README.md)
+- [Agent Hermes](hermes/README.md)
 
 ```bash
 cd raycast
@@ -56,8 +61,7 @@ npm install
 npm run dev
 ```
 
-Import dans Raycast : **Manage Extensions → + → Import Extension** → dossier `raycast`.  
-Guide utilisateur : [raycast/README.md](raycast/README.md).
+Import dans Raycast : **Manage Extensions → + → Import Extension** → dossier `raycast`.
 
 ## Pull requests
 

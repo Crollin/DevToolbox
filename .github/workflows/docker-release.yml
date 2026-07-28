@@ -113,3 +113,9 @@ jobs:
             ## Déploiement Coolify
 
             Définir `IMAGE_TAG=${{ steps.version.outputs.version }}` dans les variables d'environnement.
+
+            ## Intégrations API
+
+            - Créer un Personal Access Token : **Mon compte → Accès API**
+            - Documentation : [docs/integrations/personal-access-tokens.md](docs/integrations/personal-access-tokens.md)
+            - Raycast : [raycast/README.md](raycast/README.md) · Hermes : [hermes/README.md](hermes/README.md)

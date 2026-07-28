@@ -2,6 +2,8 @@
 
 Les **Personal Access Tokens** (`dt_...`) permettent à des clients externes d'accéder à l'API DevToolbox sans session navigateur : extension Raycast, agent Hermes, scripts curl, automatisations, etc.
 
+Voir aussi le [hub Intégrations API](README.md).
+
 ## Créer un token
 
 1. Connectez-vous à DevToolbox
