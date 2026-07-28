@@ -11,7 +11,7 @@ Tu peux gérer les tâches de l’utilisateur dans **DevToolbox Task Reminder** 
 | Token | Personal Access Token `dt_...` avec scope **`tasks`** |
 | Content-Type | `application/json` sur POST, PUT, PATCH |
 
-Le token est fourni via la variable d’environnement `DEVTOOLBOX_PAT` (ou équivalent dans la config Hermes). Ne jamais inventer ni afficher le token en clair dans les réponses.
+Le token est fourni via la variable d’environnement `DEVTOOLBOX_PAT` (ou équivalent dans la config Hermes). Il se crée dans **Mon compte → Accès API** (scope `tasks`). Ne jamais inventer ni afficher le token en clair dans les réponses.
 
 ## Règles générales
 

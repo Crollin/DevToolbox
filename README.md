@@ -23,7 +23,7 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 ## Fonctionnalités
 
 - **18 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, Domain Hub, tâches, Knowledge Base, générateurs wp-config / plugin header
-- **Auth JWT** multi-comptes, reset mot de passe, Personal Access Tokens (`dt_…`) pour Raycast
+- **Auth JWT** multi-comptes, reset mot de passe, Personal Access Tokens (`dt_…`) pour intégrations (Raycast, Hermes, API)
 - **Backend** Express + SQLite, notifications (email, Ntfy, Telegram)
 - **Docker Compose** prêt pour self-host (images GHCR)
 - **Extension [Raycast](raycast/README.md)** : licences, tâches, Knowledge Base
@@ -78,7 +78,9 @@ Configurez `VITE_API_URL` si besoin (voir `.env.example`).
 
 - [Guide Docker](DOCKER.md)
 - [API backend](backend/README.md)
+- [Personal Access Tokens (Accès API)](docs/integrations/personal-access-tokens.md)
 - [Extension Raycast](raycast/README.md)
+- [Agent Hermes](hermes/README.md)
 - [CHANGELOG](CHANGELOG.md)
 - [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md)
 

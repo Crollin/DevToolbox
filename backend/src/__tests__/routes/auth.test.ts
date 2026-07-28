@@ -138,5 +138,42 @@ describe('Auth API', () => {
       const created = await request(app).post('/api/auth/personal-tokens').set('Authorization', `Bearer ${auth.body.token}`).send({ name: 'Expired', expiresAt: '2000-01-01T00:00:00.000Z' });
       expect(created.status).toBe(400);
     });
+
+    it('supprime définitivement un token révoqué', async () => {
+      const user = { email: `purge-${Date.now()}-${Math.random()}@example.com`, password: 'password123', name: 'Purge User' };
+      const auth = await request(app).post('/api/auth/register').send(user);
+      const sessionToken = auth.body.token as string;
+      const created = await request(app).post('/api/auth/personal-tokens').set('Authorization', `Bearer ${sessionToken}`).send({ name: 'To Purge' });
+      const tokenId = created.body.personalAccessToken.id as string;
+
+      const revoked = await request(app).delete(`/api/auth/personal-tokens/${tokenId}`).set('Authorization', `Bearer ${sessionToken}`);
+      expect(revoked.status).toBe(200);
+
+      const purged = await request(app).delete(`/api/auth/personal-tokens/${tokenId}/permanent`).set('Authorization', `Bearer ${sessionToken}`);
+      expect(purged.status).toBe(200);
+
+      const listed = await request(app).get('/api/auth/personal-tokens').set('Authorization', `Bearer ${sessionToken}`);
+      expect(listed.body.personalAccessTokens).toHaveLength(0);
+    });
+
+    it('refuse la suppression définitive d’un token actif', async () => {
+      const user = { email: `active-${Date.now()}-${Math.random()}@example.com`, password: 'password123', name: 'Active User' };
+      const auth = await request(app).post('/api/auth/register').send(user);
+      const sessionToken = auth.body.token as string;
+      const created = await request(app).post('/api/auth/personal-tokens').set('Authorization', `Bearer ${sessionToken}`).send({ name: 'Active' });
+      const tokenId = created.body.personalAccessToken.id as string;
+
+      const purged = await request(app).delete(`/api/auth/personal-tokens/${tokenId}/permanent`).set('Authorization', `Bearer ${sessionToken}`);
+      expect(purged.status).toBe(404);
+    });
+
+    it('retourne 404 pour la suppression définitive d’un token inexistant', async () => {
+      const user = { email: `missing-${Date.now()}-${Math.random()}@example.com`, password: 'password123', name: 'Missing User' };
+      const auth = await request(app).post('/api/auth/register').send(user);
+      const sessionToken = auth.body.token as string;
+
+      const purged = await request(app).delete('/api/auth/personal-tokens/nonexistent-id/permanent').set('Authorization', `Bearer ${sessionToken}`);
+      expect(purged.status).toBe(404);
+    });
   });
 });

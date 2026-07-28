@@ -10,6 +10,9 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 - Outil **Domain Hub** : comparateur multi-registrar (Cloudflare, Hostinger, OVH), portefeuille (client / payeur / dates), sync Hostinger, alertes d’expiration, brouillons facture Qonto
 - API `/api/domains` (scope PAT `domains`)
+- Onglet **Mon compte → Accès API** (remplace Raycast) pour tokens d’intégration universels
+- Suppression définitive des tokens révoqués (`DELETE /api/auth/personal-tokens/:id/permanent`)
+- Guide [Personal Access Tokens](docs/integrations/personal-access-tokens.md) et intégration [Hermes Agent](hermes/README.md)
 
 ### Retiré
 

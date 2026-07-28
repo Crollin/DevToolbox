@@ -206,6 +206,15 @@ router.get('/personal-tokens', authenticateToken, (req: Request, res: Response) 
   res.json({ personalAccessTokens: rows.map(serializePersonalAccessToken) });
 });
 
+router.delete('/personal-tokens/:id/permanent', authenticateToken, (req: Request, res: Response) => {
+  const result = db.prepare(`
+    DELETE FROM personal_access_tokens
+    WHERE id = ? AND user_id = ? AND revoked_at IS NOT NULL
+  `).run(req.params.id, req.user!.id) as { changes: number };
+  if (result.changes === 0) return res.status(404).json({ error: 'Token révoqué non trouvé' });
+  res.json({ success: true });
+});
+
 router.delete('/personal-tokens/:id', authenticateToken, (req: Request, res: Response) => {
   const result = db.prepare(`
     UPDATE personal_access_tokens SET revoked_at = ?
