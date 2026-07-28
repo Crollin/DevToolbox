@@ -28,7 +28,7 @@ Nous nous engageons à accuser réception sous **72 heures** et à proposer un c
 - Ne committez jamais `.env`, bases SQLite ni tokens
 - Limitez l’exposition du port API ; préférez le reverse-proxy du frontend
 - L’inscription (`POST /api/auth/register`) est ouverte par défaut : protégez l’instance (réseau, reverse-proxy, ou désactivation côté déploiement) si elle est publique
-- Personal Access Tokens Raycast (`dt_…`) : scopes minimaux (`licences`, `tasks`, `knowledge_base`), révocation dès compromission
+- Personal Access Tokens d’intégration (`dt_…`) : scopes minimaux (`licences`, `tasks`, `knowledge_base`, `domains`), révocation dès compromission
 - Activez SMTP / canaux de notif uniquement avec des credentials dédiés et rotatifs
 
 ## Données sensibles
@@ -36,7 +36,7 @@ Nous nous engageons à accuser réception sous **72 heures** et à proposer un c
 | Donnée | Emplacement typique | Sensibilité |
 |--------|---------------------|-------------|
 | JWT / sessions | Client + serveur | Élevée |
-| PAT Raycast | Préférences Raycast + hash serveur | Élevée |
+| PAT intégrations | Client API (Raycast, Hermes…) + hash serveur | Élevée |
 | SQLite | volume `data/` / `DB_PATH` | Élevée (comptes, licences, notes) |
 | SMTP / Telegram / Ntfy | `.env` | Élevée |
 
