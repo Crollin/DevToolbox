@@ -27,6 +27,7 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 - **Backend** Express + SQLite, notifications (email, Ntfy, Telegram)
 - **Docker Compose** prêt pour self-host (images GHCR)
 - **Extension [Raycast](raycast/README.md)** : licences, tâches, Knowledge Base
+- **Intégration [Hermes Agent](hermes/README.md)** : Task Reminder via API (prod)
 
 ## Démarrage rapide (Docker)
 
