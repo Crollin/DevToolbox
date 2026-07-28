@@ -7,10 +7,8 @@ import {
   domainCompareSchema,
   domainPortfolioCreateSchema,
   domainPortfolioUpdateSchema,
-  domainQontoDraftSchema,
 } from '../lib/validate';
 import { compareDomains } from '../lib/registrars/compare';
-import { createClientInvoiceDraft, isQontoConfigured } from '../lib/qonto';
 
 const router = express.Router();
 
@@ -32,11 +30,15 @@ type DomainRow = {
   notes: string | null;
   external_id: string | null;
   notifications_enabled: number;
-  qonto_client_id: string | null;
-  last_invoice_id: string | null;
+  billing_status: string;
+  last_billed_at: string | null;
   created_at: string;
   updated_at: string;
 };
+
+function defaultBillingStatus(payer: string): string {
+  return payer === 'agency' ? 'n/a' : 'pending';
+}
 
 function serializeDomain(row: DomainRow) {
   return {
@@ -54,8 +56,8 @@ function serializeDomain(row: DomainRow) {
     notes: row.notes,
     externalId: row.external_id,
     notificationsEnabled: Boolean(row.notifications_enabled),
-    qontoClientId: row.qonto_client_id,
-    lastInvoiceId: row.last_invoice_id,
+    billingStatus: row.billing_status || defaultBillingStatus(row.payer),
+    lastBilledAt: row.last_billed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -124,17 +126,20 @@ router.post('/', validateBody(domainPortfolioCreateSchema), (req, res) => {
       notes?: string | null;
       externalId?: string | null;
       notificationsEnabled?: boolean;
-      qontoClientId?: string | null;
+      billingStatus?: string;
     };
 
     const id = uuidv4();
     const now = new Date().toISOString();
+    const payer = body.payer || 'agency';
+    const billingStatus =
+      body.billingStatus || defaultBillingStatus(payer);
 
     db.prepare(`
       INSERT INTO domains (
         id, user_id, name, registrar, client_name, client_email, payer,
         cost_yearly, sell_yearly, currency, expires_at, auto_renew, notes,
-        external_id, notifications_enabled, qonto_client_id, last_invoice_id,
+        external_id, notifications_enabled, billing_status, last_billed_at,
         created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
     `).run(
@@ -144,7 +149,7 @@ router.post('/', validateBody(domainPortfolioCreateSchema), (req, res) => {
       body.registrar,
       emptyToNull(body.clientName),
       emptyToNull(body.clientEmail),
-      body.payer || 'agency',
+      payer,
       body.costYearly ?? null,
       body.sellYearly ?? null,
       body.currency || 'EUR',
@@ -153,7 +158,7 @@ router.post('/', validateBody(domainPortfolioCreateSchema), (req, res) => {
       emptyToNull(body.notes),
       emptyToNull(body.externalId),
       body.notificationsEnabled === false ? 0 : 1,
-      emptyToNull(body.qontoClientId),
+      billingStatus,
       now,
       now
     );
@@ -191,7 +196,7 @@ router.put('/:id', validateBody(domainPortfolioUpdateSchema), (req, res) => {
       notes: string | null;
       externalId: string | null;
       notificationsEnabled: boolean;
-      qontoClientId: string | null;
+      billingStatus: string;
     }>;
 
     const now = new Date().toISOString();
@@ -218,16 +223,18 @@ router.put('/:id', validateBody(domainPortfolioUpdateSchema), (req, res) => {
           ? 1
           : 0
         : existing.notifications_enabled;
-    const qontoClientId =
-      body.qontoClientId !== undefined
-        ? emptyToNull(body.qontoClientId)
-        : existing.qonto_client_id;
+    const billingStatus =
+      body.billingStatus !== undefined
+        ? body.billingStatus
+        : body.payer !== undefined
+          ? defaultBillingStatus(payer)
+          : existing.billing_status || defaultBillingStatus(payer);
 
     db.prepare(`
       UPDATE domains SET
         name = ?, registrar = ?, client_name = ?, client_email = ?, payer = ?,
         cost_yearly = ?, sell_yearly = ?, currency = ?, expires_at = ?, auto_renew = ?,
-        notes = ?, external_id = ?, notifications_enabled = ?, qonto_client_id = ?,
+        notes = ?, external_id = ?, notifications_enabled = ?, billing_status = ?,
         updated_at = ?
       WHERE id = ? AND user_id = ?
     `).run(
@@ -244,7 +251,7 @@ router.put('/:id', validateBody(domainPortfolioUpdateSchema), (req, res) => {
       notes,
       externalId,
       notificationsEnabled,
-      qontoClientId,
+      billingStatus,
       now,
       req.params.id,
       req.user!.id
@@ -322,9 +329,9 @@ router.post('/sync/hostinger', async (req, res) => {
           INSERT INTO domains (
             id, user_id, name, registrar, client_name, client_email, payer,
             cost_yearly, sell_yearly, currency, expires_at, auto_renew, notes,
-            external_id, notifications_enabled, qonto_client_id, last_invoice_id,
+            external_id, notifications_enabled, billing_status, last_billed_at,
             created_at, updated_at
-          ) VALUES (?, ?, ?, 'hostinger', NULL, NULL, 'agency', NULL, NULL, 'EUR', ?, 0, NULL, ?, 1, NULL, NULL, ?, ?)
+          ) VALUES (?, ?, ?, 'hostinger', NULL, NULL, 'agency', NULL, NULL, 'EUR', ?, 0, NULL, ?, 1, 'n/a', NULL, ?, ?)
         `).run(uuidv4(), userId, name, expiresAt, externalId, now, now);
         created += 1;
       }
@@ -334,93 +341,6 @@ router.post('/sync/hostinger', async (req, res) => {
   } catch (error) {
     console.error('Erreur sync hostinger:', error);
     res.status(500).json({ error: 'Erreur lors de la synchronisation Hostinger' });
-  }
-});
-
-// -------------------------
-// Qonto draft (V3)
-// -------------------------
-router.post('/:id/qonto-draft', validateBody(domainQontoDraftSchema), async (req, res) => {
-  try {
-    if (!isQontoConfigured()) {
-      return res.status(400).json({ error: 'QONTO_API_KEY non configuré' });
-    }
-
-    const row = db.prepare('SELECT * FROM domains WHERE id = ? AND user_id = ?').get(
-      req.params.id,
-      req.user!.id
-    ) as DomainRow | undefined;
-
-    if (!row) {
-      return res.status(404).json({ error: 'Domaine introuvable' });
-    }
-
-    const body = req.body as {
-      clientId?: string;
-      vatRate?: number;
-      dueDays?: number;
-      description?: string;
-    };
-
-    const clientId = body.clientId || row.qonto_client_id;
-    if (!clientId) {
-      return res.status(400).json({
-        error: 'clientId Qonto requis (body.clientId ou domaine.qontoClientId)',
-      });
-    }
-
-    const amount = row.sell_yearly ?? row.cost_yearly;
-    if (amount == null || amount <= 0) {
-      return res.status(400).json({
-        error: 'Définir sellYearly (ou costYearly) sur le domaine avant de facturer',
-      });
-    }
-
-    const today = new Date();
-    const due = new Date(today);
-    due.setDate(due.getDate() + (body.dueDays ?? 30));
-    const issueDate = today.toISOString().slice(0, 10);
-    const dueDate = due.toISOString().slice(0, 10);
-    const currency = row.currency || 'EUR';
-    const vatRate = body.vatRate ?? 0.2;
-    const description =
-      body.description ||
-      `Renouvellement nom de domaine ${row.name}${row.client_name ? ` — ${row.client_name}` : ''}`;
-
-    const invoice = await createClientInvoiceDraft({
-      clientId,
-      issueDate,
-      dueDate,
-      items: [
-        {
-          description,
-          quantity: '1',
-          unit: 'year',
-          unit_price: { value: amount.toFixed(2), currency },
-          vat_rate: String(vatRate),
-        },
-      ],
-    });
-
-    const now = new Date().toISOString();
-    db.prepare(`
-      UPDATE domains SET last_invoice_id = ?, qonto_client_id = ?, updated_at = ?
-      WHERE id = ?
-    `).run(invoice.id, clientId, now, row.id);
-
-    res.status(201).json({
-      invoice: {
-        id: invoice.id,
-        status: invoice.status,
-        invoiceUrl: invoice.invoiceUrl,
-      },
-      message: 'Brouillon Qonto créé — à valider / finaliser dans Qonto',
-    });
-  } catch (error) {
-    console.error('Erreur qonto-draft:', error);
-    res.status(502).json({
-      error: error instanceof Error ? error.message : 'Erreur Qonto',
-    });
   }
 });
 

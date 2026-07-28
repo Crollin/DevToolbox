@@ -2,6 +2,7 @@ export type RegistrarId = 'cloudflare' | 'hostinger' | 'ovh';
 export type PortfolioRegistrar = RegistrarId | 'o2switch' | 'other';
 export type OfferStatus = 'ok' | 'skipped' | 'error';
 export type DomainPayer = 'agency' | 'client';
+export type DomainBillingStatus = 'pending' | 'invoiced' | 'paid' | 'n/a';
 
 export interface DomainOffer {
   registrar: RegistrarId;
@@ -43,8 +44,8 @@ export interface PortfolioDomain {
   notes: string | null;
   externalId: string | null;
   notificationsEnabled: boolean;
-  qontoClientId: string | null;
-  lastInvoiceId: string | null;
+  billingStatus: DomainBillingStatus;
+  lastBilledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,7 +64,7 @@ export type PortfolioDomainInput = {
   notes?: string | null;
   externalId?: string | null;
   notificationsEnabled?: boolean;
-  qontoClientId?: string | null;
+  billingStatus?: DomainBillingStatus;
 };
 
 export const DEFAULT_COMPARE_TLDS = ['com', 'fr', 'net', 'org', 'io', 'dev', 'app', 'eu'];

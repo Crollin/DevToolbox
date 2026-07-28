@@ -125,16 +125,19 @@ export const domainPortfolioCreateSchema = z.object({
   notes: z.string().max(MAX_DESCRIPTION).optional().nullable(),
   externalId: z.string().max(255).optional().nullable(),
   notificationsEnabled: z.boolean().optional().default(true),
-  qontoClientId: z.string().uuid().optional().nullable(),
+  billingStatus: z.enum(['pending', 'invoiced', 'paid', 'n/a']).optional().default('pending'),
 });
 
 export const domainPortfolioUpdateSchema = domainPortfolioCreateSchema.partial();
 
-export const domainQontoDraftSchema = z.object({
-  clientId: z.string().uuid().optional(),
-  vatRate: z.number().min(0).max(1).optional().default(0.2),
-  dueDays: z.number().int().min(1).max(120).optional().default(30),
-  description: z.string().max(500).optional(),
+export const domainBillingUpdateSchema = z.object({
+  billingStatus: z.enum(['pending', 'invoiced', 'paid', 'n/a']),
+});
+
+export const domainBillingExportQuerySchema = z.object({
+  payer: z.enum(['client', 'agency', 'all']).optional().default('client'),
+  days: z.coerce.number().int().min(0).max(365).optional().default(60),
+  billingStatus: z.enum(['pending', 'all']).optional().default('pending'),
 });
 
 export function validateBody<T>(schema: ZodSchema<T>) {
