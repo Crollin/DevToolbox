@@ -27,7 +27,7 @@ FROM nginx:alpine
 
 LABEL maintainer="DevToolbox"
 LABEL description="DevToolbox Frontend - Production"
-LABEL version="1.3.0"
+LABEL version="1.2.1"
 
 # wget requis pour le healthcheck (absent de nginx:alpine récent)
 RUN apk add --no-cache wget

@@ -6,7 +6,7 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
-## [1.3.0] - 2026-07-28
+## [1.2.1] - 2026-07-28
 
 ### Ajouté
 
@@ -84,8 +84,8 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 Version initiale : 16 outils, auth JWT, notifications multi-canaux (Ntfy, email, Telegram), déploiement Docker.
 
-[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.3.0...HEAD
-[1.3.0]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...v1.3.0
+[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Crollin/DevToolbox/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Crollin/DevToolbox/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Crollin/DevToolbox/releases/tag/v1.0.0
