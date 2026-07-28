@@ -7,6 +7,7 @@ import {
   List,
   showToast,
   Toast,
+  useNavigation,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { appLicenceUrl, deleteLicence, Licence, listLicences } from "./api";
@@ -24,7 +25,16 @@ function EditLicence({
   licence: Licence;
   onSaved: () => void;
 }) {
-  return <LicenceForm licence={licence} onSaved={onSaved} />;
+  const { pop } = useNavigation();
+  return (
+    <LicenceForm
+      licence={licence}
+      onSaved={() => {
+        onSaved();
+        pop();
+      }}
+    />
+  );
 }
 
 export default function SearchLicences() {

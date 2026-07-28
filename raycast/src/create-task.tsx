@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Action, ActionPanel, Form, showToast, Toast } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  closeMainWindow,
+  Form,
+  showToast,
+  Toast,
+} from "@raycast/api";
 import {
   createTask,
   createTaskClient,
@@ -17,6 +24,7 @@ const channelFields: Array<{ id: Channel; label: string }> = [
 
 export default function CreateTask() {
   const [clients, setClients] = useState<TaskClient[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     listTaskClients()
@@ -50,6 +58,7 @@ export default function CreateTask() {
     const newClient = String(values.newClient ?? "").trim();
     let client = String(values.client ?? "").trim();
 
+    setIsLoading(true);
     try {
       if (newClient) {
         const createdClient = await createTaskClient(newClient);
@@ -91,17 +100,21 @@ export default function CreateTask() {
             : undefined,
       });
       await showToast({ style: Toast.Style.Success, title: "Tâche créée" });
+      await closeMainWindow();
     } catch (caught) {
       await showToast({
         style: Toast.Style.Failure,
         title: "Création impossible",
         message: String(caught),
       });
+    } finally {
+      setIsLoading(false);
     }
   }
 
   return (
     <Form
+      isLoading={isLoading}
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Créer la tâche" onSubmit={handleSubmit} />

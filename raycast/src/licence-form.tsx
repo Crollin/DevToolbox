@@ -1,4 +1,5 @@
 import { Action, ActionPanel, Form, showToast, Toast } from "@raycast/api";
+import { useState } from "react";
 import {
   Licence,
   LicenceInput,
@@ -14,6 +15,8 @@ export function LicenceForm({
   licence?: Licence;
   onSaved?: () => void;
 }) {
+  const [isLoading, setIsLoading] = useState(false);
+
   async function handleSubmit(values: Record<string, string>) {
     const input: LicenceInput = {
       name: values.name.trim(),
@@ -28,6 +31,7 @@ export function LicenceForm({
       notes: values.notes.trim() || undefined,
       notificationsEnabled: values.notificationsEnabled !== "false",
     };
+    setIsLoading(true);
     try {
       if (licence) await updateLicence(licence.id, input);
       else await createLicence(input);
@@ -42,10 +46,13 @@ export function LicenceForm({
         title: "Impossible d'enregistrer la licence",
         message: String(error),
       });
+    } finally {
+      setIsLoading(false);
     }
   }
   return (
     <Form
+      isLoading={isLoading}
       actions={
         <ActionPanel>
           <Action.SubmitForm
