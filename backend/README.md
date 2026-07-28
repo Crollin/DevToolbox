@@ -69,14 +69,15 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
   - Body: `{ currentPassword: string, newPassword: string }`
   - Retourne: `{ success: true, message: string }`
 
-- `POST /api/auth/personal-tokens` - Créer un Personal Access Token pour une intégration (ex. Raycast)
+- `POST /api/auth/personal-tokens` - Créer un Personal Access Token pour une intégration (Raycast, Hermes, scripts…)
   - Headers: `Authorization: Bearer <JWT de session>`
   - Body: `{ name: string, expiresAt?: string | null, scopes?: ('licences' | 'tasks' | 'knowledge_base')[] }`
   - Par défaut : `scopes: ['licences']` si omis
   - Le token brut est retourné une seule fois dans `token`
   - Le token est hashé côté serveur et peut être révoqué
 - `GET /api/auth/personal-tokens` - Lister les tokens de l'utilisateur
-- `DELETE /api/auth/personal-tokens/:id` - Révoquer un token
+- `DELETE /api/auth/personal-tokens/:id` - Révoquer un token (soft delete)
+- `DELETE /api/auth/personal-tokens/:id/permanent` - Supprimer définitivement un token déjà révoqué
 
 **Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences`, `/api/tasks` et `/api/kb` acceptent également un Personal Access Token `dt_...` si le scope correspondant est présent.
 

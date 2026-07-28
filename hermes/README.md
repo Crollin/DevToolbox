@@ -2,7 +2,7 @@
 
 Permet à un agent IA (Hermes) de créer, lire et mettre à jour des tâches dans **Task Reminder** via l’API DevToolbox en production.
 
-Même mécanisme que l’extension [Raycast](../raycast/README.md) : **Personal Access Token** `dt_...` avec scope `tasks`.
+Guide des tokens : [Personal Access Tokens (Accès API)](../docs/integrations/personal-access-tokens.md)
 
 ## Prérequis
 
@@ -13,7 +13,7 @@ Même mécanisme que l’extension [Raycast](../raycast/README.md) : **Personal 
 ## 1. Créer le token (production)
 
 1. Ouvrir **https://devtoolbox.creactiveweb.com**
-2. **Mon compte** → onglet **Raycast**
+2. **Mon compte** → onglet **Accès API**
 3. Nom : `Hermes Agent`
 4. Scopes : cocher **Tâches** uniquement (scope `tasks`)
 5. **Créer le token** → copier le `dt_...` immédiatement (affiché une seule fois)
@@ -53,7 +53,7 @@ curl -s -X POST https://devtoolbox.creactiveweb.com/api/tasks \
 
 ## Révoquer l’accès
 
-**Mon compte → Raycast** → révoquer le token `Hermes Agent`, puis en créer un nouveau si besoin.
+**Mon compte → Accès API** → révoquer le token `Hermes Agent`, puis en créer un nouveau si besoin.
 
 ## Dépannage
 

@@ -12,14 +12,16 @@ Commandes Raycast pour les licences, tâches et Knowledge Base de votre instance
 
 Le token `dt_...` est affiché **une seule fois** à la création.
 
+Guide complet : [Personal Access Tokens (Accès API)](../docs/integrations/personal-access-tokens.md)
+
 ### Depuis DevToolbox (recommandé)
 
-1. **Mon compte** → onglet **Raycast**
-2. Nommez le token, choisissez une expiration optionnelle
+1. **Mon compte** → onglet **Accès API**
+2. Nommez le token (ex. `Raycast Mac`), choisissez une expiration optionnelle
 3. Scopes : **Licences**, **Tâches** et/ou **Knowledge Base**
 4. **Créer le token** → copiez-le immédiatement
 
-Vous pouvez lister et révoquer les tokens depuis la même page.
+Vous pouvez lister, révoquer et supprimer les tokens depuis la même page.
 
 ### Via l’API
 
@@ -29,11 +31,11 @@ curl -s -X POST https://votre-domaine.example/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"vous@example.com","password":"VOTRE_MOT_DE_PASSE"}'
 
-# Token Raycast (scopes optionnels)
+# Personal Access Token (scopes optionnels)
 curl -s -X POST https://votre-domaine.example/api/auth/personal-tokens \
   -H 'Authorization: Bearer VOTRE_JWT' \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Raycast","scopes":["licences","tasks","knowledge_base"]}'
+  -d '{"name":"Raycast Mac","scopes":["licences","tasks","knowledge_base"]}'
 ```
 
 En local, remplacez l’URL par `http://localhost:1400`.
@@ -68,6 +70,8 @@ Commandes :
 Les clés de licence ne s’affichent pas dans la liste : uniquement via **Copy Licence Key**.
 
 ## Révoquer l’accès
+
+**Mon compte → Accès API** → révoquer le token, ou via l’API :
 
 ```bash
 curl -s https://votre-domaine.example/api/auth/personal-tokens \

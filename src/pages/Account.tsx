@@ -154,7 +154,7 @@ const Account = () => {
   const [personalTokens, setPersonalTokens] = useState<PersonalAccessToken[]>([]);
   const [personalTokensLoading, setPersonalTokensLoading] = useState(false);
   const [personalTokenSaving, setPersonalTokenSaving] = useState(false);
-  const [personalTokenName, setPersonalTokenName] = useState("Raycast");
+  const [personalTokenName, setPersonalTokenName] = useState("");
   const [personalTokenExpiresAt, setPersonalTokenExpiresAt] = useState("");
   const [personalTokenScopes, setPersonalTokenScopes] = useState<string[]>(["licences"]);
   const [createdPersonalToken, setCreatedPersonalToken] = useState<string | null>(null);
@@ -294,17 +294,28 @@ const Account = () => {
   const handlePersonalTokenCopy = async () => {
     if (!createdPersonalToken) return;
     await navigator.clipboard.writeText(createdPersonalToken);
-    toast({ title: "Token copié", description: "Enregistrez-le dans les préférences de l'extension Raycast." });
+    toast({ title: "Token copié", description: "Enregistrez-le dans votre client API (Raycast, Hermes, script…)." });
   };
 
   const handlePersonalTokenRevoke = async (token: PersonalAccessToken) => {
-    if (!window.confirm(`Révoquer le token « ${token.name} » ? Cette action est irréversible.`)) return;
+    if (!window.confirm(`Révoquer le token « ${token.name} » ? Les clients qui l'utilisent perdront immédiatement l'accès.`)) return;
     try {
       await api.delete(`/auth/personal-tokens/${token.id}`);
       await loadPersonalTokens();
-      toast({ title: "Token révoqué", description: "L'extension Raycast ne pourra plus accéder aux licences." });
+      toast({ title: "Token révoqué", description: "Les clients API ne pourront plus utiliser ce token." });
     } catch (err) {
       toast({ title: "Révocation impossible", description: err instanceof Error ? err.message : "Une erreur est survenue.", variant: "destructive" });
+    }
+  };
+
+  const handlePersonalTokenDelete = async (token: PersonalAccessToken) => {
+    if (!window.confirm(`Supprimer définitivement le token révoqué « ${token.name} » ?`)) return;
+    try {
+      await api.delete(`/auth/personal-tokens/${token.id}/permanent`);
+      await loadPersonalTokens();
+      toast({ title: "Token supprimé", description: "Le token a été retiré de la liste." });
+    } catch (err) {
+      toast({ title: "Suppression impossible", description: err instanceof Error ? err.message : "Une erreur est survenue.", variant: "destructive" });
     }
   };
 
@@ -487,9 +498,9 @@ const Account = () => {
               <Palette className="w-4 h-4 mr-2" />
               Emails
             </TabsTrigger>
-            <TabsTrigger value="raycast">
+            <TabsTrigger value="api-access">
               <KeyRound className="w-4 h-4 mr-2" />
-              Raycast
+              Accès API
             </TabsTrigger>
           </TabsList>
 
@@ -785,19 +796,19 @@ const Account = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="raycast">
+          <TabsContent value="api-access">
             <Card>
               <CardHeader>
-                <CardTitle>Extension Raycast</CardTitle>
+                <CardTitle>Accès API</CardTitle>
                 <CardDescription>
-                  Gérez l'accès de votre extension Raycast aux outils DevToolbox (licences, tâches, Knowledge Base).
+                  Gérez les tokens d'accès pour Raycast, Hermes, scripts ou tout client HTTP (licences, tâches, Knowledge Base, domaines).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">
                   <p className="font-medium">Le token n'est affiché qu'une seule fois.</p>
                   <p className="mt-1 text-muted-foreground">
-                    Après création, copiez-le dans les préférences Raycast. Si vous le perdez, révoquez-le et créez-en un nouveau.
+                    Après création, copiez-le dans votre client API. Si vous le perdez, révoquez-le et créez-en un nouveau.
                   </p>
                 </div>
 
@@ -805,18 +816,18 @@ const Account = () => {
                   <div>
                     <h3 className="flex items-center gap-2 text-sm font-semibold">
                       <KeyRound className="h-4 w-4" />
-                      Créer un accès Raycast
+                      Créer un token d'accès
                     </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">Choisissez précisément les outils accessibles depuis Raycast.</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Choisissez précisément les outils accessibles via l'API.</p>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="raycast-token-name">Nom</Label>
-                      <Input id="raycast-token-name" value={personalTokenName} onChange={(e) => setPersonalTokenName(e.target.value)} placeholder="Raycast" disabled={personalTokenSaving} />
+                      <Label htmlFor="api-token-name">Nom</Label>
+                      <Input id="api-token-name" value={personalTokenName} onChange={(e) => setPersonalTokenName(e.target.value)} placeholder="Raycast Mac, Hermes Agent…" disabled={personalTokenSaving} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="raycast-token-expiry">Expiration (optionnelle)</Label>
-                      <Input id="raycast-token-expiry" type="date" value={personalTokenExpiresAt} onChange={(e) => setPersonalTokenExpiresAt(e.target.value)} min={new Date().toISOString().slice(0, 10)} disabled={personalTokenSaving} />
+                      <Label htmlFor="api-token-expiry">Expiration (optionnelle)</Label>
+                      <Input id="api-token-expiry" type="date" value={personalTokenExpiresAt} onChange={(e) => setPersonalTokenExpiresAt(e.target.value)} min={new Date().toISOString().slice(0, 10)} disabled={personalTokenSaving} />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -850,7 +861,7 @@ const Account = () => {
                   <div className="space-y-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
                     <div>
                       <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Token prêt à copier</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Copiez-le maintenant, puis collez-le dans les préférences de l'extension Raycast.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Copiez-le maintenant, puis configurez-le dans votre client API.</p>
                     </div>
                     <div className="flex gap-2">
                       <Input value={createdPersonalToken} readOnly className="font-mono text-xs" />
@@ -870,7 +881,7 @@ const Account = () => {
                   {personalTokensLoading ? (
                     <p className="text-sm text-muted-foreground">Chargement...</p>
                   ) : personalTokens.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">Aucun token Raycast créé.</p>
+                    <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">Aucun token créé.</p>
                   ) : (
                     <div className="space-y-2">
                       {personalTokens.map((token) => (
@@ -880,10 +891,17 @@ const Account = () => {
                             <p className="text-xs text-muted-foreground">
                               Scope : {token.scope.join(", ")} · Créé le {new Date(token.createdAt).toLocaleDateString()}
                               {token.expiresAt ? ` · Expire le ${new Date(token.expiresAt).toLocaleDateString()}` : " · Sans expiration"}
+                              {token.revokedAt ? ` · Révoqué le ${new Date(token.revokedAt).toLocaleDateString()}` : ""}
                             </p>
                           </div>
                           {token.revokedAt ? (
-                            <span className="text-xs text-muted-foreground">Révoqué</span>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Révoqué</span>
+                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handlePersonalTokenDelete(token)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer
+                              </Button>
+                            </div>
                           ) : (
                             <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handlePersonalTokenRevoke(token)}>
                               <Trash2 className="mr-2 h-4 w-4" />

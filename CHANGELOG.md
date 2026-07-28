@@ -6,6 +6,12 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+### Ajouté
+
+- Onglet **Mon compte → Accès API** (remplace Raycast) pour tokens d'intégration universels
+- Suppression définitive des tokens révoqués (`DELETE /api/auth/personal-tokens/:id/permanent`)
+- Guide [Personal Access Tokens](docs/integrations/personal-access-tokens.md) et intégration [Hermes Agent](hermes/README.md)
+
 ### Retiré
 
 - Outil **Mon Calcul Énergie** (ElectriCalc) et API `/api/electricalc`
