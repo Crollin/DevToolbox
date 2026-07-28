@@ -25,10 +25,6 @@ const envSchema = z.object({
   OVH_CONSUMER_KEY: z.string().optional(),
   OVH_SUBSIDIARY: z.string().optional(),
   DOMAIN_USD_EUR_RATE: z.string().optional(),
-  // Domain Hub — Qonto (optionnel, V3)
-  QONTO_API_KEY: z.string().optional(),
-  QONTO_STAGING_TOKEN: z.string().optional(),
-  QONTO_BASE_URL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

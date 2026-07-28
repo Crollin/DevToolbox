@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { PortfolioDomain, PortfolioDomainInput, PortfolioRegistrar, DomainPayer, REGISTRAR_LABELS } from '@/types/domain';
+import { PortfolioDomain, PortfolioDomainInput, PortfolioRegistrar, DomainPayer, DomainBillingStatus, REGISTRAR_LABELS, BILLING_STATUS_LABELS } from '@/types/domain';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,7 @@ const emptyForm: PortfolioDomainInput = {
   autoRenew: false,
   notes: '',
   notificationsEnabled: true,
-  qontoClientId: '',
+  billingStatus: 'pending',
 };
 
 export function DomainFormModal({ open, initial, onClose, onSave }: DomainFormModalProps) {
@@ -44,7 +44,7 @@ export function DomainFormModal({ open, initial, onClose, onSave }: DomainFormMo
           autoRenew: initial.autoRenew,
           notes: initial.notes || '',
           notificationsEnabled: initial.notificationsEnabled,
-          qontoClientId: initial.qontoClientId || '',
+          billingStatus: initial.billingStatus,
         }
       : emptyForm
   );
@@ -66,7 +66,7 @@ export function DomainFormModal({ open, initial, onClose, onSave }: DomainFormMo
         clientEmail: form.clientEmail || null,
         notes: form.notes || null,
         expiresAt: form.expiresAt || null,
-        qontoClientId: form.qontoClientId || null,
+        billingStatus: form.billingStatus || (form.payer === 'agency' ? 'n/a' : 'pending'),
         costYearly: form.costYearly === undefined || form.costYearly === null || Number.isNaN(Number(form.costYearly))
           ? null
           : Number(form.costYearly),
@@ -193,13 +193,19 @@ export function DomainFormModal({ open, initial, onClose, onSave }: DomainFormMo
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="dom-qonto">Qonto client ID</Label>
-            <Input
-              id="dom-qonto"
-              value={form.qontoClientId || ''}
-              onChange={(e) => set('qontoClientId', e.target.value)}
-              placeholder="uuid Qonto"
-            />
+            <Label htmlFor="dom-billing">Statut facturation</Label>
+            <select
+              id="dom-billing"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={form.billingStatus || (form.payer === 'agency' ? 'n/a' : 'pending')}
+              onChange={(e) => set('billingStatus', e.target.value as DomainBillingStatus)}
+            >
+              {(Object.keys(BILLING_STATUS_LABELS) as DomainBillingStatus[]).map((status) => (
+                <option key={status} value={status}>
+                  {BILLING_STATUS_LABELS[status]}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

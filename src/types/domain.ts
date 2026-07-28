@@ -67,6 +67,13 @@ export type PortfolioDomainInput = {
   billingStatus?: DomainBillingStatus;
 };
 
+export const BILLING_STATUS_LABELS: Record<DomainBillingStatus, string> = {
+  pending: 'À facturer',
+  invoiced: 'Facturé',
+  paid: 'Payé',
+  'n/a': 'N/A',
+};
+
 export const DEFAULT_COMPARE_TLDS = ['com', 'fr', 'net', 'org', 'io', 'dev', 'app', 'eu'];
 
 export const REGISTRAR_LABELS: Record<PortfolioRegistrar, string> = {

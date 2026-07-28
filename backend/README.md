@@ -171,10 +171,10 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 - `PUT /api/domains/:id` — Met à jour un domaine
 - `DELETE /api/domains/:id` — Supprime un domaine
 - `POST /api/domains/sync/hostinger` — Importe/met à jour les dates d'expiration depuis Hostinger
-- `POST /api/domains/:id/qonto-draft` — Crée un **brouillon** de facture Qonto (à valider dans Qonto)
-  - Body optionnel: `{ clientId?, vatRate?, dueDays?, description? }`
+- `GET /api/domains/export/billing.csv` — Export CSV facturation (filtres : `payer`, `days`, `billingStatus`)
+- `PATCH /api/domains/:id/billing` — Met à jour le statut facturation (`pending` | `invoiced` | `paid` | `n/a`)
 
-Variables registrar / Qonto (toutes optionnelles) : `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HOSTINGER_API_TOKEN`, `OVH_APP_KEY`, `OVH_APP_SECRET`, `OVH_CONSUMER_KEY`, `OVH_SUBSIDIARY`, `DOMAIN_USD_EUR_RATE`, `QONTO_API_KEY`, `QONTO_STAGING_TOKEN`, `QONTO_BASE_URL`.
+Variables registrar (toutes optionnelles) : `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HOSTINGER_API_TOKEN`, `OVH_APP_KEY`, `OVH_APP_SECRET`, `OVH_CONSUMER_KEY`, `OVH_SUBSIDIARY`, `DOMAIN_USD_EUR_RATE`.
 
 ### Health Check
 - `GET /health` - Vérifie l'état du serveur
@@ -230,7 +230,7 @@ backend/
 │   │   ├── git.ts            # Routes pour Git
 │   │   ├── icons.ts          # Routes pour les icônes
 │   │   ├── licences.ts       # Routes pour les licences et notifications (authentification requise)
-│   │   ├── domains.ts        # Domain Hub : compare, portefeuille, sync, Qonto
+│   │   ├── domains.ts        # Domain Hub : compare, portefeuille, sync, export CSV
 │   │   ├── tasks.ts          # Routes pour les tâches
 │   │   └── ...
 │   ├── lib/

@@ -38,9 +38,6 @@ services:
       OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
       OVH_SUBSIDIARY: ${OVH_SUBSIDIARY:-FR}
       DOMAIN_USD_EUR_RATE: ${DOMAIN_USD_EUR_RATE:-}
-      QONTO_API_KEY: ${QONTO_API_KEY:-}
-      QONTO_STAGING_TOKEN: ${QONTO_STAGING_TOKEN:-}
-      QONTO_BASE_URL: ${QONTO_BASE_URL:-}
     volumes:
       - devtoolbox_data:/app/data
     restart: unless-stopped

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Globe, Plus, RefreshCw, Search, Pencil, Trash2, FileText } from 'lucide-react';
+import { Globe, Plus, RefreshCw, Search, Pencil, Trash2, Download } from 'lucide-react';
 import { tools } from '@/data/tools';
 import ToolLayout from '@/components/ToolLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +18,8 @@ import {
   PortfolioDomain,
   PortfolioDomainInput,
   REGISTRAR_LABELS,
+  BILLING_STATUS_LABELS,
+  DomainBillingStatus,
   saveCompareSettings,
 } from '@/types/domain';
 import { toast } from '@/hooks/use-toast';
@@ -42,7 +44,8 @@ const DomainHub = () => {
     updateDomain,
     deleteDomain,
     syncHostinger,
-    createQontoDraft,
+    exportBillingCsv,
+    updateBillingStatus,
   } = useDomainPortfolio();
 
   const [name, setName] = useState('');
@@ -167,16 +170,33 @@ const DomainHub = () => {
     }
   };
 
-  const handleQonto = async (domain: PortfolioDomain) => {
+  const handleExportBilling = async () => {
     try {
-      const result = await createQontoDraft(domain.id);
+      await exportBillingCsv({
+        payer: payerFilter === 'all' ? 'client' : payerFilter,
+        days: 60,
+        billingStatus: 'pending',
+      });
       toast({
-        title: 'Brouillon Qonto créé',
-        description: result.message,
+        title: 'Export CSV',
+        description: 'Fichier facturation téléchargé — importez-le dans votre banque ou Qonto.',
       });
     } catch (err) {
       toast({
-        title: 'Qonto',
+        title: 'Export impossible',
+        description: err instanceof Error ? err.message : 'Échec',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleBillingStatusChange = async (domain: PortfolioDomain, status: DomainBillingStatus) => {
+    try {
+      await updateBillingStatus(domain.id, status);
+      toast({ title: 'Statut facturation mis à jour' });
+    } catch (err) {
+      toast({
+        title: 'Erreur',
         description: err instanceof Error ? err.message : 'Échec',
         variant: 'destructive',
       });
@@ -310,6 +330,10 @@ const DomainHub = () => {
               </select>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleExportBilling}>
+                <Download className="w-4 h-4 mr-1" />
+                Export CSV facturation
+              </Button>
               <Button variant="outline" size="sm" onClick={handleSync}>
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Sync Hostinger
@@ -345,6 +369,7 @@ const DomainHub = () => {
                     <th className="px-3 py-2">Payeur</th>
                     <th className="px-3 py-2">Expiration</th>
                     <th className="px-3 py-2">Revente</th>
+                    <th className="px-3 py-2">Facturation</th>
                     <th className="px-3 py-2" />
                   </tr>
                 </thead>
@@ -376,15 +401,24 @@ const DomainHub = () => {
                             : '—'}
                         </td>
                         <td className="px-3 py-2">
+                          <select
+                            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                            value={d.billingStatus}
+                            onChange={(e) =>
+                              handleBillingStatusChange(d, e.target.value as DomainBillingStatus)
+                            }
+                          >
+                            {(Object.keys(BILLING_STATUS_LABELS) as DomainBillingStatus[]).map(
+                              (status) => (
+                                <option key={status} value={status}>
+                                  {BILLING_STATUS_LABELS[status]}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
                           <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Brouillon Qonto"
-                              onClick={() => handleQonto(d)}
-                            >
-                              <FileText className="w-4 h-4" />
-                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

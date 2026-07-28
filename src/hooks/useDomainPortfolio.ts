@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { getAuthToken } from '@/lib/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { PortfolioDomain, PortfolioDomainInput } from '@/types/domain';
+import { DomainBillingStatus, PortfolioDomain, PortfolioDomainInput } from '@/types/domain';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function useDomainPortfolio() {
   const { isAuthenticated } = useAuth();
@@ -56,19 +59,47 @@ export function useDomainPortfolio() {
     return result;
   }, [load]);
 
-  const createQontoDraft = useCallback(
-    async (
-      id: string,
-      payload?: { clientId?: string; vatRate?: number; dueDays?: number; description?: string }
-    ) => {
-      const result = await api.post<{
-        invoice: { id: string; status: string; invoiceUrl?: string | null };
-        message: string;
-      }>(`/domains/${id}/qonto-draft`, payload || {});
-      await load();
-      return result;
+  const updateBillingStatus = useCallback(
+    async (id: string, billingStatus: DomainBillingStatus) => {
+      const data = await api.patch<{ domain: PortfolioDomain }>(`/domains/${id}/billing`, {
+        billingStatus,
+      });
+      setDomains((prev) => prev.map((d) => (d.id === id ? data.domain : d)));
+      return data.domain;
     },
-    [load]
+    []
+  );
+
+  const exportBillingCsv = useCallback(
+    async (params?: {
+      payer?: 'client' | 'agency' | 'all';
+      days?: number;
+      billingStatus?: 'pending' | 'all';
+    }) => {
+      const qs = new URLSearchParams();
+      qs.set('payer', params?.payer ?? 'client');
+      qs.set('days', String(params?.days ?? 60));
+      qs.set('billingStatus', params?.billingStatus ?? 'pending');
+
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/domains/export/billing.csv?${qs}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Export impossible' }));
+        throw new Error(error.error || 'Export impossible');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `domaines-facturation-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    []
   );
 
   return {
@@ -80,6 +111,7 @@ export function useDomainPortfolio() {
     updateDomain,
     deleteDomain,
     syncHostinger,
-    createQontoDraft,
+    updateBillingStatus,
+    exportBillingCsv,
   };
 }

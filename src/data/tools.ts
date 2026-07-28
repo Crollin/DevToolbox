@@ -66,11 +66,11 @@ export const tools: Tool[] = [
   {
     id: "domain-hub",
     name: "Domain Hub",
-    description: "Comparateur multi-registrar (Cloudflare, Hostinger, OVH), portefeuille, alertes d’expiration et brouillons Qonto.",
+    description: "Comparateur multi-registrar (Cloudflare, Hostinger, OVH), portefeuille, alertes d’expiration et export CSV facturation.",
     category: "utilitaires",
     icon: "Globe",
     url: "#",
-    tags: ["domaine", "dns", "registrar", "qonto", "prix"],
+    tags: ["domaine", "dns", "registrar", "facturation", "prix"],
     color: "amber",
   },
   {

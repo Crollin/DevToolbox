@@ -69,7 +69,7 @@ La base de données SQLite est utilisée pour stocker toutes les données de Dev
   - `client_name`, `client_email`, `payer` (`agency` | `client`)
   - `cost_yearly`, `sell_yearly`, `currency`
   - `expires_at`, `auto_renew`, `notes`, `external_id`
-  - `notifications_enabled`, `qonto_client_id`, `last_invoice_id`
+  - `notifications_enabled`, `billing_status`, `last_billed_at`
   - `created_at`, `updated_at`
 
 ## Migration
