@@ -102,6 +102,11 @@ export const kbEntryUpdateSchema = kbEntryCreateSchema.partial();
 export const domainCompareSchema = z.object({
   name: z.string().min(1).max(253),
   tlds: z.array(z.string().min(1).max(63)).max(12).optional(),
+  registrars: z
+    .array(z.enum(['cloudflare', 'hostinger', 'ovh']))
+    .max(3)
+    .optional(),
+  includeO2switch: z.boolean().optional(),
 });
 
 export const domainPortfolioCreateSchema = z.object({

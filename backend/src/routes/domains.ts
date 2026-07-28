@@ -71,8 +71,13 @@ function emptyToNull(v: string | null | undefined): string | null {
 // -------------------------
 router.post('/compare', validateBody(domainCompareSchema), async (req, res) => {
   try {
-    const { name, tlds } = req.body as { name: string; tlds?: string[] };
-    const result = await compareDomains({ name, tlds });
+    const { name, tlds, registrars, includeO2switch } = req.body as {
+      name: string;
+      tlds?: string[];
+      registrars?: Array<'cloudflare' | 'hostinger' | 'ovh'>;
+      includeO2switch?: boolean;
+    };
+    const result = await compareDomains({ name, tlds, registrars, includeO2switch });
     res.json(result);
   } catch (error) {
     console.error('Erreur domains/compare:', error);

@@ -9,12 +9,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useDomainCompare } from '@/hooks/useDomainCompare';
 import { useDomainPortfolio } from '@/hooks/useDomainPortfolio';
 import { CompareResults } from '@/components/domain/CompareResults';
+import { CompareLoading } from '@/components/domain/CompareLoading';
 import { DomainFormModal } from '@/components/domain/DomainFormModal';
 import {
+  CompareSettings,
   DEFAULT_COMPARE_TLDS,
+  loadCompareSettings,
   PortfolioDomain,
   PortfolioDomainInput,
   REGISTRAR_LABELS,
+  saveCompareSettings,
 } from '@/types/domain';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -30,7 +34,7 @@ function daysUntil(date: string | null): number | null {
 
 const DomainHub = () => {
   const tool = tools.find((t) => t.id === 'domain-hub')!;
-  const { compare, loading: comparing, error: compareError, data } = useDomainCompare();
+  const { compare, loading: comparing, error: compareError, data, pendingLabel } = useDomainCompare();
   const {
     domains,
     isLoaded,
@@ -43,6 +47,7 @@ const DomainHub = () => {
 
   const [name, setName] = useState('');
   const [tlds, setTlds] = useState<string[]>([...DEFAULT_COMPARE_TLDS]);
+  const [compareSettings, setCompareSettings] = useState<CompareSettings>(() => loadCompareSettings());
   const [search, setSearch] = useState('');
   const [payerFilter, setPayerFilter] = useState<'all' | 'agency' | 'client'>('all');
   const [modalOpen, setModalOpen] = useState(false);
@@ -72,6 +77,19 @@ const DomainHub = () => {
     );
   };
 
+  const pendingDomainCount = useMemo(() => {
+    if (name.includes('.')) return 1;
+    return tlds.length || DEFAULT_COMPARE_TLDS.length;
+  }, [name, tlds]);
+
+  const toggleRegistrar = (key: keyof CompareSettings) => {
+    setCompareSettings((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveCompareSettings(next);
+      return next;
+    });
+  };
+
   const handleCompare = async () => {
     if (!name.trim()) {
       toast({ title: 'Indiquez un nom de domaine', variant: 'destructive' });
@@ -81,10 +99,22 @@ const DomainHub = () => {
       toast({ title: 'Sélectionnez au moins un TLD', variant: 'destructive' });
       return;
     }
+    if (!compareSettings.cloudflare && !compareSettings.hostinger && !compareSettings.ovh) {
+      toast({
+        title: 'Aucun registrar API actif',
+        description: 'Activez au moins Cloudflare, Hostinger ou OVH.',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
-      await compare(name.trim(), tlds);
-    } catch {
-      /* error state already set */
+      await compare(name.trim(), tlds, compareSettings);
+    } catch (err) {
+      toast({
+        title: 'Comparaison impossible',
+        description: err instanceof Error ? err.message : 'Erreur',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -197,6 +227,43 @@ const DomainHub = () => {
             </Button>
           </div>
 
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <p className="text-sm font-medium text-foreground">Registrars à interroger</p>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={compareSettings.cloudflare}
+                  onCheckedChange={() => toggleRegistrar('cloudflare')}
+                />
+                Cloudflare
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={compareSettings.hostinger}
+                  onCheckedChange={() => toggleRegistrar('hostinger')}
+                />
+                Hostinger
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={compareSettings.ovh}
+                  onCheckedChange={() => toggleRegistrar('ovh')}
+                />
+                OVH <span className="text-xs text-muted-foreground">(plus lent)</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={compareSettings.o2switch}
+                  onCheckedChange={() => toggleRegistrar('o2switch')}
+                />
+                o2switch <span className="text-xs text-muted-foreground">(lien manuel)</span>
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Préférences enregistrées dans ce navigateur. Désactivez OVH si vous ne l’utilisez pas — cela accélère fortement la recherche.
+            </p>
+          </div>
+
           <div className="flex flex-wrap gap-3">
             {DEFAULT_COMPARE_TLDS.map((tld) => (
               <label key={tld} className="flex items-center gap-2 text-sm font-mono">
@@ -214,7 +281,13 @@ const DomainHub = () => {
             <p className="text-sm text-destructive">{compareError}</p>
           )}
 
-          {data && <CompareResults results={data.results} />}
+          {comparing && pendingLabel && (
+            <CompareLoading label={pendingLabel} domainCount={pendingDomainCount} />
+          )}
+
+          {!comparing && data && (
+            <CompareResults results={data.results} showO2switch={compareSettings.o2switch} />
+          )}
         </TabsContent>
 
         <TabsContent value="portfolio" className="space-y-4 mt-4">

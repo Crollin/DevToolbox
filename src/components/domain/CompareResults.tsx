@@ -24,9 +24,10 @@ function bestRenewRegistrar(offers: DomainOffer[]): string | null {
 
 interface CompareResultsProps {
   results: DomainCompareResult[];
+  showO2switch?: boolean;
 }
 
-export function CompareResults({ results }: CompareResultsProps) {
+export function CompareResults({ results, showO2switch = false }: CompareResultsProps) {
   if (results.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">Aucun résultat. Lancez une comparaison.</p>
@@ -63,7 +64,9 @@ export function CompareResults({ results }: CompareResultsProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {result.offers.map((offer) => (
+                  {result.offers
+                    .filter((offer) => offer.message !== 'Registrar désactivé')
+                    .map((offer) => (
                     <tr
                       key={offer.registrar}
                       className={cn(
@@ -109,6 +112,7 @@ export function CompareResults({ results }: CompareResultsProps) {
                       </td>
                     </tr>
                   ))}
+                  {showO2switch && result.o2switch?.note && (
                   <tr className="bg-muted/20">
                     <td className="px-4 py-2.5 font-medium">o2switch</td>
                     <td className="px-4 py-2.5 text-muted-foreground" colSpan={4}>
@@ -125,6 +129,7 @@ export function CompareResults({ results }: CompareResultsProps) {
                       </a>
                     </td>
                   </tr>
+                  )}
                 </tbody>
               </table>
             </div>

@@ -20,7 +20,7 @@ export interface DomainCompareResult {
   domain: string;
   available: boolean | null;
   offers: DomainOffer[];
-  o2switch: { note: string; url: string };
+  o2switch: { note: string; url: string } | null;
 }
 
 export interface CompareResponse {
@@ -75,3 +75,49 @@ export const REGISTRAR_LABELS: Record<PortfolioRegistrar, string> = {
   o2switch: 'o2switch',
   other: 'Autre',
 };
+
+export type CompareRegistrarId = RegistrarId;
+
+export interface CompareSettings {
+  cloudflare: boolean;
+  hostinger: boolean;
+  ovh: boolean;
+  o2switch: boolean;
+}
+
+export const DEFAULT_COMPARE_SETTINGS: CompareSettings = {
+  cloudflare: true,
+  hostinger: true,
+  ovh: false,
+  o2switch: false,
+};
+
+export const COMPARE_SETTINGS_KEY = 'domain-hub-compare-settings';
+
+export function loadCompareSettings(): CompareSettings {
+  try {
+    const raw = localStorage.getItem(COMPARE_SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_COMPARE_SETTINGS };
+    const parsed = JSON.parse(raw) as Partial<CompareSettings>;
+    return {
+      cloudflare: parsed.cloudflare ?? DEFAULT_COMPARE_SETTINGS.cloudflare,
+      hostinger: parsed.hostinger ?? DEFAULT_COMPARE_SETTINGS.hostinger,
+      ovh: parsed.ovh ?? DEFAULT_COMPARE_SETTINGS.ovh,
+      o2switch: parsed.o2switch ?? DEFAULT_COMPARE_SETTINGS.o2switch,
+    };
+  } catch {
+    return { ...DEFAULT_COMPARE_SETTINGS };
+  }
+}
+
+export function saveCompareSettings(settings: CompareSettings): void {
+  localStorage.setItem(COMPARE_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+export function settingsToRegistrars(settings: CompareSettings): CompareRegistrarId[] {
+  const list: CompareRegistrarId[] = [];
+  if (settings.cloudflare) list.push('cloudflare');
+  if (settings.hostinger) list.push('hostinger');
+  if (settings.ovh) list.push('ovh');
+  return list;
+}

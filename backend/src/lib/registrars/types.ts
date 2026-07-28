@@ -30,6 +30,9 @@ export interface CompareResponse {
 export interface CompareInput {
   name: string;
   tlds?: string[];
+  /** Registrars to query; omitted = all three. */
+  registrars?: RegistrarId[];
+  includeO2switch?: boolean;
 }
 
 export const DEFAULT_TLDS = ['com', 'fr', 'net', 'org', 'io', 'dev', 'app', 'eu'] as const;

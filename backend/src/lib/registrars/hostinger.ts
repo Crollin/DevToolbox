@@ -85,7 +85,6 @@ async function fetchCatalog(token: string, tld: string): Promise<CatalogItem[]> 
   });
 
   if (!res.ok) {
-    // Fallback without category filter
     const url2 = new URL(`${HOSTINGER_API}/api/billing/v1/catalog`);
     url2.searchParams.set('name', name);
     const res2 = await fetch(url2.toString(), {
@@ -105,87 +104,137 @@ async function fetchCatalog(token: string, tld: string): Promise<CatalogItem[]> 
   return Array.isArray(data) ? data : data.data || [];
 }
 
-export async function checkHostingerOffer(domain: string): Promise<RegistrarOffer> {
-  const token = process.env.HOSTINGER_API_TOKEN;
-  if (!token) {
-    return skippedOffer('hostinger', 'HOSTINGER_API_TOKEN non configuré');
+function buildHostingerOffer(
+  domain: string,
+  available: boolean | null,
+  prices: { registration: number; renewal: number; currency: string } | null
+): RegistrarOffer {
+  if (!prices) {
+    return {
+      registrar: 'hostinger',
+      status: available === null ? 'error' : 'ok',
+      currency: null,
+      registration: null,
+      renewal: null,
+      registrationEur: null,
+      renewalEur: null,
+      available,
+      message: available === false ? 'Indisponible' : 'Prix catalogue introuvable pour ce TLD',
+      buyUrl: buyUrl(domain),
+    };
   }
 
-  const parts = domain.split('.');
-  if (parts.length < 2) {
-    return errorOffer('hostinger', 'Domaine invalide');
-  }
-  const tld = parts.slice(1).join('.');
-  const sld = parts[0];
-
-  try {
-    const availRes = await fetch(`${HOSTINGER_API}/api/domains/v1/availability`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ domain: sld, tlds: [tld.replace(/^\./, '')] }),
-    });
-
-    let available: boolean | null = null;
-    if (availRes.ok) {
-      const availJson = (await availRes.json()) as
-        | AvailabilityItem[]
-        | { data?: AvailabilityItem[] };
-      const items = Array.isArray(availJson) ? availJson : availJson.data || [];
-      const hit =
-        items.find((i) => (i.domain || '').toLowerCase() === domain.toLowerCase()) || items[0];
-      if (hit) {
-        available = Boolean(hit.is_available ?? hit.isAvailable);
-      }
-    }
-
-    const catalog = await fetchCatalog(token, tld.replace(/^\./, ''));
-    const prices = pickDomainPrices(catalog, tld.replace(/^\./, ''));
-
-    if (!prices) {
-      return {
-        registrar: 'hostinger',
-        status: available === null ? 'error' : 'ok',
-        currency: null,
-        registration: null,
-        renewal: null,
-        registrationEur: null,
-        renewalEur: null,
-        available,
-        message: available === false ? 'Indisponible' : 'Prix catalogue introuvable pour ce TLD',
-        buyUrl: buyUrl(domain),
-      };
-    }
-
-    if (available === false) {
-      return {
-        registrar: 'hostinger',
-        status: 'ok',
-        currency: prices.currency,
-        registration: null,
-        renewal: prices.renewal,
-        registrationEur: null,
-        renewalEur: toEur(prices.renewal, prices.currency),
-        available: false,
-        message: 'Indisponible',
-        buyUrl: buyUrl(domain),
-      };
-    }
-
+  if (available === false) {
     return {
       registrar: 'hostinger',
       status: 'ok',
       currency: prices.currency,
-      registration: prices.registration,
+      registration: null,
       renewal: prices.renewal,
-      registrationEur: toEur(prices.registration, prices.currency),
+      registrationEur: null,
       renewalEur: toEur(prices.renewal, prices.currency),
-      available: available ?? true,
+      available: false,
+      message: 'Indisponible',
       buyUrl: buyUrl(domain),
     };
-  } catch (err) {
-    return errorOffer('hostinger', err instanceof Error ? err.message : 'Erreur réseau');
   }
+
+  return {
+    registrar: 'hostinger',
+    status: 'ok',
+    currency: prices.currency,
+    registration: prices.registration,
+    renewal: prices.renewal,
+    registrationEur: toEur(prices.registration, prices.currency),
+    renewalEur: toEur(prices.renewal, prices.currency),
+    available: available ?? true,
+    buyUrl: buyUrl(domain),
+  };
+}
+
+/** One availability call + cached catalog per TLD. */
+export async function checkHostingerOffers(domains: string[]): Promise<Map<string, RegistrarOffer>> {
+  const map = new Map<string, RegistrarOffer>();
+  const token = process.env.HOSTINGER_API_TOKEN;
+
+  if (!token) {
+    const skipped = skippedOffer('hostinger', 'HOSTINGER_API_TOKEN non configuré');
+    for (const d of domains) map.set(d, { ...skipped });
+    return map;
+  }
+
+  if (domains.length === 0) return map;
+
+  const availabilityByDomain = new Map<string, boolean | null>();
+  const tldByDomain = new Map<string, string>();
+  const uniqueTlds = new Set<string>();
+  let sld: string | null = null;
+
+  for (const domain of domains) {
+    const parts = domain.split('.');
+    if (parts.length < 2) {
+      map.set(domain, errorOffer('hostinger', 'Domaine invalide'));
+      continue;
+    }
+    const domainSld = parts[0];
+    const tld = parts.slice(1).join('.').replace(/^\./, '');
+    if (sld === null) sld = domainSld;
+    tldByDomain.set(domain, tld);
+    uniqueTlds.add(tld);
+  }
+
+  try {
+    if (sld) {
+      const availRes = await fetch(`${HOSTINGER_API}/api/domains/v1/availability`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ domain: sld, tlds: [...uniqueTlds] }),
+      });
+
+      if (availRes.ok) {
+        const availJson = (await availRes.json()) as
+          | AvailabilityItem[]
+          | { data?: AvailabilityItem[] };
+        const items = Array.isArray(availJson) ? availJson : availJson.data || [];
+        for (const item of items) {
+          const fqdn = (item.domain || '').toLowerCase();
+          if (fqdn) {
+            availabilityByDomain.set(fqdn, Boolean(item.is_available ?? item.isAvailable));
+          }
+        }
+      }
+    }
+
+    const catalogByTld = new Map<string, CatalogItem[]>();
+    await Promise.all(
+      [...uniqueTlds].map(async (tld) => {
+        catalogByTld.set(tld, await fetchCatalog(token, tld));
+      })
+    );
+
+    for (const domain of domains) {
+      if (map.has(domain)) continue;
+      const tld = tldByDomain.get(domain);
+      if (!tld) continue;
+      const catalog = catalogByTld.get(tld) || [];
+      const prices = pickDomainPrices(catalog, tld);
+      const available = availabilityByDomain.get(domain.toLowerCase()) ?? null;
+      map.set(domain, buildHostingerOffer(domain, available, prices));
+    }
+  } catch (err) {
+    const offer = errorOffer('hostinger', err instanceof Error ? err.message : 'Erreur réseau');
+    for (const d of domains) {
+      if (!map.has(d)) map.set(d, { ...offer });
+    }
+  }
+
+  return map;
+}
+
+export async function checkHostingerOffer(domain: string): Promise<RegistrarOffer> {
+  const map = await checkHostingerOffers([domain]);
+  return map.get(domain) ?? errorOffer('hostinger', 'Réponse vide');
 }
