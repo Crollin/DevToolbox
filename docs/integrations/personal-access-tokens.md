@@ -98,7 +98,6 @@ curl -s -X POST https://devtoolbox.creactiveweb.com/api/tasks \
 ## Intégrations documentées
 
 - [Extension Raycast](../../raycast/README.md)
-- [Agent Hermes](../../hermes/README.md)
 
 ## Sécurité
 
