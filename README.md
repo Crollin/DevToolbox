@@ -2,7 +2,7 @@
 
 Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, licences, tâches et plus — avec API, auth JWT et déploiement Docker.
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
@@ -22,7 +22,8 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 
 ## Fonctionnalités
 
-- **18 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, Domain Hub, tâches, Knowledge Base, générateurs wp-config / plugin header
+- **18 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, Domain Hub, tâches (vue liste + Kanban), Knowledge Base, générateurs wp-config / plugin header
+- **Feature flags** : activation modulaire des fonctionnalités par instance (`/api/config`)
 - **Auth JWT** multi-comptes, reset mot de passe, Personal Access Tokens (`dt_…`) pour intégrations (Raycast, Hermes, API)
 - **Backend** Express + SQLite, notifications (email, Ntfy, Telegram)
 - **Docker Compose** prêt pour self-host (images GHCR)

@@ -6,18 +6,23 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-29
+
 ### Ajouté
 
-- Outil **Domain Hub** : comparateur multi-registrar (Cloudflare, Hostinger, OVH), portefeuille (client / payeur / dates), sync Hostinger, alertes d’expiration enrichies, export CSV facturation et suivi de statut billing
+- Outil **Domain Hub** : comparateur multi-registrar (Cloudflare, Hostinger, OVH), portefeuille (client / payeur / dates), sync Hostinger, alertes d'expiration enrichies, export CSV facturation et suivi de statut billing
 - API `/api/domains` (scope PAT `domains`) — activable via `DOMAIN_HUB_ENABLED=true`
 - Endpoint public `GET /api/config` (feature flags instance, ex. `domainHubEnabled`)
-- Onglet **Mon compte → Accès API** (remplace Raycast) pour tokens d’intégration universels
+- **Vue Kanban** dans Task Reminder avec glisser-déposer entre colonnes
+- Système de **feature flags** frontend et backend (`FeatureFlagsContext`, `FeatureGate`, `/api/config`)
+- Onglet **Mon compte → Accès API** (remplace Raycast) pour tokens d'intégration universels
 - Suppression définitive des tokens révoqués (`DELETE /api/auth/personal-tokens/:id/permanent`)
 - Guide [Personal Access Tokens](docs/integrations/personal-access-tokens.md) et intégration [Hermes Agent](hermes/README.md)
 
 ### Modifié
 
-- **Domain Hub désactivé par défaut** : ajouter `DOMAIN_HUB_ENABLED=true` dans `.env` pour activer le module sur l’instance
+- **Domain Hub désactivé par défaut** : ajouter `DOMAIN_HUB_ENABLED=true` dans `.env` pour activer le module sur l'instance
+- Labels Docker alignés sur la version `1.3.0`
 
 ### Retiré
 
@@ -78,7 +83,8 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 Version initiale : 16 outils, auth JWT, notifications multi-canaux (Ntfy, email, Telegram), déploiement Docker.
 
-[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Crollin/DevToolbox/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Crollin/DevToolbox/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Crollin/DevToolbox/releases/tag/v1.0.0
