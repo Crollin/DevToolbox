@@ -3,11 +3,10 @@ import Header from "@/components/Header";
 import SearchBar from "@/components/SearchBar";
 import CategoryFilter from "@/components/CategoryFilter";
 import ToolGrid from "@/components/ToolGrid";
-import StatsBar from "@/components/StatsBar";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Check, ArrowUpRight } from "lucide-react";
-import { ToolCategory, categoryLabels } from "@/data/tools";
+import { ToolCategory } from "@/data/tools";
 import { useToolOrder } from "@/hooks/useToolOrder";
 import { useAvailableTools } from "@/hooks/useAvailableTools";
 import { useAuth } from "@/contexts/AuthContext";
@@ -101,12 +100,6 @@ const Index = () => {
               <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-primary"><ArrowUpRight className="w-3.5 h-3.5" /> Ouvrir un outil</div>
             </div>
           </div>
-
-          {/* Stats */}
-          <StatsBar 
-            totalTools={availableTools.length} 
-            totalCategories={Object.keys(categoryLabels).length} 
-          />
 
           <HomeDashboard />
         </section>

@@ -81,6 +81,20 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 
 **Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences`, `/api/tasks`, `/api/kb` et `/api/domains` acceptent également un Personal Access Token `dt_...` si le scope correspondant est présent.
 
+Guide utilisateur : [Intégrations API](../docs/integrations/README.md) · [Personal Access Tokens](../docs/integrations/personal-access-tokens.md)
+
+### Tâches (JWT ou PAT scope `tasks`)
+
+- `GET /api/tasks` — Liste les tâches (`?status=pending|in_progress|completed`, `?client=…`)
+- `GET /api/tasks/:id` — Détail d'une tâche
+- `POST /api/tasks` — Crée une tâche
+  - Body: `{ title: string, dueDate: string, description?: string, client?: string, link?: string, tags?: string[], priority?: 'low'|'normal'|'high'|'urgent', notificationChannels?: ('ntfy'|'email'|'telegram')[], reminderDays?: number[], reminderDatetime?: string }`
+- `PUT /api/tasks/:id` — Met à jour une tâche
+- `PATCH /api/tasks/:id/status` — Change le statut (`pending`, `in_progress`, `completed`)
+- `DELETE /api/tasks/:id` — Supprime une tâche
+- `GET /api/tasks/clients/list` — Clients prédéfinis
+- `POST /api/tasks/clients` — Ajoute un client (`{ name: string }`)
+
 ### Snippets
 - `GET /api/snippets` - Liste tous les snippets
 - `GET /api/snippets/:id` - Récupère un snippet

@@ -15,9 +15,6 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 - Endpoint public `GET /api/config` (feature flags instance, ex. `domainHubEnabled`)
 - **Vue Kanban** dans Task Reminder avec glisser-déposer entre colonnes
 - Système de **feature flags** frontend et backend (`FeatureFlagsContext`, `FeatureGate`, `/api/config`)
-- Onglet **Mon compte → Accès API** (remplace Raycast) pour tokens d'intégration universels
-- Suppression définitive des tokens révoqués (`DELETE /api/auth/personal-tokens/:id/permanent`)
-- Guide [Personal Access Tokens](docs/integrations/personal-access-tokens.md) et intégration [Hermes Agent](hermes/README.md)
 
 ### Modifié
 
@@ -27,6 +24,25 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 ### Retiré
 
 - Outil **Mon Calcul Énergie** (ElectriCalc) et API `/api/electricalc`
+
+## [1.2.1] - 2026-07-28
+
+### Ajouté
+
+- Onglet **Mon compte → Accès API** pour gérer les Personal Access Tokens (`dt_...`) de façon universelle (Raycast, Hermes, scripts HTTP)
+- Suppression définitive des tokens révoqués (`DELETE /api/auth/personal-tokens/:id/permanent`)
+- Guide [Personal Access Tokens](docs/integrations/personal-access-tokens.md) et hub [Intégrations API](docs/integrations/README.md)
+- Intégration [Hermes Agent](hermes/README.md) pour Task Reminder (skill + doc prod)
+
+### Modifié
+
+- UI et documentation : branding « Raycast » remplacé par **Accès API** pour les tokens d'intégration
+- Guides Raycast et Hermes alignés sur le même flux de création de PAT
+
+### Corrigé
+
+- Déploiement Coolify : conflit de port `14001` (frontend en `expose: 80`, proxy Traefik/Caddy)
+- Compose Docker : fichiers `docker-compose.local.yml` / `docker-compose.build.yml` pour usage local explicite
 
 ## [1.2.0] - 2026-07-27
 
@@ -84,7 +100,8 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 Version initiale : 16 outils, auth JWT, notifications multi-canaux (Ntfy, email, Telegram), déploiement Docker.
 
 [Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.3.0...HEAD
-[1.3.0]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...v1.3.0
+[1.3.0]: https://github.com/Crollin/DevToolbox/compare/v1.2.1...v1.3.0
+[1.2.1]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Crollin/DevToolbox/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Crollin/DevToolbox/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Crollin/DevToolbox/releases/tag/v1.0.0
