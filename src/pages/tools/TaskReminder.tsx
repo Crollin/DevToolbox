@@ -1,67 +1,73 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Filter, CheckSquare, CalendarClock, CircleAlert, ListTodo } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  CheckSquare,
+  CalendarClock,
+  CircleAlert,
+  ListTodo,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { useTasks } from "@/hooks/useTasks";
 import { Task, CreateTaskInput } from "@/types/task";
 import TaskCard from "@/components/tasks/TaskCard";
+import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskModal from "@/components/tasks/TaskModal";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
+type ViewMode = "kanban" | "list";
+
 const TaskReminder = () => {
   const tool = tools.find((t) => t.id === "task-reminder")!;
   const { tasks, isLoaded, addTask, updateTask, updateTaskStatus, deleteTask } = useTasks();
-  
+
+  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "in_progress" | "completed">("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [showCompleted, setShowCompleted] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // Extraire la liste unique des clients
   const clients = useMemo(() => {
     const clientSet = new Set<string>();
     tasks.forEach((task) => {
-      if (task.client) {
-        clientSet.add(task.client);
-      }
+      if (task.client) clientSet.add(task.client);
     });
     return Array.from(clientSet).sort();
   }, [tasks]);
 
-  const tags = useMemo(() => Array.from(new Set(tasks.flatMap((task) => task.tags || []))).sort(), [tasks]);
+  const tags = useMemo(
+    () => Array.from(new Set(tasks.flatMap((task) => task.tags || []))).sort(),
+    [tasks]
+  );
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const matchesSearch = 
+      const matchesSearch =
         task.title.toLowerCase().includes(search.toLowerCase()) ||
         (task.description && task.description.toLowerCase().includes(search.toLowerCase())) ||
         (task.client && task.client.toLowerCase().includes(search.toLowerCase())) ||
         (task.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
-      
-      const matchesStatus = statusFilter === "all" || task.status === statusFilter;
+
+      const matchesStatus = viewMode === "kanban" || statusFilter === "all" || task.status === statusFilter;
       const matchesClient = clientFilter === "all" || task.client === clientFilter;
       const matchesTag = tagFilter === "all" || (task.tags || []).includes(tagFilter);
       const matchesCompleted = showCompleted || task.status !== "completed";
-      
+
       return matchesSearch && matchesStatus && matchesClient && matchesTag && matchesCompleted;
     });
-  }, [tasks, search, statusFilter, clientFilter, tagFilter, showCompleted]);
+  }, [tasks, search, statusFilter, clientFilter, tagFilter, showCompleted, viewMode]);
 
-  const pendingTasks = useMemo(() => {
-    return tasks.filter((t) => t.status === "pending").length;
-  }, [tasks]);
-
-  const inProgressTasks = useMemo(() => {
-    return tasks.filter((t) => t.status === "in_progress").length;
-  }, [tasks]);
-
-  const completedTasks = useMemo(() => {
-    return tasks.filter((t) => t.status === "completed").length;
-  }, [tasks]);
+  const pendingTasks = tasks.filter((t) => t.status === "pending").length;
+  const inProgressTasks = tasks.filter((t) => t.status === "in_progress").length;
+  const completedTasks = tasks.filter((t) => t.status === "completed").length;
 
   const today = new Date();
   const dueSoonTasks = tasks.filter((task) => {
@@ -70,7 +76,9 @@ const TaskReminder = () => {
     const days = (due.getTime() - today.getTime()) / 86400000;
     return days >= 0 && days <= 3;
   }).length;
-  const overdueTasks = tasks.filter((task) => task.status !== "completed" && new Date(task.dueDate) < today).length;
+  const overdueTasks = tasks.filter(
+    (task) => task.status !== "completed" && new Date(task.dueDate) < today
+  ).length;
 
   const handleSave = async (taskData: CreateTaskInput) => {
     try {
@@ -89,7 +97,7 @@ const TaskReminder = () => {
       }
       setEditingTask(null);
       setIsModalOpen(false);
-    } catch (error) {
+    } catch {
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la sauvegarde.",
@@ -104,9 +112,16 @@ const TaskReminder = () => {
   };
 
   const handleDelete = async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task || !confirm(`Supprimer la tâche "${task.title}" ?`)) return;
+
     try {
       await deleteTask(id);
-    } catch (error) {
+      toast({
+        title: "Tâche supprimée",
+        description: `${task.title} a été supprimée.`,
+      });
+    } catch {
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la suppression.",
@@ -115,10 +130,22 @@ const TaskReminder = () => {
     }
   };
 
-  const handleStatusChange = async (id: string, status: 'pending' | 'in_progress' | 'completed') => {
+  const handleStatusChange = async (id: string, status: Task["status"]) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task || task.status === status) return;
+
     try {
       await updateTaskStatus(id, status);
-    } catch (error) {
+      const labels: Record<Task["status"], string> = {
+        pending: "en attente",
+        in_progress: "en cours",
+        completed: "terminée",
+      };
+      toast({
+        title: "Statut mis à jour",
+        description: `"${task.title}" est maintenant ${labels[status]}.`,
+      });
+    } catch {
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la mise à jour du statut.",
@@ -144,49 +171,97 @@ const TaskReminder = () => {
 
   return (
     <ToolLayout tool={tool}>
-      <div className="tool-workspace max-w-5xl mx-auto space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div
+        className={cn(
+          "tool-workspace mx-auto space-y-6 animate-fade-in",
+          viewMode === "kanban" ? "max-w-7xl" : "max-w-5xl"
+        )}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="tool-kicker"><CalendarClock className="w-3.5 h-3.5" /> Cadence de travail</p>
+            <p className="tool-kicker">
+              <CalendarClock className="w-3.5 h-3.5" /> Cadence de travail
+            </p>
             <h2 className="text-2xl font-bold text-foreground mb-1">Le prochain geste est clair</h2>
-            <p className="text-muted-foreground text-sm">Planifiez, relancez et fermez les boucles sans perdre le fil.</p>
+            <p className="text-muted-foreground text-sm">
+              Planifiez, relancez et fermez les boucles sans perdre le fil.
+            </p>
           </div>
-          <button
-            onClick={openNewModal}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nouvelle tâche</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-border bg-muted/30 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("kanban")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  viewMode === "kanban"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-pressed={viewMode === "kanban"}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                Kanban
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  viewMode === "list"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-pressed={viewMode === "list"}
+              >
+                <List className="h-4 w-4" />
+                Liste
+              </button>
+            </div>
+            <button
+              onClick={openNewModal}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Nouvelle tâche</span>
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="insight-card"><ListTodo className="insight-icon text-primary" /><div><strong>{pendingTasks + inProgressTasks}</strong><span>à traiter</span></div></div>
-          <div className="insight-card"><CircleAlert className="insight-icon text-accent" /><div><strong>{overdueTasks}</strong><span>en retard</span></div></div>
-          <div className="insight-card"><CalendarClock className="insight-icon text-blue-400" /><div><strong>{dueSoonTasks}</strong><span>dans les 3 jours</span></div></div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="insight-card">
+            <ListTodo className="insight-icon text-primary" />
+            <div>
+              <strong>{pendingTasks + inProgressTasks}</strong>
+              <span>à traiter</span>
+            </div>
+          </div>
+          <div className="insight-card">
+            <CircleAlert className="insight-icon text-accent" />
+            <div>
+              <strong>{overdueTasks}</strong>
+              <span>en retard</span>
+            </div>
+          </div>
+          <div className="insight-card">
+            <CalendarClock className="insight-icon text-blue-400" />
+            <div>
+              <strong>{dueSoonTasks}</strong>
+              <span>dans les 3 jours</span>
+            </div>
+          </div>
+          <div className="insight-card">
+            <CheckSquare className="insight-icon text-emerald-400" />
+            <div>
+              <strong>{completedTasks}</strong>
+              <span>terminées</span>
+            </div>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="p-3 rounded-lg bg-card border border-border">
-            <div className="text-2xl font-bold text-foreground">{pendingTasks}</div>
-            <div className="text-xs text-muted-foreground">En attente</div>
-          </div>
-          <div className="p-3 rounded-lg bg-card border border-border">
-            <div className="text-2xl font-bold text-blue-400">{inProgressTasks}</div>
-            <div className="text-xs text-muted-foreground">En cours</div>
-          </div>
-          <div className="p-3 rounded-lg bg-card border border-border">
-            <div className="text-2xl font-bold text-emerald-400">{completedTasks}</div>
-            <div className="text-xs text-muted-foreground">Terminées</div>
-          </div>
-        </div>
-
-        {/* Search & Filters */}
         <div className="flex flex-col gap-3">
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Rechercher une tâche..."
@@ -196,122 +271,122 @@ const TaskReminder = () => {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-            <button
-              onClick={() => setStatusFilter("all")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                statusFilter === "all"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Tous
-            </button>
-            <button
-              onClick={() => setStatusFilter("pending")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                statusFilter === "pending"
-                  ? "bg-gray-500/10 text-gray-400 border border-gray-500/30"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              En attente
-            </button>
-            <button
-              onClick={() => setStatusFilter("in_progress")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                statusFilter === "in_progress"
-                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              En cours
-            </button>
-            <button
-              onClick={() => setStatusFilter("completed")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                statusFilter === "completed"
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Terminées
-            </button>
-            
-            {clients.length > 0 && (
+            <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+
+            {viewMode === "list" && (
               <>
-                <span className="text-muted-foreground mx-1">•</span>
-                <select
-                  value={clientFilter}
-                  onChange={(e) => setClientFilter(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-muted text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="all">Tous les clients</option>
-                  {clients.map((client) => (
-                    <option key={client} value={client}>
-                      {client}
-                    </option>
-                  ))}
-                </select>
+                {(["all", "pending", "in_progress", "completed"] as const).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={cn(
+                      "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      statusFilter === status
+                        ? status === "all"
+                          ? "bg-primary text-primary-foreground"
+                          : status === "pending"
+                            ? "border border-gray-500/30 bg-gray-500/10 text-gray-400"
+                            : status === "in_progress"
+                              ? "border border-blue-500/30 bg-blue-500/10 text-blue-400"
+                              : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {status === "all"
+                      ? "Tous"
+                      : status === "pending"
+                        ? "En attente"
+                        : status === "in_progress"
+                          ? "En cours"
+                          : "Terminées"}
+                  </button>
+                ))}
               </>
+            )}
+
+            {clients.length > 0 && (
+              <select
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="all">Tous les clients</option>
+                {clients.map((client) => (
+                  <option key={client} value={client}>
+                    {client}
+                  </option>
+                ))}
+              </select>
             )}
 
             {tags.length > 0 && (
               <select
                 value={tagFilter}
                 onChange={(e) => setTagFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-muted text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="all">Tous les tags</option>
-                {tags.map((tag) => <option key={tag} value={tag}>#{tag}</option>)}
+                {tags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    #{tag}
+                  </option>
+                ))}
               </select>
             )}
-            
-            <span className="text-muted-foreground mx-1">•</span>
+
             <button
               onClick={() => setShowCompleted(!showCompleted)}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                showCompleted
-                  ? "bg-muted text-foreground"
-                  : "bg-muted/50 text-muted-foreground"
+                "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                showCompleted ? "bg-muted text-foreground" : "bg-muted/50 text-muted-foreground"
               )}
             >
-              <CheckSquare className="w-4 h-4" />
+              <CheckSquare className="h-4 w-4" />
               Afficher terminées
             </button>
           </div>
         </div>
 
-        {/* Tasks List */}
-        <div className="space-y-3">
-          {filteredTasks.length > 0 ? (
-            filteredTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onStatusChange={handleStatusChange}
-              />
-            ))
+        {viewMode === "kanban" ? (
+          filteredTasks.length > 0 || tasks.length === 0 ? (
+            <TaskKanbanBoard
+              tasks={filteredTasks}
+              showCompleted={showCompleted}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onStatusChange={handleStatusChange}
+            />
           ) : (
-            <div className="text-center py-12">
-              <CheckSquare className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                {tasks.length === 0
-                  ? "Aucune tâche pour le moment. Créez-en une pour commencer !"
-                  : "Aucune tâche ne correspond à vos filtres."}
-              </p>
+            <div className="py-12 text-center">
+              <CheckSquare className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50" />
+              <p className="text-muted-foreground">Aucune tâche ne correspond à vos filtres.</p>
             </div>
-          )}
-        </div>
+          )
+        ) : (
+          <div className="space-y-3">
+            {filteredTasks.length > 0 ? (
+              filteredTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onStatusChange={handleStatusChange}
+                />
+              ))
+            ) : (
+              <div className="py-12 text-center">
+                <CheckSquare className="mx-auto mb-3 h-12 w-12 text-muted-foreground/50" />
+                <p className="text-muted-foreground">
+                  {tasks.length === 0
+                    ? "Aucune tâche pour le moment. Créez-en une pour commencer !"
+                    : "Aucune tâche ne correspond à vos filtres."}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Modal */}
         <TaskModal
           isOpen={isModalOpen}
           onClose={() => {
