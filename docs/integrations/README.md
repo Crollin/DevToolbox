@@ -2,9 +2,10 @@
 
 DevToolbox expose une API REST authentifiée (JWT ou Personal Access Token `dt_...`) pour connecter des clients externes.
 
-## Guide principal
+## Guides
 
 - **[Personal Access Tokens (Accès API)](personal-access-tokens.md)** — création des tokens, scopes, révocation, exemples `curl`
+- **[Notifications Telegram](telegram.md)** — configurer le bot, obtenir son Chat ID, activer les rappels via Telegram
 
 ## Clients documentés
 

@@ -17,6 +17,7 @@ import { Task, CreateTaskInput } from "@/types/task";
 import TaskCard from "@/components/tasks/TaskCard";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskModal from "@/components/tasks/TaskModal";
+import TaskDetailSheet from "@/components/tasks/TaskDetailSheet";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -34,6 +35,7 @@ const TaskReminder = () => {
   const [showCompleted, setShowCompleted] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
 
   const clients = useMemo(() => {
     const clientSet = new Set<string>();
@@ -354,6 +356,7 @@ const TaskReminder = () => {
               showCompleted={showCompleted}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onView={setViewingTask}
               onStatusChange={handleStatusChange}
             />
           ) : (
@@ -371,6 +374,7 @@ const TaskReminder = () => {
                   task={task}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onView={setViewingTask}
                   onStatusChange={handleStatusChange}
                 />
               ))
@@ -395,6 +399,14 @@ const TaskReminder = () => {
           }}
           onSave={handleSave}
           editTask={editingTask}
+        />
+
+        <TaskDetailSheet
+          task={viewingTask}
+          open={!!viewingTask}
+          onOpenChange={(open) => { if (!open) setViewingTask(null); }}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </div>
     </ToolLayout>

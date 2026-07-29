@@ -23,6 +23,7 @@ interface TaskKanbanBoardProps {
   showCompleted: boolean;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onView?: (task: Task) => void;
   onStatusChange: (id: string, status: TaskStatus) => void;
 }
 
@@ -54,6 +55,7 @@ const TaskKanbanBoard = ({
   showCompleted,
   onEdit,
   onDelete,
+  onView,
   onStatusChange,
 }: TaskKanbanBoardProps) => {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -158,6 +160,7 @@ const TaskKanbanBoard = ({
             tasks={displayGrouped[column.id]}
             onEdit={onEdit}
             onDelete={onDelete}
+            onView={onView}
           />
         ))}
       </div>

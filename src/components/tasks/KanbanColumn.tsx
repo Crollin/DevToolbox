@@ -18,17 +18,18 @@ interface KanbanColumnProps {
   tasks: Task[];
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onView?: (task: Task) => void;
   isOver?: boolean;
 }
 
-const KanbanColumn = ({ column, tasks, onEdit, onDelete, isOver }: KanbanColumnProps) => {
+const KanbanColumn = ({ column, tasks, onEdit, onDelete, onView, isOver }: KanbanColumnProps) => {
   const { setNodeRef, isOver: isDroppableOver } = useDroppable({ id: column.id });
   const Icon = column.icon;
   const taskIds = tasks.map((t) => t.id);
   const highlighted = isOver || isDroppableOver;
 
   return (
-    <div className="flex min-h-[320px] flex-col rounded-xl border border-border/60 bg-muted/20">
+    <div className="flex min-h-0 md:min-h-[320px] flex-col rounded-xl border border-border/60 bg-muted/20">
       <div
         className={cn(
           "flex items-center justify-between gap-2 rounded-t-xl border-b px-3 py-2.5",
@@ -59,7 +60,7 @@ const KanbanColumn = ({ column, tasks, onEdit, onDelete, isOver }: KanbanColumnP
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.length > 0 ? (
             tasks.map((task) => (
-              <KanbanTaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} />
+              <KanbanTaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onView={onView} />
             ))
           ) : (
             <div

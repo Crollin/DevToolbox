@@ -158,8 +158,12 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 mt-16">
         <div className="container mx-auto px-4 py-6">
-          <p className="text-center text-[11px] text-muted-foreground font-mono">
-            DEVTOOLBOX / local utilities / 2025
+          <p className="text-center text-[11px] text-muted-foreground font-mono flex items-center justify-center gap-2 flex-wrap">
+            <span>DEVTOOLBOX / local utilities / {new Date().getFullYear()}</span>
+            <span className="text-border">|</span>
+            <a href="https://github.com/comerollin/DevToolbox" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
+            <span className="text-border">|</span>
+            <a href="https://creactiveweb.com/outils" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">creactiveweb.com/outils</a>
           </p>
         </div>
       </footer>

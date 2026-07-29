@@ -9,10 +9,11 @@ interface TaskCardProps {
   task: Task;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onView?: (task: Task) => void;
   onStatusChange: (id: string, status: 'pending' | 'in_progress' | 'completed') => void;
 }
 
-const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange }: TaskCardProps) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
@@ -42,7 +43,15 @@ const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => 
   };
 
   return (
-    <div className="group p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-all">
+    <div
+      className={cn("group p-4 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-all", onView && "cursor-pointer")}
+      onClick={(e) => {
+        if (!onView) return;
+        const target = e.target as HTMLElement;
+        if (target.closest("button") || target.closest("a") || target.closest("select")) return;
+        onView(task);
+      }}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0 flex-1">
           <div className="min-w-0 flex-1">

@@ -1,6 +1,7 @@
 import { LogOut, User, Key, Settings, LogIn, Cloud, Command } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
+import AppLogo from "./AppLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
 import {
@@ -33,11 +34,7 @@ const Header = () => {
             role="button"
             tabIndex={0}
           >
-            <div className="relative">
-              <div className="w-9 h-9 rounded-md overflow-hidden flex items-center justify-center">
-                <img src="/favicon.svg" alt="" className="w-full h-full" />
-              </div>
-            </div>
+            <AppLogo size="md" />
             <div>
               <h1 className="text-lg font-bold text-foreground font-mono tracking-tight">
                 DevToolbox

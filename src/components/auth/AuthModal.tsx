@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import AppLogo from "../AppLogo";
 import {
   Dialog,
   DialogContent,
@@ -42,11 +43,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = "login" }: AuthModalPr
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-center mb-4">
-            <img
-              src="/favicon.svg"
-              alt="DevToolbox"
-              className="w-16 h-16"
-            />
+            <AppLogo size="lg" />
           </div>
           <DialogTitle className="text-center">Authentification</DialogTitle>
           <DialogDescription className="text-center">

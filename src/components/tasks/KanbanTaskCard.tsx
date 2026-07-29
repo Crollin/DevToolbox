@@ -10,6 +10,7 @@ interface KanbanTaskCardProps {
   task: Task;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onView?: (task: Task) => void;
   isDragging?: boolean;
 }
 
@@ -27,7 +28,7 @@ function formatShortDate(dateString: string) {
   });
 }
 
-const KanbanTaskCard = ({ task, onEdit, onDelete, isDragging }: KanbanTaskCardProps) => {
+const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging }: KanbanTaskCardProps) => {
   const {
     attributes,
     listeners,
@@ -58,8 +59,15 @@ const KanbanTaskCard = ({ task, onEdit, onDelete, isDragging }: KanbanTaskCardPr
         task.priority !== "normal" && "border-l-[3px]",
         task.priority === "urgent" && "border-l-red-400",
         task.priority === "high" && "border-l-amber-400",
-        task.priority === "low" && "border-l-muted-foreground/40"
+        task.priority === "low" && "border-l-muted-foreground/40",
+        onView && "cursor-pointer"
       )}
+      onClick={(e) => {
+        if (!onView) return;
+        const target = e.target as HTMLElement;
+        if (target.closest("button")) return;
+        onView(task);
+      }}
     >
       <div className="flex items-start gap-2">
         <button
@@ -133,7 +141,7 @@ const KanbanTaskCard = ({ task, onEdit, onDelete, isDragging }: KanbanTaskCardPr
         </div>
       </div>
 
-      <div className="mt-2 flex justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="mt-2 flex justify-end gap-0.5 opacity-100 md:opacity-0 transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
         <Button
           variant="ghost"
           size="sm"
