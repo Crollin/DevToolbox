@@ -71,7 +71,7 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 
 - `POST /api/auth/personal-tokens` - Créer un Personal Access Token pour une intégration (Raycast, Hermes, scripts…)
   - Headers: `Authorization: Bearer <JWT de session>`
-  - Body: `{ name: string, expiresAt?: string | null, scopes?: ('licences' | 'tasks' | 'knowledge_base')[] }`
+  - Body: `{ name: string, expiresAt?: string | null, scopes?: ('licences' | 'tasks' | 'knowledge_base' | 'domains')[] }`
   - Par défaut : `scopes: ['licences']` si omis
   - Le token brut est retourné une seule fois dans `token`
   - Le token est hashé côté serveur et peut être révoqué
@@ -79,7 +79,7 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 - `DELETE /api/auth/personal-tokens/:id` - Révoquer un token (soft delete)
 - `DELETE /api/auth/personal-tokens/:id/permanent` - Supprimer définitivement un token déjà révoqué
 
-**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences`, `/api/tasks` et `/api/kb` acceptent également un Personal Access Token `dt_...` si le scope correspondant est présent.
+**Note** : Toutes les autres routes nécessitent une authentification via le header `Authorization: Bearer <token>`. Les routes `/api/licences`, `/api/tasks`, `/api/kb` et `/api/domains` acceptent également un Personal Access Token `dt_...` si le scope correspondant est présent.
 
 Guide utilisateur : [Intégrations API](../docs/integrations/README.md) · [Personal Access Tokens](../docs/integrations/personal-access-tokens.md)
 
@@ -175,8 +175,29 @@ Guide utilisateur : [Intégrations API](../docs/integrations/README.md) · [Pers
 - `POST /api/licences/check-expiring` - Déclenche manuellement la vérification et l'envoi des rappels automatiques
   - Retourne: `{ message: string }`
 
+### Domains (Domain Hub) — authentification JWT ou PAT scope `domains`
+
+**Module désactivé par défaut.** Définir `DOMAIN_HUB_ENABLED=true` dans `.env` pour monter les routes ci-dessous. Le frontend lit l'état via `GET /api/config` (`domainHubEnabled`).
+
+- `POST /api/domains/compare` — Comparateur multi-registrar (Cloudflare, Hostinger, OVH)
+  - Body: `{ name: string, tlds?: string[] }`
+  - Retourne disponibilité + prix création/renouvellement ; providers non configurés → `status: skipped`
+- `GET /api/domains` — Portefeuille domaines de l'utilisateur
+- `POST /api/domains` — Ajoute un domaine au portefeuille
+- `PUT /api/domains/:id` — Met à jour un domaine
+- `DELETE /api/domains/:id` — Supprime un domaine
+- `POST /api/domains/sync/hostinger` — Importe/met à jour les dates d'expiration depuis Hostinger
+- `GET /api/domains/export/billing.csv` — Export CSV facturation (filtres : `payer`, `days`, `billingStatus`)
+- `PATCH /api/domains/:id/billing` — Met à jour le statut facturation (`pending` | `invoiced` | `paid` | `n/a`)
+
+Variables registrar (toutes optionnelles) : `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HOSTINGER_API_TOKEN`, `OVH_APP_KEY`, `OVH_APP_SECRET`, `OVH_CONSUMER_KEY`, `OVH_SUBSIDIARY`, `DOMAIN_USD_EUR_RATE`.
+
 ### Health Check
 - `GET /health` - Vérifie l'état du serveur
+
+### Configuration (public)
+- `GET /api/config` - Feature flags instance (sans authentification)
+  - Retourne : `{ domainHubEnabled: boolean }`
 
 ## Variables d'environnement
 
@@ -229,6 +250,8 @@ backend/
 │   │   ├── git.ts            # Routes pour Git
 │   │   ├── icons.ts          # Routes pour les icônes
 │   │   ├── licences.ts       # Routes pour les licences et notifications (authentification requise)
+│   │   ├── domains.ts        # Domain Hub : compare, portefeuille, sync, export CSV
+│   │   ├── tasks.ts          # Routes pour les tâches
 │   │   └── ...
 │   ├── lib/
 │   │   ├── email.ts          # Service d'envoi d'emails (Nodemailer) et notifications de licences

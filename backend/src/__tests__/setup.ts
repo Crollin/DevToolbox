@@ -2,3 +2,4 @@
 process.env.DB_PATH = ':memory:';
 process.env.JWT_SECRET = 'test-secret-for-vitest';
 process.env.NODE_ENV = 'test';
+process.env.DOMAIN_HUB_ENABLED = 'true';

@@ -9,9 +9,9 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { tools } from "@/data/tools";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAvailableTools } from "@/hooks/useAvailableTools";
 
 interface SearchResult {
   id: string;
@@ -26,6 +26,7 @@ export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [remoteResults, setRemoteResults] = useState<SearchResult[]>([]);
   const { isAuthenticated } = useAuth();
+  const { availableTools } = useAvailableTools();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,15 +84,15 @@ export function GlobalSearch() {
   }, [query, open, isAuthenticated]);
 
   const toolResults = useMemo(() => {
-    if (!query) return tools.slice(0, 8);
+    if (!query) return availableTools.slice(0, 8);
     const q = query.toLowerCase();
-    return tools.filter(
+    return availableTools.filter(
       (t) =>
         t.name.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
         t.tags.some((tag) => tag.toLowerCase().includes(q))
     );
-  }, [query]);
+  }, [query, availableTools]);
 
   const runCommand = useCallback(
     (path: string) => {

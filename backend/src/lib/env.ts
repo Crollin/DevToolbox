@@ -16,6 +16,17 @@ const envSchema = z.object({
   RESEND_FROM: z.string().optional(),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   FRONTEND_URL: z.string().optional(),
+  /** Active le module Domain Hub (défaut : désactivé). */
+  DOMAIN_HUB_ENABLED: z.string().optional(),
+  // Domain Hub — registrars (optionnels)
+  CLOUDFLARE_API_TOKEN: z.string().optional(),
+  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
+  HOSTINGER_API_TOKEN: z.string().optional(),
+  OVH_APP_KEY: z.string().optional(),
+  OVH_APP_SECRET: z.string().optional(),
+  OVH_CONSUMER_KEY: z.string().optional(),
+  OVH_SUBSIDIARY: z.string().optional(),
+  DOMAIN_USD_EUR_RATE: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

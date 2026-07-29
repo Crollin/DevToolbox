@@ -96,6 +96,50 @@ export const kbEntryCreateSchema = z.object({
 
 export const kbEntryUpdateSchema = kbEntryCreateSchema.partial();
 
+// =========================
+// Domain Hub
+// =========================
+export const domainCompareSchema = z.object({
+  name: z.string().min(1).max(253),
+  tlds: z.array(z.string().min(1).max(63)).max(12).optional(),
+  registrars: z
+    .array(z.enum(['cloudflare', 'hostinger', 'ovh']))
+    .max(3)
+    .optional(),
+  includeO2switch: z.boolean().optional(),
+});
+
+export const domainPortfolioCreateSchema = z.object({
+  name: z.string().min(1).max(253),
+  registrar: z.enum(['cloudflare', 'hostinger', 'ovh', 'o2switch', 'other']),
+  clientName: z.string().max(MAX_NAME).optional().nullable(),
+  clientEmail: z
+    .union([z.string().email().max(255), z.literal(''), z.null()])
+    .optional(),
+  payer: z.enum(['agency', 'client']).optional().default('agency'),
+  costYearly: z.number().nonnegative().optional().nullable(),
+  sellYearly: z.number().nonnegative().optional().nullable(),
+  currency: z.string().min(1).max(10).optional().default('EUR'),
+  expiresAt: z.string().max(50).optional().nullable(),
+  autoRenew: z.boolean().optional().default(false),
+  notes: z.string().max(MAX_DESCRIPTION).optional().nullable(),
+  externalId: z.string().max(255).optional().nullable(),
+  notificationsEnabled: z.boolean().optional().default(true),
+  billingStatus: z.enum(['pending', 'invoiced', 'paid', 'n/a']).optional().default('pending'),
+});
+
+export const domainPortfolioUpdateSchema = domainPortfolioCreateSchema.partial();
+
+export const domainBillingUpdateSchema = z.object({
+  billingStatus: z.enum(['pending', 'invoiced', 'paid', 'n/a']),
+});
+
+export const domainBillingExportQuerySchema = z.object({
+  payer: z.enum(['client', 'agency', 'all']).optional().default('client'),
+  days: z.coerce.number().int().min(0).max(365).optional().default(60),
+  billingStatus: z.enum(['pending', 'all']).optional().default('pending'),
+});
+
 export function validateBody<T>(schema: ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {

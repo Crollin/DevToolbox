@@ -64,6 +64,16 @@ export const tools: Tool[] = [
     color: "amber",
   },
   {
+    id: "domain-hub",
+    name: "Domain Hub",
+    description: "Comparateur multi-registrar (Cloudflare, Hostinger, OVH), portefeuille, alertes d’expiration et export CSV facturation.",
+    category: "utilitaires",
+    icon: "Globe",
+    url: "#",
+    tags: ["domaine", "dns", "registrar", "facturation", "prix"],
+    color: "amber",
+  },
+  {
     id: "csv-preview-pro",
     name: "CSV Preview Pro",
     description: "Visualisation et manipulation avancée de fichiers CSV avec prévisualisation en temps réel.",

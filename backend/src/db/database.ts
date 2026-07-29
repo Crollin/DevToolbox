@@ -682,6 +682,53 @@ export function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entry_tags_tag_id ON kb_entry_tags(tag_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_kb_entry_tags_entry_id ON kb_entry_tags(entry_id)`);
 
+  // Domain Hub — portefeuille
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS domains (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      registrar TEXT NOT NULL,
+      client_name TEXT,
+      client_email TEXT,
+      payer TEXT NOT NULL DEFAULT 'agency',
+      cost_yearly REAL,
+      sell_yearly REAL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      expires_at TEXT,
+      auto_renew INTEGER NOT NULL DEFAULT 0,
+      notes TEXT,
+      external_id TEXT,
+      notifications_enabled INTEGER NOT NULL DEFAULT 1,
+      billing_status TEXT NOT NULL DEFAULT 'pending',
+      last_billed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_user_id ON domains(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_expires_at ON domains(expires_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_user_id_name ON domains(user_id, name)`);
+
+  // Migration : billing_status / last_billed_at sur domains
+  try {
+    const domainsTableInfo = db.prepare('PRAGMA table_info(domains)').all() as Array<{ name: string }>;
+    const domainsColumnNames = domainsTableInfo.map((col) => col.name);
+
+    if (!domainsColumnNames.includes('billing_status')) {
+      db.exec(`ALTER TABLE domains ADD COLUMN billing_status TEXT NOT NULL DEFAULT 'pending'`);
+      console.log('Colonne billing_status ajoutée à domains');
+    }
+
+    if (!domainsColumnNames.includes('last_billed_at')) {
+      db.exec(`ALTER TABLE domains ADD COLUMN last_billed_at TEXT`);
+      console.log('Colonne last_billed_at ajoutée à domains');
+    }
+  } catch (error) {
+    console.log('Migration domains (billing) déjà effectuée ou table n\'existe pas encore');
+  }
+
   console.log('Base de données initialisée avec succès');
 }
 

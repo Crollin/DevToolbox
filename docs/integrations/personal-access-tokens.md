@@ -4,6 +4,7 @@ Les **Personal Access Tokens** (`dt_...`) permettent à des clients externes d'a
 
 Voir aussi le [hub Intégrations API](README.md).
 
+
 ## Créer un token
 
 1. Connectez-vous à DevToolbox
@@ -34,6 +35,7 @@ L'URL de base est celle de votre instance avec `/api`, par exemple :
 | `licences` | `/api/licences` | Gérer les clés de licence |
 | `tasks` | `/api/tasks` | Task Reminder (créer, lister, modifier) |
 | `knowledge_base` | `/api/kb` | Rechercher et gérer les notes KB |
+| `domains` | `/api/domains` | Domain Hub (comparateur, portefeuille) |
 
 Un token peut combiner plusieurs scopes. Appliquez le **principe du moindre privilège** : ne cochez que ce dont le client a besoin.
 

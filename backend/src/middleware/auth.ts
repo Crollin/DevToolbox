@@ -32,7 +32,7 @@ export interface JWTPayload {
   email: string;
 }
 
-export const PERSONAL_ACCESS_TOKEN_SCOPES = ['licences', 'tasks', 'knowledge_base'] as const;
+export const PERSONAL_ACCESS_TOKEN_SCOPES = ['licences', 'tasks', 'knowledge_base', 'domains'] as const;
 export type PersonalAccessTokenScope = (typeof PERSONAL_ACCESS_TOKEN_SCOPES)[number];
 
 function getBearerToken(req: Request): string | undefined {
