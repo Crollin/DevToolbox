@@ -6,8 +6,10 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FeatureFlagsProvider } from "@/contexts/FeatureFlagsContext";
 import { ThemeSyncFromUser } from "@/components/ThemeSyncFromUser";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { FeatureGate } from "@/components/FeatureGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ResetPasswordHandler } from "@/components/auth/ResetPasswordHandler";
@@ -54,6 +56,7 @@ const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <FeatureFlagsProvider>
         <ThemeSyncFromUser />
         <TooltipProvider>
           <Toaster />
@@ -81,7 +84,7 @@ const App = () => (
                 <Route path="/tools/task-reminder" element={<ProtectedRoute><TaskReminder /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base/new" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
-                <Route path="/tools/domain-hub" element={<ProtectedRoute><DomainHub /></ProtectedRoute>} />
+                <Route path="/tools/domain-hub" element={<ProtectedRoute><FeatureGate feature="domainHub"><DomainHub /></FeatureGate></ProtectedRoute>} />
                 <Route path="/tools/wp-config-generator" element={<ProtectedRoute><WPConfigGenerator /></ProtectedRoute>} />
                 <Route path="/tools/plugin-header-builder" element={<ProtectedRoute><PluginHeaderBuilder /></ProtectedRoute>} />
                 <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
@@ -92,6 +95,7 @@ const App = () => (
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
+        </FeatureFlagsProvider>
       </AuthProvider>
     </QueryClientProvider>
   </ThemeProvider>

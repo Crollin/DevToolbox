@@ -7,8 +7,9 @@ import StatsBar from "@/components/StatsBar";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Check, ArrowUpRight } from "lucide-react";
-import { tools, ToolCategory, categoryLabels } from "@/data/tools";
+import { ToolCategory, categoryLabels } from "@/data/tools";
 import { useToolOrder } from "@/hooks/useToolOrder";
+import { useAvailableTools } from "@/hooks/useAvailableTools";
 import { useAuth } from "@/contexts/AuthContext";
 import { HomeDashboard } from "@/components/HomeDashboard";
 
@@ -17,10 +18,11 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<ToolCategory | "all">("all");
   const [isEditMode, setIsEditMode] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { availableTools } = useAvailableTools();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const filteredTools = useMemo(() => {
-    return tools.filter((tool) => {
+    return availableTools.filter((tool) => {
       const matchesSearch =
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -30,14 +32,14 @@ const Index = () => {
 
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, availableTools]);
 
   // Utiliser le hook pour gérer l'ordre personnalisé
   const { orderedTools, isLoading: isLoadingOrder, saveOrder } = useToolOrder(filteredTools);
 
   const toolCounts = useMemo(() => {
     const counts: Record<ToolCategory | "all", number> = {
-      all: tools.length,
+      all: availableTools.length,
       scripts: 0,
       convertisseurs: 0,
       commandes: 0,
@@ -45,12 +47,12 @@ const Index = () => {
       génération: 0,
     };
 
-    tools.forEach((tool) => {
+    availableTools.forEach((tool) => {
       counts[tool.category]++;
     });
 
     return counts;
-  }, []);
+  }, [availableTools]);
 
   // Gérer le changement d'ordre avec debounce
   const handleOrderChange = useCallback((toolIds: string[]) => {
@@ -95,14 +97,14 @@ const Index = () => {
             </div>
             <div className="border-l border-primary pl-5 pb-1">
               <p className="font-mono text-xs text-muted-foreground mb-2">SESSION NOTE</p>
-              <p className="text-sm text-foreground leading-relaxed">{tools.length} outils prêts à l’emploi. Cherchez par nom, usage ou technologie.</p>
+              <p className="text-sm text-foreground leading-relaxed">{availableTools.length} outils prêts à l’emploi. Cherchez par nom, usage ou technologie.</p>
               <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-primary"><ArrowUpRight className="w-3.5 h-3.5" /> Ouvrir un outil</div>
             </div>
           </div>
 
           {/* Stats */}
           <StatsBar 
-            totalTools={tools.length} 
+            totalTools={availableTools.length} 
             totalCategories={Object.keys(categoryLabels).length} 
           />
 

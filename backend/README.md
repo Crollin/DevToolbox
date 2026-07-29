@@ -163,6 +163,8 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 
 ### Domains (Domain Hub) — authentification JWT ou PAT scope `domains`
 
+**Module désactivé par défaut.** Définir `DOMAIN_HUB_ENABLED=true` dans `.env` pour monter les routes ci-dessous. Le frontend lit l'état via `GET /api/config` (`domainHubEnabled`).
+
 - `POST /api/domains/compare` — Comparateur multi-registrar (Cloudflare, Hostinger, OVH)
   - Body: `{ name: string, tlds?: string[] }`
   - Retourne disponibilité + prix création/renouvellement ; providers non configurés → `status: skipped`
@@ -178,6 +180,10 @@ Variables registrar (toutes optionnelles) : `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_
 
 ### Health Check
 - `GET /health` - Vérifie l'état du serveur
+
+### Configuration (public)
+- `GET /api/config` - Feature flags instance (sans authentification)
+  - Retourne : `{ domainHubEnabled: boolean }`
 
 ## Variables d'environnement
 

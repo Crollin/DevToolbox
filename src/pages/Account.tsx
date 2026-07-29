@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2, Copy, KeyRound, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { useFeatureFlags } from "@/contexts/FeatureFlagsContext";
 
 const THEME_OPTIONS = [
   { value: "light", label: "Clair" },
@@ -93,7 +94,15 @@ const PERSONAL_TOKEN_SCOPE_OPTIONS = [
 const Account = () => {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
+  const { domainHubEnabled } = useFeatureFlags();
   const { setTheme } = useTheme();
+
+  const personalTokenScopeOptions = useMemo(
+    () => PERSONAL_TOKEN_SCOPE_OPTIONS.filter(
+      (scope) => scope.value !== 'domains' || domainHubEnabled
+    ),
+    [domainHubEnabled]
+  );
 
   const [name, setName] = useState("");
   const [themeValue, setThemeValue] = useState<string>("system");
@@ -834,7 +843,7 @@ const Account = () => {
                   <div className="space-y-2">
                     <Label>Périmètres d’accès</Label>
                     <div className="space-y-2">
-                      {PERSONAL_TOKEN_SCOPE_OPTIONS.map((scope) => (
+                      {personalTokenScopeOptions.map((scope) => (
                         <label key={scope.value} className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 hover:bg-muted/50">
                           <input
                             type="checkbox"

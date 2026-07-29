@@ -29,6 +29,7 @@ services:
       RESEND_FROM: ${RESEND_FROM:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:14001}
+      DOMAIN_HUB_ENABLED: ${DOMAIN_HUB_ENABLED:-false}
       # Domain Hub — registrars (optionnels)
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}

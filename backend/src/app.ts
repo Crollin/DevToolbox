@@ -6,6 +6,8 @@ import db from './db/database';
 import { initializeDatabase } from './db/database';
 import { initializeDefaultSnippets } from './db/initSnippets';
 import { validateEnv } from './lib/env';
+import { isDomainHubEnabled } from './lib/features';
+import configRoutes from './routes/config';
 import snippetsRoutes from './routes/snippets';
 import hooksRoutes from './routes/hooks';
 import queriesRoutes from './routes/queries';
@@ -34,6 +36,9 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+
+// Configuration publique (feature flags instance)
+app.use('/api/config', configRoutes);
 
 // Rate limiting global sur l'API (200 requêtes / 15 min par IP, plus permissif en test)
 const apiLimiter = rateLimit({
@@ -65,7 +70,9 @@ app.use('/api/licences', licencesRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api/kb', kbRoutes);
-app.use('/api/domains', domainsRoutes);
+if (isDomainHubEnabled()) {
+  app.use('/api/domains', domainsRoutes);
+}
 
 // Route de santé (vérifie la connexion à la base de données)
 app.get('/health', (_req, res) => {
