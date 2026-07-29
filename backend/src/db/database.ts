@@ -522,12 +522,18 @@ export function initializeDatabase() {
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
+      color TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       UNIQUE(user_id, name),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
+
+  const clientColumns = db.prepare("PRAGMA table_info(task_clients)").all() as Array<{ name: string }>;
+  if (!clientColumns.map((c) => c.name).includes('color')) {
+    db.exec(`ALTER TABLE task_clients ADD COLUMN color TEXT`);
+  }
 
   // Table pour tracker les rappels envoyés
   db.exec(`

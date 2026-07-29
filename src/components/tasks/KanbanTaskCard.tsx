@@ -12,6 +12,7 @@ interface KanbanTaskCardProps {
   onDelete: (id: string) => void;
   onView?: (task: Task) => void;
   isDragging?: boolean;
+  clientColors?: Record<string, string>;
 }
 
 const priorityAccent: Record<Task["priority"], string> = {
@@ -28,7 +29,7 @@ function formatShortDate(dateString: string) {
   });
 }
 
-const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging }: KanbanTaskCardProps) => {
+const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging, clientColors }: KanbanTaskCardProps) => {
   const {
     attributes,
     listeners,
@@ -116,8 +117,12 @@ const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging }: KanbanTa
               {isOverdue && ` (${Math.abs(daysUntilDue)}j)`}
             </span>
             {task.client && (
-              <span className="inline-flex items-center gap-1 truncate max-w-[120px]">
-                <User className="h-3 w-3 shrink-0" />
+              <span className="inline-flex items-center gap-1 truncate max-w-[140px]">
+                {clientColors?.[task.client] ? (
+                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: clientColors[task.client] }} />
+                ) : (
+                  <User className="h-3 w-3 shrink-0" />
+                )}
                 {task.client}
               </span>
             )}

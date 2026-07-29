@@ -11,9 +11,10 @@ interface TaskCardProps {
   onDelete: (id: string) => void;
   onView?: (task: Task) => void;
   onStatusChange: (id: string, status: 'pending' | 'in_progress' | 'completed') => void;
+  clientColors?: Record<string, string>;
 }
 
-const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange }: TaskCardProps) => {
+const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors }: TaskCardProps) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
@@ -76,7 +77,11 @@ const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange }: TaskCardPr
               </div>
               {task.client && (
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
+                  {clientColors?.[task.client] ? (
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: clientColors[task.client] }} />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
                   <span>{task.client}</span>
                 </div>
               )}

@@ -90,22 +90,33 @@ router.get('/', (req, res) => {
 
 // Clients prédéfinis, propres à chaque utilisateur.
 router.get('/clients/list', (req, res) => {
-  const clients = db.prepare('SELECT id, name FROM task_clients WHERE user_id = ? ORDER BY name COLLATE NOCASE').all(req.user!.id);
+  const clients = db.prepare('SELECT id, name, color FROM task_clients WHERE user_id = ? ORDER BY name COLLATE NOCASE').all(req.user!.id);
   res.json({ clients });
 });
 
 router.post('/clients', (req, res) => {
   const name = typeof req.body.name === 'string' ? req.body.name.trim().slice(0, 200) : '';
+  const color = typeof req.body.color === 'string' ? req.body.color.trim().slice(0, 20) : null;
   if (!name) return res.status(400).json({ error: 'Le nom du client est requis' });
   const id = uuidv4();
   const now = new Date().toISOString();
   try {
-    db.prepare('INSERT INTO task_clients (id, user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)').run(id, req.user!.id, name, now, now);
-    res.status(201).json({ client: { id, name } });
+    db.prepare('INSERT INTO task_clients (id, user_id, name, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(id, req.user!.id, name, color, now, now);
+    res.status(201).json({ client: { id, name, color } });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('UNIQUE constraint')) return res.status(409).json({ error: 'Ce client existe déjà' });
     throw error;
   }
+});
+
+router.put('/clients/:id', (req, res) => {
+  const { color } = req.body;
+  const now = new Date().toISOString();
+  const result = db.prepare('UPDATE task_clients SET color = ?, updated_at = ? WHERE id = ? AND user_id = ?')
+    .run(typeof color === 'string' ? color.trim().slice(0, 20) : null, now, req.params.id, req.user!.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Client non trouvé' });
+  const client = db.prepare('SELECT id, name, color FROM task_clients WHERE id = ?').get(req.params.id);
+  res.json({ client });
 });
 
 // GET /api/tasks/:id - Récupérer une tâche spécifique

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Plus,
   Search,
@@ -19,6 +19,8 @@ import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskModal from "@/components/tasks/TaskModal";
 import TaskDetailSheet from "@/components/tasks/TaskDetailSheet";
 import { cn } from "@/lib/utils";
+import api from "@/lib/api";
+import type { ClientInfo } from "@/components/tasks/TaskModal";
 import { toast } from "@/hooks/use-toast";
 
 type ViewMode = "kanban" | "list";
@@ -36,6 +38,19 @@ const TaskReminder = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
+  const [clientColors, setClientColors] = useState<Record<string, string>>({});
+
+  const loadClientColors = useCallback(() => {
+    api.get<{ clients: ClientInfo[] }>('/tasks/clients/list')
+      .then((data) => {
+        const map: Record<string, string> = {};
+        data.clients.forEach((c) => { if (c.color) map[c.name] = c.color; });
+        setClientColors(map);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => { loadClientColors(); }, [loadClientColors]);
 
   const clients = useMemo(() => {
     const clientSet = new Set<string>();
@@ -99,6 +114,7 @@ const TaskReminder = () => {
       }
       setEditingTask(null);
       setIsModalOpen(false);
+      loadClientColors();
     } catch {
       toast({
         title: "Erreur",
@@ -358,6 +374,7 @@ const TaskReminder = () => {
               onDelete={handleDelete}
               onView={setViewingTask}
               onStatusChange={handleStatusChange}
+              clientColors={clientColors}
             />
           ) : (
             <div className="py-12 text-center">
@@ -376,6 +393,7 @@ const TaskReminder = () => {
                   onDelete={handleDelete}
                   onView={setViewingTask}
                   onStatusChange={handleStatusChange}
+                  clientColors={clientColors}
                 />
               ))
             ) : (
@@ -407,6 +425,7 @@ const TaskReminder = () => {
           onOpenChange={(open) => { if (!open) setViewingTask(null); }}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          clientColors={clientColors}
         />
       </div>
     </ToolLayout>

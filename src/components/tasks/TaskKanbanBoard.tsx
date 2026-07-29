@@ -25,6 +25,7 @@ interface TaskKanbanBoardProps {
   onDelete: (id: string) => void;
   onView?: (task: Task) => void;
   onStatusChange: (id: string, status: TaskStatus) => void;
+  clientColors?: Record<string, string>;
 }
 
 function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
@@ -57,6 +58,7 @@ const TaskKanbanBoard = ({
   onDelete,
   onView,
   onStatusChange,
+  clientColors,
 }: TaskKanbanBoardProps) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [localGrouped, setLocalGrouped] = useState<Record<TaskStatus, Task[]> | null>(null);
@@ -161,6 +163,7 @@ const TaskKanbanBoard = ({
             onEdit={onEdit}
             onDelete={onDelete}
             onView={onView}
+            clientColors={clientColors}
           />
         ))}
       </div>

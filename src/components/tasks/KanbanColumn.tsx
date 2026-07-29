@@ -20,9 +20,10 @@ interface KanbanColumnProps {
   onDelete: (id: string) => void;
   onView?: (task: Task) => void;
   isOver?: boolean;
+  clientColors?: Record<string, string>;
 }
 
-const KanbanColumn = ({ column, tasks, onEdit, onDelete, onView, isOver }: KanbanColumnProps) => {
+const KanbanColumn = ({ column, tasks, onEdit, onDelete, onView, isOver, clientColors }: KanbanColumnProps) => {
   const { setNodeRef, isOver: isDroppableOver } = useDroppable({ id: column.id });
   const Icon = column.icon;
   const taskIds = tasks.map((t) => t.id);
@@ -60,7 +61,7 @@ const KanbanColumn = ({ column, tasks, onEdit, onDelete, onView, isOver }: Kanba
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.length > 0 ? (
             tasks.map((task) => (
-              <KanbanTaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onView={onView} />
+              <KanbanTaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onView={onView} clientColors={clientColors} />
             ))
           ) : (
             <div

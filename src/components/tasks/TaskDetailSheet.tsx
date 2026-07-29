@@ -27,6 +27,7 @@ interface TaskDetailSheetProps {
   onOpenChange: (open: boolean) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  clientColors?: Record<string, string>;
 }
 
 const priorityConfig: Record<Task["priority"], { label: string; color: string }> = {
@@ -71,7 +72,7 @@ function renderMarkdown(md: string) {
   return DOMPurify.sanitize(marked.parse(md, { async: false }) as string);
 }
 
-const TaskDetailSheet = ({ task, open, onOpenChange, onEdit, onDelete }: TaskDetailSheetProps) => {
+const TaskDetailSheet = ({ task, open, onOpenChange, onEdit, onDelete, clientColors }: TaskDetailSheetProps) => {
   if (!task) return null;
 
   const priority = priorityConfig[task.priority];
@@ -122,7 +123,12 @@ const TaskDetailSheet = ({ task, open, onOpenChange, onEdit, onDelete }: TaskDet
                   <User className="h-3 w-3" />
                   Client
                 </span>
-                <p className="text-sm font-medium text-foreground">{task.client}</p>
+                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {clientColors?.[task.client] && (
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: clientColors[task.client] }} />
+                  )}
+                  {task.client}
+                </p>
               </div>
             )}
           </div>
