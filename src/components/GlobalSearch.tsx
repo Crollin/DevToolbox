@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/command";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSearch } from "@/contexts/SearchContext";
 import { useAvailableTools } from "@/hooks/useAvailableTools";
 
 interface SearchResult {
@@ -22,7 +23,7 @@ interface SearchResult {
 }
 
 export function GlobalSearch() {
-  const [open, setOpen] = useState(false);
+  const { open, setOpen } = useSearch();
   const [query, setQuery] = useState("");
   const [remoteResults, setRemoteResults] = useState<SearchResult[]>([]);
   const { isAuthenticated } = useAuth();
@@ -30,15 +31,11 @@ export function GlobalSearch() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setOpen((o) => !o);
-      }
-    };
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, []);
+    if (!open) {
+      setQuery("");
+      setRemoteResults([]);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open || !isAuthenticated || query.length < 2) {

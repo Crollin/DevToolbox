@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import Header from "@/components/Header";
-import SearchBar from "@/components/SearchBar";
 import CategoryFilter from "@/components/CategoryFilter";
 import ToolGrid from "@/components/ToolGrid";
 import EmptyState from "@/components/EmptyState";
@@ -13,7 +12,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { HomeDashboard } from "@/components/HomeDashboard";
 
 const Index = () => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ToolCategory | "all">("all");
   const [isEditMode, setIsEditMode] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -22,16 +20,10 @@ const Index = () => {
 
   const filteredTools = useMemo(() => {
     return availableTools.filter((tool) => {
-      const matchesSearch =
-        tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tool.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
       const matchesCategory = selectedCategory === "all" || tool.category === selectedCategory;
-
-      return matchesSearch && matchesCategory;
+      return matchesCategory;
     });
-  }, [searchQuery, selectedCategory, availableTools]);
+  }, [selectedCategory, availableTools]);
 
   // Utiliser le hook pour gérer l'ordre personnalisé
   const { orderedTools, isLoading: isLoadingOrder, saveOrder } = useToolOrder(filteredTools);
@@ -96,7 +88,7 @@ const Index = () => {
             </div>
             <div className="border-l border-primary pl-5 pb-1">
               <p className="font-mono text-xs text-muted-foreground mb-2">SESSION NOTE</p>
-              <p className="text-sm text-foreground leading-relaxed">{availableTools.length} outils prêts à l’emploi. Cherchez par nom, usage ou technologie.</p>
+              <p className="text-sm text-foreground leading-relaxed">{availableTools.length} outils prêts à l’emploi. Utilisez ⌘K pour rechercher rapidement.</p>
               <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-primary"><ArrowUpRight className="w-3.5 h-3.5" /> Ouvrir un outil</div>
             </div>
           </div>
@@ -106,8 +98,7 @@ const Index = () => {
 
         {/* Search & Filters */}
         <section className="mb-8 space-y-4 animate-fade-in" style={{ animationDelay: "100ms" }}>
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="w-full sm:max-w-xl"><SearchBar value={searchQuery} onChange={setSearchQuery} /></div>
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-end">
             <div className="flex items-center gap-4">
               {isAuthenticated && (
                 <Button
@@ -150,7 +141,7 @@ const Index = () => {
               onOrderChange={handleOrderChange}
             />
           ) : (
-            <EmptyState searchQuery={searchQuery} />
+            <EmptyState hasCategoryFilter={selectedCategory !== "all"} />
           )}
         </section>
       </main>

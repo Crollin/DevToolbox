@@ -1,7 +1,8 @@
-import { LogOut, User, Key, Settings, LogIn, Cloud, Command } from "lucide-react";
+import { LogOut, User, Key, Settings, LogIn, Cloud } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import AppLogo from "./AppLogo";
+import { SearchTrigger } from "./SearchTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
 import {
@@ -44,13 +45,13 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <SearchTrigger className="mr-1" />
             {isAuthenticated && USE_API && (
               <span className="hidden sm:flex items-center gap-1 text-xs text-emerald-500/90 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <Cloud className="w-3 h-3" />
                 Synchronisé
               </span>
             )}
-            <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono mr-2"><Command className="w-3 h-3" /> local / ready</div>
             <ThemeToggle />
             {isAuthenticated && user ? (
               <DropdownMenu>

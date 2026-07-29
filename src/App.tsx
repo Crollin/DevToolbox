@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SearchProvider } from "@/contexts/SearchContext";
 import { FeatureFlagsProvider } from "@/contexts/FeatureFlagsContext";
 import { ThemeSyncFromUser } from "@/components/ThemeSyncFromUser";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -62,9 +63,10 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <ErrorBoundary>
-              <GlobalSearch />
-              <ResetPasswordHandler />
+            <SearchProvider>
+              <ErrorBoundary>
+                <GlobalSearch />
+                <ResetPasswordHandler />
               <Suspense fallback={<RouteFallback />}>
                 <Routes>
                 <Route path="/" element={<Index />} />
@@ -93,6 +95,7 @@ const App = () => (
                 </Routes>
               </Suspense>
             </ErrorBoundary>
+            </SearchProvider>
           </BrowserRouter>
         </TooltipProvider>
         </FeatureFlagsProvider>
