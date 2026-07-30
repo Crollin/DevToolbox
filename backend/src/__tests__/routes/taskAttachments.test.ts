@@ -109,6 +109,56 @@ describe('Task attachments API', () => {
     expect(response.body.error).toBe('Erreur lors de la lecture de la pièce jointe');
   });
 
+  it('renvoie 404 si le fichier disparaît avant l’ouverture du stream', async () => {
+    const filePath = path.join(process.env.UPLOADS_ROOT!, 'missing.txt');
+    fs.writeFileSync(filePath, 'contenu');
+    const up = await request(app)
+      .post(`/api/tasks/${taskId}/attachments`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', filePath);
+    const stored = db.prepare(`
+      SELECT user_id, stored_filename FROM task_attachments WHERE id = ?
+    `).get(up.body.attachment.id) as { user_id: string; stored_filename: string };
+    fs.rmSync(path.join(
+      process.env.UPLOADS_ROOT!,
+      'tasks',
+      stored.user_id,
+      taskId,
+      stored.stored_filename,
+    ));
+
+    const response = await request(app)
+      .get(`/api/tasks/${taskId}/attachments/${up.body.attachment.id}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe('Fichier non trouvé');
+  });
+
+  it('ferme la réponse si la lecture échoue après l’envoi d’un chunk', async () => {
+    const filePath = path.join(process.env.UPLOADS_ROOT!, 'partial.txt');
+    fs.writeFileSync(filePath, 'contenu');
+    const up = await request(app)
+      .post(`/api/tasks/${taskId}/attachments`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', filePath);
+
+    vi.spyOn(fs, 'createReadStream').mockImplementationOnce(() => {
+      const stream = new PassThrough();
+      process.nextTick(() => {
+        stream.write('partiel');
+        stream.destroy(new Error('read failed after headers'));
+      });
+      return stream as unknown as fs.ReadStream;
+    });
+
+    await expect(
+      request(app)
+        .get(`/api/tasks/${taskId}/attachments/${up.body.attachment.id}`)
+        .set('Authorization', `Bearer ${token}`),
+    ).rejects.toThrow();
+  });
+
   it('conserve le fichier si la suppression de la pièce jointe échoue en base', async () => {
     const filePath = path.join(process.env.UPLOADS_ROOT!, 'keep-attachment.txt');
     fs.writeFileSync(filePath, 'à conserver');
@@ -121,7 +171,11 @@ describe('Task attachments API', () => {
     const prepare = db.prepare.bind(db);
     vi.spyOn(db, 'prepare').mockImplementation(((sql: string) => {
       if (sql.startsWith('DELETE FROM task_attachments')) {
-        throw new Error('database unavailable');
+        const statement = prepare(sql);
+        vi.spyOn(statement, 'run').mockImplementation(() => {
+          throw new Error('database unavailable');
+        });
+        return statement;
       }
       return prepare(sql);
     }) as typeof db.prepare);
@@ -151,7 +205,11 @@ describe('Task attachments API', () => {
     const prepare = db.prepare.bind(db);
     vi.spyOn(db, 'prepare').mockImplementation(((sql: string) => {
       if (sql.startsWith('DELETE FROM tasks')) {
-        throw new Error('database unavailable');
+        const statement = prepare(sql);
+        vi.spyOn(statement, 'run').mockImplementation(() => {
+          throw new Error('database unavailable');
+        });
+        return statement;
       }
       return prepare(sql);
     }) as typeof db.prepare);
