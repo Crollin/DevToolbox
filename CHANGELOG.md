@@ -6,6 +6,19 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-30
+
+### Ajouté
+
+- **Pièces jointes** dans Task Reminder : upload multi-fichiers (max 10 Mo / 10 PJ par tâche), stockage disque local + métadonnées SQLite
+- Prévisualisation **images et PDF** en lightbox desktop (~90 % viewport) ; icône + téléchargement pour les autres types
+- Gestion des PJ dans le modal de création/édition et le sheet de détail
+- API REST `/api/tasks/:taskId/attachments` (list, upload, stream, delete)
+
+### Modifié
+
+- Labels Docker et badges version alignés sur `1.4.0`
+
 ## [1.3.0] - 2026-07-29
 
 ### Ajouté
@@ -99,7 +112,8 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 Version initiale : 16 outils, auth JWT, notifications multi-canaux (Ntfy, email, Telegram), déploiement Docker.
 
-[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Crollin/DevToolbox/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Crollin/DevToolbox/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/Crollin/DevToolbox/compare/v1.1.0...v1.2.0
