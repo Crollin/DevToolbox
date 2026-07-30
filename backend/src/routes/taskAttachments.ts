@@ -169,6 +169,8 @@ router.get('/:attachmentId', (req, res) => {
         res.destroy(error);
         return;
       }
+      res.removeHeader('Content-Type');
+      res.removeHeader('Content-Disposition');
       const status = error.code === 'ENOENT' ? 404 : 500;
       const message = status === 404
         ? 'Fichier non trouvé'
