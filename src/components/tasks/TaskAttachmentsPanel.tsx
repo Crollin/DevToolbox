@@ -179,11 +179,12 @@ export function TaskAttachmentsPanel({
 
     if (taskId) {
       setUploading(true);
+      let uploadedCount = 0;
       try {
         for (const file of validFiles) {
           await uploadAttachment(taskId, file);
+          uploadedCount += 1;
         }
-        await loadAttachments();
         toast({
           title: "Pièces jointes ajoutées",
           description:
@@ -195,9 +196,15 @@ export function TaskAttachmentsPanel({
         toast({
           variant: "destructive",
           title: "Échec du téléversement",
-          description: "Impossible d'ajouter la pièce jointe.",
+          description:
+            uploadedCount > 0
+              ? `${uploadedCount} fichier(s) téléversé(s), puis une erreur est survenue.`
+              : "Impossible d'ajouter la pièce jointe.",
         });
       } finally {
+        if (uploadedCount > 0) {
+          await loadAttachments();
+        }
         setUploading(false);
       }
       return;
@@ -228,7 +235,6 @@ export function TaskAttachmentsPanel({
   };
 
   const openLightbox = (attachment: TaskAttachment, localFile?: File) => {
-    if (!attachment.previewable && !localFile) return;
     setLightboxAttachment(attachment);
     setLightboxLocalFile(localFile ?? null);
     setLightboxOpen(true);
@@ -298,8 +304,7 @@ export function TaskAttachmentsPanel({
                 >
                   <button
                     type="button"
-                    className="flex h-20 items-center justify-center bg-muted/40 transition-colors hover:bg-muted/60 disabled:cursor-default"
-                    disabled={!attachment.previewable}
+                    className="flex h-20 items-center justify-center bg-muted/40 transition-colors hover:bg-muted/60"
                     onClick={() => openLightbox(attachment)}
                   >
                     <AttachmentThumbnail attachment={attachment} taskId={taskId} />
@@ -335,8 +340,7 @@ export function TaskAttachmentsPanel({
                   >
                     <button
                       type="button"
-                      className="flex h-20 items-center justify-center bg-muted/40 transition-colors hover:bg-muted/60 disabled:cursor-default"
-                      disabled={!attachment.previewable}
+                      className="flex h-20 items-center justify-center bg-muted/40 transition-colors hover:bg-muted/60"
                       onClick={() => openLightbox(attachment, file)}
                     >
                       <AttachmentThumbnail attachment={attachment} localFile={file} />
