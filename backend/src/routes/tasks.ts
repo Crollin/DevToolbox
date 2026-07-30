@@ -343,8 +343,8 @@ router.delete('/:id', (req, res) => {
       return res.status(404).json({ error: 'Tâche non trouvée' });
     }
 
-    removeTaskUploadDir(userId, id);
     db.prepare('DELETE FROM tasks WHERE id = ? AND user_id = ?').run(id, userId);
+    removeTaskUploadDir(userId, id);
 
     res.json({ message: 'Tâche supprimée avec succès' });
   } catch (error) {

@@ -155,9 +155,6 @@ router.get('/:attachmentId', (req, res) => {
     }
 
     const filePath = path.join(getTaskUploadDir(userId, taskId), attachment.stored_filename);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Fichier non trouvé' });
-    }
 
     res.setHeader('Content-Type', attachment.mime_type);
     const disposition = req.query.download === '1' ? 'attachment' : 'inline';
@@ -165,7 +162,20 @@ router.get('/:attachmentId', (req, res) => {
       'Content-Disposition',
       `${disposition}; filename="${encodeURIComponent(attachment.original_filename)}"`,
     );
-    fs.createReadStream(filePath).pipe(res);
+    const stream = fs.createReadStream(filePath);
+    stream.on('error', (error: NodeJS.ErrnoException) => {
+      console.error('Erreur lors de la lecture de la pièce jointe:', error);
+      if (res.headersSent) {
+        res.destroy(error);
+        return;
+      }
+      const status = error.code === 'ENOENT' ? 404 : 500;
+      const message = status === 404
+        ? 'Fichier non trouvé'
+        : 'Erreur lors de la lecture de la pièce jointe';
+      res.status(status).json({ error: message });
+    });
+    stream.pipe(res);
   } catch (error) {
     console.error('Erreur lors de la lecture de la pièce jointe:', error);
     res.status(500).json({ error: 'Erreur lors de la lecture de la pièce jointe' });
@@ -185,12 +195,12 @@ router.delete('/:attachmentId', (req, res) => {
       return res.status(404).json({ error: 'Pièce jointe non trouvée' });
     }
 
-    removeAttachmentFile(userId, taskId, attachment.stored_filename);
     db.prepare('DELETE FROM task_attachments WHERE id = ? AND task_id = ? AND user_id = ?').run(
       attachmentId,
       taskId,
       userId,
     );
+    removeAttachmentFile(userId, taskId, attachment.stored_filename);
 
     res.json({ success: true });
   } catch (error) {

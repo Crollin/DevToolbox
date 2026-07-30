@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { PassThrough } from 'stream';
 import app from '../../app';
+import db from '../../db/database';
 
 describe('Task attachments API', () => {
   let token: string;
@@ -22,6 +24,10 @@ describe('Task attachments API', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ title: 'Avec PJ', dueDate: '2030-01-01' });
     taskId = task.body.task.id;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('POST upload puis GET liste', async () => {
@@ -79,6 +85,88 @@ describe('Task attachments API', () => {
       .get(`/api/tasks/${taskId}/attachments`)
       .set('Authorization', `Bearer ${token}`);
     expect(list.body.attachments).toHaveLength(0);
+  });
+
+  it('renvoie 500 sans erreur non gérée si la lecture du fichier échoue', async () => {
+    const filePath = path.join(process.env.UPLOADS_ROOT!, 'broken.txt');
+    fs.writeFileSync(filePath, 'contenu');
+    const up = await request(app)
+      .post(`/api/tasks/${taskId}/attachments`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', filePath);
+
+    vi.spyOn(fs, 'createReadStream').mockImplementationOnce(() => {
+      const stream = new PassThrough();
+      process.nextTick(() => stream.destroy(new Error('read failed')));
+      return stream as fs.ReadStream;
+    });
+
+    const response = await request(app)
+      .get(`/api/tasks/${taskId}/attachments/${up.body.attachment.id}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(500);
+    expect(response.body.error).toBe('Erreur lors de la lecture de la pièce jointe');
+  });
+
+  it('conserve le fichier si la suppression de la pièce jointe échoue en base', async () => {
+    const filePath = path.join(process.env.UPLOADS_ROOT!, 'keep-attachment.txt');
+    fs.writeFileSync(filePath, 'à conserver');
+    const up = await request(app)
+      .post(`/api/tasks/${taskId}/attachments`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', filePath);
+    const attachmentId = up.body.attachment.id;
+
+    const prepare = db.prepare.bind(db);
+    vi.spyOn(db, 'prepare').mockImplementation(((sql: string) => {
+      if (sql.startsWith('DELETE FROM task_attachments')) {
+        throw new Error('database unavailable');
+      }
+      return prepare(sql);
+    }) as typeof db.prepare);
+
+    const deletion = await request(app)
+      .delete(`/api/tasks/${taskId}/attachments/${attachmentId}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(deletion.status).toBe(500);
+
+    vi.restoreAllMocks();
+    const download = await request(app)
+      .get(`/api/tasks/${taskId}/attachments/${attachmentId}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(download.status).toBe(200);
+    expect(download.text).toBe('à conserver');
+  });
+
+  it('conserve les fichiers si la suppression de la tâche échoue en base', async () => {
+    const filePath = path.join(process.env.UPLOADS_ROOT!, 'keep-task.txt');
+    fs.writeFileSync(filePath, 'à conserver aussi');
+    const up = await request(app)
+      .post(`/api/tasks/${taskId}/attachments`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', filePath);
+    const attachmentId = up.body.attachment.id;
+
+    const prepare = db.prepare.bind(db);
+    vi.spyOn(db, 'prepare').mockImplementation(((sql: string) => {
+      if (sql.startsWith('DELETE FROM tasks')) {
+        throw new Error('database unavailable');
+      }
+      return prepare(sql);
+    }) as typeof db.prepare);
+
+    const deletion = await request(app)
+      .delete(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(deletion.status).toBe(500);
+
+    vi.restoreAllMocks();
+    const download = await request(app)
+      .get(`/api/tasks/${taskId}/attachments/${attachmentId}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(download.status).toBe(200);
+    expect(download.text).toBe('à conserver aussi');
   });
 
   it('DELETE tâche nettoie les fichiers', async () => {
