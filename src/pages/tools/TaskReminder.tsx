@@ -156,6 +156,7 @@ const TaskReminder = () => {
   };
 
   const handleEdit = (task: Task) => {
+    setViewingTask(null);
     setEditingTask(task);
     setIsModalOpen(true);
   };
