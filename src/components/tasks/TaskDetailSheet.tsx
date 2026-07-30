@@ -20,6 +20,7 @@ import {
   Bell,
   Flag,
 } from "lucide-react";
+import { TaskAttachmentsPanel } from "@/components/tasks/TaskAttachmentsPanel";
 
 interface TaskDetailSheetProps {
   task: Task | null;
@@ -180,6 +181,12 @@ const TaskDetailSheet = ({ task, open, onOpenChange, onEdit, onDelete, clientCol
               </div>
             </div>
           )}
+
+          <TaskAttachmentsPanel
+            taskId={task.id}
+            pendingFiles={[]}
+            onPendingFilesChange={() => {}}
+          />
 
           <div className="border-t border-border/60 pt-3">
             <div className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs text-muted-foreground">
