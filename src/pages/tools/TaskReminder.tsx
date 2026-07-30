@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { ClientInfo } from "@/components/tasks/TaskModal";
 import { toast } from "@/hooks/use-toast";
+import { uploadAttachment } from "@/lib/taskAttachmentsApi";
 
 type ViewMode = "kanban" | "list";
 
@@ -97,23 +98,52 @@ const TaskReminder = () => {
     (task) => task.status !== "completed" && new Date(task.dueDate) < today
   ).length;
 
-  const handleSave = async (taskData: CreateTaskInput) => {
+  const handleSave = async (taskData: CreateTaskInput, files: File[]) => {
     try {
+      let taskId: string;
       if (editingTask) {
-        await updateTask(editingTask.id, taskData);
+        const task = await updateTask(editingTask.id, taskData);
+        taskId = task.id;
         toast({
           title: "Tâche modifiée",
           description: `La tâche "${taskData.title}" a été modifiée avec succès.`,
         });
       } else {
-        await addTask(taskData);
+        const task = await addTask(taskData);
+        taskId = task.id;
         toast({
           title: "Tâche créée",
           description: `La tâche "${taskData.title}" a été créée avec succès.`,
         });
       }
+
+      if (files.length > 0) {
+        let uploadedCount = 0;
+        try {
+          for (const file of files) {
+            await uploadAttachment(taskId, file);
+            uploadedCount += 1;
+          }
+          toast({
+            title: "Pièces jointes ajoutées",
+            description:
+              uploadedCount === 1
+                ? `"${files[0].name}" a été téléversé.`
+                : `${uploadedCount} fichiers ont été téléversés.`,
+          });
+        } catch {
+          toast({
+            variant: "destructive",
+            title: "Échec du téléversement",
+            description:
+              uploadedCount > 0
+                ? `${uploadedCount} fichier(s) téléversé(s), puis une erreur est survenue.`
+                : "La tâche a été enregistrée, mais les pièces jointes n'ont pas pu être téléversées.",
+          });
+        }
+      }
+
       setEditingTask(null);
-      setIsModalOpen(false);
       loadClientColors();
     } catch {
       toast({
@@ -121,10 +151,12 @@ const TaskReminder = () => {
         description: "Une erreur est survenue lors de la sauvegarde.",
         variant: "destructive",
       });
+      throw new Error("Task save failed");
     }
   };
 
   const handleEdit = (task: Task) => {
+    setViewingTask(null);
     setEditingTask(task);
     setIsModalOpen(true);
   };

@@ -535,6 +535,22 @@ export function initializeDatabase() {
     db.exec(`ALTER TABLE task_clients ADD COLUMN color TEXT`);
   }
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_attachments (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      original_filename TEXT NOT NULL,
+      stored_filename TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_task_attachments_task ON task_attachments(task_id)`);
+
   // Table pour tracker les rappels envoyés
   db.exec(`
     CREATE TABLE IF NOT EXISTS task_reminders (

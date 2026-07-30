@@ -6,6 +6,7 @@ import { Task, CreateTaskInput } from "@/types/task";
 import api from "@/lib/api";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { TaskAttachmentsPanel } from "@/components/tasks/TaskAttachmentsPanel";
 
 type Channel = 'ntfy' | 'email' | 'telegram';
 const CHANNELS: Array<{ id: Channel; label: string }> = [
@@ -19,7 +20,12 @@ export const CLIENT_COLORS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280',
 ] as const;
 
-interface TaskModalProps { isOpen: boolean; onClose: () => void; onSave: (task: CreateTaskInput) => void; editTask?: Task | null; }
+interface TaskModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (task: CreateTaskInput, files: File[]) => void | Promise<void>;
+  editTask?: Task | null;
+}
 
 const fieldClass = "w-full rounded-lg border border-border bg-input px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50";
 
@@ -33,9 +39,14 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
   const [priority, setPriority] = useState<CreateTaskInput['priority']>('normal');
   const [notificationChannels, setNotificationChannels] = useState<Channel[]>([]);
   const [reminderDays, setReminderDays] = useState<number[]>([]); const [reminderDatetime, setReminderDatetime] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setPendingFiles([]);
+      return;
+    }
     api.get<{ clients: ClientInfo[] }>('/tasks/clients/list').then((data) => setClientList(data.clients)).catch(() => undefined);
     if (editTask) {
       setTitle(editTask.title); setDescription(editTask.description || ""); setDueDate(editTask.dueDate.split('T')[0]); setClient(editTask.client || "");
@@ -48,7 +59,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
         setNotificationChannels(data.notificationChannels?.filter((c): c is Channel => ['ntfy', 'email', 'telegram'].includes(c)) || []);
       }).catch(() => setNotificationChannels([]));
     }
-    setPreview(false); setTagInput(""); setNewClient("");
+    setPreview(false); setTagInput(""); setNewClient(""); setPendingFiles([]);
   }, [editTask, isOpen]);
 
   const insertMarkdown = (before: string, after = before) => {
@@ -68,7 +79,29 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
   };
   const getClientColor = (name: string) => clientList.find((c) => c.name === name)?.color || null;
   const toggle = (channel: Channel) => setNotificationChannels((current) => current.includes(channel) ? current.filter((c) => c !== channel) : [...current, channel]);
-  const submit = (event: React.FormEvent) => { event.preventDefault(); onSave({ title, description: description || undefined, dueDate: new Date(dueDate).toISOString(), client: client || undefined, link: link || undefined, tags, priority, notificationChannels: notificationChannels.length ? notificationChannels : undefined, reminderDays: reminderDays.length ? reminderDays : undefined, reminderDatetime: reminderDatetime ? new Date(reminderDatetime).toISOString() : undefined }); onClose(); };
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsSaving(true);
+    try {
+      await onSave({
+        title,
+        description: description || undefined,
+        dueDate: new Date(dueDate).toISOString(),
+        client: client || undefined,
+        link: link || undefined,
+        tags,
+        priority,
+        notificationChannels: notificationChannels.length ? notificationChannels : undefined,
+        reminderDays: reminderDays.length ? reminderDays : undefined,
+        reminderDatetime: reminderDatetime ? new Date(reminderDatetime).toISOString() : undefined,
+      }, pendingFiles);
+      onClose();
+    } catch {
+      // Garder la modale ouverte (pendingFiles préservés)
+    } finally {
+      setIsSaving(false);
+    }
+  };
   if (!isOpen) return null;
   const PreviewIcon = preview ? Pencil : Eye;
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4"><div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} /><div className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card shadow-xl">
@@ -81,7 +114,12 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
       <div><Label>Canaux de notification pour cette tâche</Label><p className="mb-2 mt-1 text-xs text-muted-foreground">Pré-rempli avec vos canaux par défaut. Modifiez si besoin pour cette tâche.</p><div className="flex flex-wrap gap-3">{CHANNELS.map((channel) => <label key={channel.id} className="flex items-center gap-2 text-sm"><Checkbox checked={notificationChannels.includes(channel.id)} onCheckedChange={() => toggle(channel.id)} />{channel.label}</label>)}</div></div>
       <div className="grid gap-4 sm:grid-cols-2"><div><Label>Lien / URL</Label><input className={fieldClass + " mt-1.5"} type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" /></div><div><Label>Rappel précis</Label><input className={fieldClass + " mt-1.5"} type="datetime-local" value={reminderDatetime} onChange={(e) => setReminderDatetime(e.target.value)} /></div></div>
       <div><Label>Rappels avant l'échéance</Label><div className="mt-2 flex flex-wrap gap-4">{[7, 3, 1, 0].map((days) => <label key={days} className="flex items-center gap-2 text-sm"><Checkbox checked={reminderDays.includes(days)} onCheckedChange={() => setReminderDays((current) => current.includes(days) ? current.filter((d) => d !== days) : [...current, days].sort((a, b) => b - a))} /><span>{days === 0 ? 'Le jour même' : `${days} jour${days > 1 ? 's' : ''} avant`}</span></label>)}</div></div>
-      <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-muted">Annuler</button><button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">{editTask ? 'Enregistrer' : 'Créer la tâche'}</button></div>
+      <TaskAttachmentsPanel
+        taskId={editTask?.id}
+        pendingFiles={pendingFiles}
+        onPendingFilesChange={setPendingFiles}
+      />
+      <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={onClose} disabled={isSaving} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50">Annuler</button><button type="submit" disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{isSaving ? 'Enregistrement…' : (editTask ? 'Enregistrer' : 'Créer la tâche')}</button></div>
     </form></div></div>;
 };
 export default TaskModal;
