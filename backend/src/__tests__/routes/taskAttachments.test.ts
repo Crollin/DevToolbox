@@ -98,7 +98,7 @@ describe('Task attachments API', () => {
     vi.spyOn(fs, 'createReadStream').mockImplementationOnce(() => {
       const stream = new PassThrough();
       process.nextTick(() => stream.destroy(new Error('read failed')));
-      return stream as fs.ReadStream;
+      return stream as unknown as fs.ReadStream;
     });
 
     const response = await request(app)
