@@ -3,6 +3,8 @@ import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateTokenOrPersonalAccessToken } from '../middleware/auth';
 import { safeJsonParse } from '../lib/json';
+import { removeTaskUploadDir } from '../lib/taskAttachments';
+import taskAttachmentsRouter from './taskAttachments';
 
 const router = express.Router();
 
@@ -118,6 +120,8 @@ router.put('/clients/:id', (req, res) => {
   const client = db.prepare('SELECT id, name, color FROM task_clients WHERE id = ?').get(req.params.id);
   res.json({ client });
 });
+
+router.use('/:taskId/attachments', taskAttachmentsRouter);
 
 // GET /api/tasks/:id - Récupérer une tâche spécifique
 router.get('/:id', (req, res) => {
@@ -339,6 +343,7 @@ router.delete('/:id', (req, res) => {
       return res.status(404).json({ error: 'Tâche non trouvée' });
     }
 
+    removeTaskUploadDir(userId, id);
     db.prepare('DELETE FROM tasks WHERE id = ? AND user_id = ?').run(id, userId);
 
     res.json({ message: 'Tâche supprimée avec succès' });
