@@ -144,7 +144,6 @@ const TaskReminder = () => {
       }
 
       setEditingTask(null);
-      setIsModalOpen(false);
       loadClientColors();
     } catch {
       toast({
@@ -152,6 +151,7 @@ const TaskReminder = () => {
         description: "Une erreur est survenue lors de la sauvegarde.",
         variant: "destructive",
       });
+      throw new Error("Task save failed");
     }
   };
 

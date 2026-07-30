@@ -130,6 +130,11 @@ router.post('/', (req, res, next) => {
       const row = db.prepare('SELECT * FROM task_attachments WHERE id = ?').get(id) as AttachmentRow;
       res.status(201).json({ attachment: formatAttachment(row) });
     } catch (error) {
+      const userId = req.user!.id;
+      const { taskId } = req.params;
+      if (req.file) {
+        removeAttachmentFile(userId, taskId, req.file.filename);
+      }
       console.error('Erreur lors de l\'upload de la pièce jointe:', error);
       res.status(500).json({ error: 'Erreur lors de l\'upload de la pièce jointe' });
     }

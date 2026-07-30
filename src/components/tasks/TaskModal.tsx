@@ -40,6 +40,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
   const [notificationChannels, setNotificationChannels] = useState<Channel[]>([]);
   const [reminderDays, setReminderDays] = useState<number[]>([]); const [reminderDatetime, setReminderDatetime] = useState("");
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -78,21 +79,28 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
   };
   const getClientColor = (name: string) => clientList.find((c) => c.name === name)?.color || null;
   const toggle = (channel: Channel) => setNotificationChannels((current) => current.includes(channel) ? current.filter((c) => c !== channel) : [...current, channel]);
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    void onSave({
-      title,
-      description: description || undefined,
-      dueDate: new Date(dueDate).toISOString(),
-      client: client || undefined,
-      link: link || undefined,
-      tags,
-      priority,
-      notificationChannels: notificationChannels.length ? notificationChannels : undefined,
-      reminderDays: reminderDays.length ? reminderDays : undefined,
-      reminderDatetime: reminderDatetime ? new Date(reminderDatetime).toISOString() : undefined,
-    }, pendingFiles);
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSave({
+        title,
+        description: description || undefined,
+        dueDate: new Date(dueDate).toISOString(),
+        client: client || undefined,
+        link: link || undefined,
+        tags,
+        priority,
+        notificationChannels: notificationChannels.length ? notificationChannels : undefined,
+        reminderDays: reminderDays.length ? reminderDays : undefined,
+        reminderDatetime: reminderDatetime ? new Date(reminderDatetime).toISOString() : undefined,
+      }, pendingFiles);
+      onClose();
+    } catch {
+      // Garder la modale ouverte (pendingFiles préservés)
+    } finally {
+      setIsSaving(false);
+    }
   };
   if (!isOpen) return null;
   const PreviewIcon = preview ? Pencil : Eye;
@@ -111,7 +119,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
         pendingFiles={pendingFiles}
         onPendingFilesChange={setPendingFiles}
       />
-      <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-muted">Annuler</button><button type="submit" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">{editTask ? 'Enregistrer' : 'Créer la tâche'}</button></div>
+      <div className="flex justify-end gap-2 border-t border-border pt-4"><button type="button" onClick={onClose} disabled={isSaving} className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50">Annuler</button><button type="submit" disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{isSaving ? 'Enregistrement…' : (editTask ? 'Enregistrer' : 'Créer la tâche')}</button></div>
     </form></div></div>;
 };
 export default TaskModal;
