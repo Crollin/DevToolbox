@@ -27,6 +27,15 @@ interface AttachmentRow {
   created_at: string;
 }
 
+/** mergeParams puts taskId on req.params; Express typings don't always include it */
+function routeParam(req: express.Request, name: string): string {
+  const value = (req.params as Record<string, string | undefined>)[name];
+  if (!value) {
+    throw new Error(`Paramètre ${name} manquant`);
+  }
+  return value;
+}
+
 function formatAttachment(row: AttachmentRow) {
   return {
     id: row.id,
@@ -41,7 +50,7 @@ function formatAttachment(row: AttachmentRow) {
 
 function assertTaskOwnership(req: express.Request, res: express.Response, next: express.NextFunction) {
   const userId = req.user!.id;
-  const taskId = req.params.taskId;
+  const taskId = routeParam(req, 'taskId');
   const task = db.prepare('SELECT id FROM tasks WHERE id = ? AND user_id = ?').get(taskId, userId);
   if (!task) {
     return res.status(404).json({ error: 'Tâche non trouvée' });
@@ -54,7 +63,7 @@ router.use(assertTaskOwnership);
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, _file, cb) => {
-      const dir = ensureTaskUploadDir(req.user!.id, req.params.taskId);
+      const dir = ensureTaskUploadDir(req.user!.id, routeParam(req, 'taskId'));
       cb(null, dir);
     },
     filename: (_req, file, cb) => {
@@ -68,7 +77,7 @@ const upload = multer({
 router.get('/', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { taskId } = req.params;
+    const taskId = routeParam(req, 'taskId');
     const rows = db.prepare(`
       SELECT * FROM task_attachments
       WHERE task_id = ? AND user_id = ?
@@ -93,7 +102,7 @@ router.post('/', (req, res, next) => {
 
     try {
       const userId = req.user!.id;
-      const { taskId } = req.params;
+      const taskId = routeParam(req, 'taskId');
 
       if (!req.file) {
         return res.status(400).json({ error: 'Aucun fichier fourni' });
@@ -131,7 +140,7 @@ router.post('/', (req, res, next) => {
       res.status(201).json({ attachment: formatAttachment(row) });
     } catch (error) {
       const userId = req.user!.id;
-      const { taskId } = req.params;
+      const taskId = routeParam(req, 'taskId');
       if (req.file) {
         removeAttachmentFile(userId, taskId, req.file.filename);
       }
@@ -144,7 +153,8 @@ router.post('/', (req, res, next) => {
 router.get('/:attachmentId', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { taskId, attachmentId } = req.params;
+    const taskId = routeParam(req, 'taskId');
+    const attachmentId = routeParam(req, 'attachmentId');
 
     const attachment = db.prepare(`
       SELECT * FROM task_attachments WHERE id = ? AND task_id = ? AND user_id = ?
@@ -175,7 +185,8 @@ router.get('/:attachmentId', (req, res) => {
 router.delete('/:attachmentId', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { taskId, attachmentId } = req.params;
+    const taskId = routeParam(req, 'taskId');
+    const attachmentId = routeParam(req, 'attachmentId');
 
     const attachment = db.prepare(`
       SELECT * FROM task_attachments WHERE id = ? AND task_id = ? AND user_id = ?
