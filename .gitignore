@@ -67,3 +67,6 @@ temp/
 # Docker temporary files
 .docker/
 docker-compose.override.yml
+
+# Git worktrees
+.worktrees/
