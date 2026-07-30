@@ -81,6 +81,42 @@ export const api = {
       body: data ? JSON.stringify(data) : undefined,
     }),
   delete: <T>(endpoint: string) => apiRequest<T>(endpoint, { method: 'DELETE' }),
+  upload: async <T>(endpoint: string, formData: FormData): Promise<T> => {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    logApi(`[API] POST ${url}`, '[FormData]', url);
+    const response = await fetch(url, { method: 'POST', headers, body: formData });
+    logApi(`[API] Response status: ${response.status} for ${url}`);
+    if (!response.ok) {
+      if (response.status === 401) {
+        const { removeAuthToken } = await import('./auth');
+        removeAuthToken();
+      }
+      const error = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+      throw new Error(error.error || `Erreur HTTP: ${response.status}`);
+    }
+    return response.json();
+  },
+  getBlob: async (endpoint: string): Promise<Blob> => {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    logApi(`[API] GET ${url}`, undefined, url);
+    const response = await fetch(url, { method: 'GET', headers });
+    logApi(`[API] Response status: ${response.status} for ${url}`);
+    if (!response.ok) {
+      if (response.status === 401) {
+        const { removeAuthToken } = await import('./auth');
+        removeAuthToken();
+      }
+      const error = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+      throw new Error(error.error || `Erreur HTTP: ${response.status}`);
+    }
+    return response.blob();
+  },
 };
 
 export default api;
