@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Task } from "@/types/task";
 import { getDaysUntilDue } from "./TaskStatusBadge";
+import TaskStatusSwitcher from "./TaskStatusSwitcher";
 import { cn } from "@/lib/utils";
 import { Calendar, GripVertical, Pencil, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ interface KanbanTaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onView?: (task: Task) => void;
+  onStatusChange: (id: string, status: Task["status"]) => void;
   isDragging?: boolean;
   clientColors?: Record<string, string>;
 }
@@ -29,7 +31,15 @@ function formatShortDate(dateString: string) {
   });
 }
 
-const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging, clientColors }: KanbanTaskCardProps) => {
+const KanbanTaskCard = ({
+  task,
+  onEdit,
+  onDelete,
+  onView,
+  onStatusChange,
+  isDragging,
+  clientColors,
+}: KanbanTaskCardProps) => {
   const {
     attributes,
     listeners,
@@ -66,7 +76,9 @@ const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging, clientColo
       onClick={(e) => {
         if (!onView) return;
         const target = e.target as HTMLElement;
-        if (target.closest("button")) return;
+        if (target.closest("button") || target.closest("[role='menu']") || target.closest("[data-radix-collection-item]")) {
+          return;
+        }
         onView(task);
       }}
     >
@@ -104,6 +116,14 @@ const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging, clientColo
             <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{task.description}</p>
           )}
 
+          <div className="mt-2">
+            <TaskStatusSwitcher
+              status={task.status}
+              size="sm"
+              onChange={(status) => onStatusChange(task.id, status)}
+            />
+          </div>
+
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span
               className={cn(
@@ -119,7 +139,10 @@ const KanbanTaskCard = ({ task, onEdit, onDelete, onView, isDragging, clientColo
             {task.client && (
               <span className="inline-flex items-center gap-1 truncate max-w-[140px]">
                 {clientColors?.[task.client] ? (
-                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: clientColors[task.client] }} />
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: clientColors[task.client] }}
+                  />
                 ) : (
                   <User className="h-3 w-3 shrink-0" />
                 )}

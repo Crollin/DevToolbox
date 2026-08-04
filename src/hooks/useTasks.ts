@@ -77,6 +77,16 @@ export function useTasks() {
       throw new Error("Vous devez être connecté pour modifier le statut d'une tâche");
     }
 
+    let previous: Task | undefined;
+    setTasks((prev) => {
+      previous = prev.find((t) => t.id === id);
+      if (!previous || previous.status === status) return prev;
+      const now = new Date().toISOString();
+      return prev.map((t) =>
+        t.id === id ? { ...t, status, updatedAt: now } : t
+      );
+    });
+
     try {
       const { task } = await api.patch<{ task: Task }>(`/tasks/${id}/status`, { status });
       setTasks((prev) =>
@@ -84,6 +94,11 @@ export function useTasks() {
       );
       return task;
     } catch (error) {
+      if (previous) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? previous! : t))
+        );
+      }
       console.error("Erreur lors de la mise à jour du statut:", error);
       throw error;
     }

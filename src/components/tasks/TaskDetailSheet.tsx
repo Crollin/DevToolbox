@@ -10,6 +10,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import TaskStatusSwitcher from "./TaskStatusSwitcher";
 import {
   Calendar,
   User,
@@ -28,6 +29,7 @@ interface TaskDetailSheetProps {
   onOpenChange: (open: boolean) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
+  onStatusChange?: (id: string, status: Task["status"]) => void;
   clientColors?: Record<string, string>;
 }
 
@@ -36,12 +38,6 @@ const priorityConfig: Record<Task["priority"], { label: string; color: string }>
   high: { label: "Haute", color: "bg-amber-500/15 text-amber-400 border-amber-500/20" },
   normal: { label: "Normale", color: "bg-muted text-muted-foreground border-border" },
   low: { label: "Faible", color: "bg-muted/60 text-muted-foreground/70 border-border/60" },
-};
-
-const statusConfig: Record<Task["status"], { label: string; color: string }> = {
-  pending: { label: "En attente", color: "bg-muted text-muted-foreground" },
-  in_progress: { label: "En cours", color: "bg-blue-500/15 text-blue-400" },
-  completed: { label: "Terminée", color: "bg-emerald-500/15 text-emerald-400" },
 };
 
 const channelLabels: Record<string, string> = {
@@ -73,24 +69,34 @@ function renderMarkdown(md: string) {
   return DOMPurify.sanitize(marked.parse(md, { async: false }) as string);
 }
 
-const TaskDetailSheet = ({ task, open, onOpenChange, onEdit, onDelete, clientColors }: TaskDetailSheetProps) => {
+const TaskDetailSheet = ({
+  task,
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  clientColors,
+}: TaskDetailSheetProps) => {
   if (!task) return null;
 
   const priority = priorityConfig[task.priority];
-  const status = statusConfig[task.status];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pr-8">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium", priority.color)}>
               <Flag className="h-3 w-3" />
               {priority.label}
             </span>
-            <span className={cn("rounded-md px-2 py-0.5 text-xs font-medium", status.color)}>
-              {status.label}
-            </span>
+            {onStatusChange ? (
+              <TaskStatusSwitcher
+                status={task.status}
+                onChange={(status) => onStatusChange(task.id, status)}
+              />
+            ) : null}
           </div>
           <SheetTitle className="text-left text-lg leading-snug">
             {task.title}

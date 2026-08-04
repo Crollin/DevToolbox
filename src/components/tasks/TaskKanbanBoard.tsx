@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
+  CollisionDetection,
   closestCorners,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -51,6 +53,15 @@ function findContainer(
   return null;
 }
 
+/** Prefer pointer hit (column/card under cursor), fall back to closest corners. */
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const pointerHits = pointerWithin(args);
+  if (pointerHits.length > 0) {
+    return pointerHits;
+  }
+  return closestCorners(args);
+};
+
 const TaskKanbanBoard = ({
   tasks,
   showCompleted,
@@ -62,26 +73,44 @@ const TaskKanbanBoard = ({
 }: TaskKanbanBoardProps) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [localGrouped, setLocalGrouped] = useState<Record<TaskStatus, Task[]> | null>(null);
+  const [overColumnId, setOverColumnId] = useState<TaskStatus | null>(null);
+  const dragSourceRef = useRef<TaskStatus | null>(null);
+  const dragTargetRef = useRef<TaskStatus | null>(null);
 
   const grouped = useMemo(() => groupTasksByStatus(tasks), [tasks]);
   const displayGrouped = localGrouped ?? grouped;
+
+  // Drop optimistic local layout once parent tasks catch up
+  useEffect(() => {
+    if (!localGrouped || activeId) return;
+    setLocalGrouped(null);
+  }, [tasks, localGrouped, activeId]);
 
   const visibleColumns = showCompleted
     ? KANBAN_COLUMNS
     : KANBAN_COLUMNS.filter((c) => c.id !== "completed");
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const activeTask = activeId
-    ? tasks.find((t) => t.id === activeId) ?? null
+    ? tasks.find((t) => t.id === activeId) ??
+      (localGrouped
+        ? Object.values(localGrouped).flat().find((t) => t.id === activeId)
+        : null) ??
+      null
     : null;
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(String(event.active.id));
+    const id = String(event.active.id);
+    const source = findContainer(id, grouped);
+    setActiveId(id);
     setLocalGrouped(grouped);
+    dragSourceRef.current = source;
+    dragTargetRef.current = source;
+    setOverColumnId(source);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -91,9 +120,12 @@ const TaskKanbanBoard = ({
     const activeContainer = findContainer(String(active.id), localGrouped);
     const overContainer = findContainer(String(over.id), localGrouped);
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
-      return;
-    }
+    if (!activeContainer || !overContainer) return;
+
+    setOverColumnId(overContainer);
+    dragTargetRef.current = overContainer;
+
+    if (activeContainer === overContainer) return;
 
     setLocalGrouped((prev) => {
       if (!prev) return prev;
@@ -119,30 +151,48 @@ const TaskKanbanBoard = ({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    const taskId = String(active.id);
+    const source = dragSourceRef.current ?? findContainer(taskId, grouped);
+
+    // Prefer where the card visually landed (localGrouped / dragOver tracking)
+    let target =
+      dragTargetRef.current ??
+      (localGrouped ? findContainer(taskId, localGrouped) : null);
+
+    if (!target && over) {
+      target = findContainer(String(over.id), localGrouped ?? grouped);
+    }
+
     setActiveId(null);
-    setLocalGrouped(null);
+    setOverColumnId(null);
+    dragSourceRef.current = null;
+    dragTargetRef.current = null;
 
-    if (!over) return;
+    if (!source || !target) {
+      setLocalGrouped(null);
+      return;
+    }
 
-    const sourceContainer = findContainer(String(active.id), grouped);
-    const targetContainer = findContainer(String(over.id), grouped);
-
-    if (!sourceContainer || !targetContainer) return;
-
-    if (sourceContainer !== targetContainer) {
-      onStatusChange(String(active.id), targetContainer);
+    if (source !== target) {
+      // Keep localGrouped until optimistic parent update arrives
+      onStatusChange(taskId, target);
+    } else {
+      setLocalGrouped(null);
     }
   };
 
   const handleDragCancel = () => {
     setActiveId(null);
     setLocalGrouped(null);
+    setOverColumnId(null);
+    dragSourceRef.current = null;
+    dragTargetRef.current = null;
   };
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={kanbanCollisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -163,19 +213,25 @@ const TaskKanbanBoard = ({
             onEdit={onEdit}
             onDelete={onDelete}
             onView={onView}
+            onStatusChange={onStatusChange}
+            isOver={overColumnId === column.id && !!activeId}
             clientColors={clientColors}
           />
         ))}
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
+      <DragOverlay dropAnimation={{ duration: 180, easing: "ease" }}>
         {activeTask ? (
-          <KanbanTaskCard
-            task={activeTask}
-            onEdit={() => {}}
-            onDelete={() => {}}
-            isDragging
-          />
+          <div className="rotate-2 scale-105">
+            <KanbanTaskCard
+              task={activeTask}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              onStatusChange={() => {}}
+              isDragging
+              clientColors={clientColors}
+            />
+          </div>
         ) : null}
       </DragOverlay>
     </DndContext>

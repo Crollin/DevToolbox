@@ -53,6 +53,14 @@ const TaskReminder = () => {
 
   useEffect(() => { loadClientColors(); }, [loadClientColors]);
 
+  // Keep detail sheet in sync when status/content changes elsewhere
+  useEffect(() => {
+    setViewingTask((current) => {
+      if (!current) return current;
+      return tasks.find((t) => t.id === current.id) ?? null;
+    });
+  }, [tasks]);
+
   const clients = useMemo(() => {
     const clientSet = new Set<string>();
     tasks.forEach((task) => {
@@ -457,6 +465,7 @@ const TaskReminder = () => {
           onOpenChange={(open) => { if (!open) setViewingTask(null); }}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onStatusChange={handleStatusChange}
           clientColors={clientColors}
         />
       </div>

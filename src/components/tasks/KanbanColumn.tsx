@@ -19,22 +19,40 @@ interface KanbanColumnProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onView?: (task: Task) => void;
+  onStatusChange: (id: string, status: Task["status"]) => void;
   isOver?: boolean;
   clientColors?: Record<string, string>;
 }
 
-const KanbanColumn = ({ column, tasks, onEdit, onDelete, onView, isOver, clientColors }: KanbanColumnProps) => {
+const KanbanColumn = ({
+  column,
+  tasks,
+  onEdit,
+  onDelete,
+  onView,
+  onStatusChange,
+  isOver,
+  clientColors,
+}: KanbanColumnProps) => {
   const { setNodeRef, isOver: isDroppableOver } = useDroppable({ id: column.id });
   const Icon = column.icon;
   const taskIds = tasks.map((t) => t.id);
   const highlighted = isOver || isDroppableOver;
 
   return (
-    <div className="flex min-h-0 md:min-h-[320px] flex-col rounded-xl border border-border/60 bg-muted/20">
+    <div
+      className={cn(
+        "flex min-h-0 md:min-h-[320px] flex-col rounded-xl border bg-muted/20 transition-all",
+        highlighted
+          ? "border-primary/50 ring-2 ring-primary/25 bg-primary/5"
+          : "border-border/60"
+      )}
+    >
       <div
         className={cn(
           "flex items-center justify-between gap-2 rounded-t-xl border-b px-3 py-2.5",
-          column.headerBg
+          column.headerBg,
+          highlighted && "border-primary/20"
         )}
       >
         <div className="flex items-center gap-2">
@@ -44,7 +62,7 @@ const KanbanColumn = ({ column, tasks, onEdit, onDelete, onView, isOver, clientC
         <span
           className={cn(
             "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium",
-            "bg-background/80 text-muted-foreground"
+            highlighted ? "bg-primary/15 text-primary" : "bg-background/80 text-muted-foreground"
           )}
         >
           {tasks.length}
@@ -54,23 +72,33 @@ const KanbanColumn = ({ column, tasks, onEdit, onDelete, onView, isOver, clientC
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-1 flex-col gap-2 p-2 transition-colors",
+          "flex flex-1 flex-col gap-2 p-2 transition-colors min-h-[120px]",
           highlighted && "bg-primary/5"
         )}
       >
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {tasks.length > 0 ? (
             tasks.map((task) => (
-              <KanbanTaskCard key={task.id} task={task} onEdit={onEdit} onDelete={onDelete} onView={onView} clientColors={clientColors} />
+              <KanbanTaskCard
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onView={onView}
+                onStatusChange={onStatusChange}
+                clientColors={clientColors}
+              />
             ))
           ) : (
             <div
               className={cn(
-                "flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/50 p-6 text-center",
-                highlighted && "border-primary/40 bg-primary/5"
+                "flex flex-1 items-center justify-center rounded-lg border border-dashed p-6 text-center transition-colors",
+                highlighted
+                  ? "border-primary/50 bg-primary/10 text-primary"
+                  : "border-border/50 text-muted-foreground"
               )}
             >
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs font-medium">
                 {highlighted ? "Déposer ici" : "Aucune tâche"}
               </p>
             </div>
