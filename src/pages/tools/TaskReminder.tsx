@@ -13,6 +13,7 @@ import {
 import { tools } from "@/data/tools";
 import ToolLayout from "@/components/ToolLayout";
 import { useTasks } from "@/hooks/useTasks";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Task, CreateTaskInput } from "@/types/task";
 import TaskCard from "@/components/tasks/TaskCard";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
@@ -23,12 +24,22 @@ import api from "@/lib/api";
 import type { ClientInfo } from "@/components/tasks/TaskModal";
 import { toast } from "@/hooks/use-toast";
 import { uploadAttachment } from "@/lib/taskAttachmentsApi";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
 
 type ViewMode = "kanban" | "list";
 
 const TaskReminder = () => {
   const tool = tools.find((t) => t.id === "task-reminder")!;
   const { tasks, isLoaded, addTask, updateTask, updateTaskStatus, deleteTask } = useTasks();
+  const isMobile = useIsMobile();
 
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [search, setSearch] = useState("");
@@ -40,6 +51,14 @@ const TaskReminder = () => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [clientColors, setClientColors] = useState<Record<string, string>>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Mobile: force list view (kanban remains desktop-first)
+  useEffect(() => {
+    if (isMobile) setViewMode("list");
+  }, [isMobile]);
+
+  const effectiveViewMode: ViewMode = isMobile ? "list" : viewMode;
 
   const loadClientColors = useCallback(() => {
     api.get<{ clients: ClientInfo[] }>('/tasks/clients/list')
@@ -82,14 +101,14 @@ const TaskReminder = () => {
         (task.client && task.client.toLowerCase().includes(search.toLowerCase())) ||
         (task.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
 
-      const matchesStatus = viewMode === "kanban" || statusFilter === "all" || task.status === statusFilter;
+      const matchesStatus = effectiveViewMode === "kanban" || statusFilter === "all" || task.status === statusFilter;
       const matchesClient = clientFilter === "all" || task.client === clientFilter;
       const matchesTag = tagFilter === "all" || (task.tags || []).includes(tagFilter);
       const matchesCompleted = showCompleted || task.status !== "completed";
 
       return matchesSearch && matchesStatus && matchesClient && matchesTag && matchesCompleted;
     });
-  }, [tasks, search, statusFilter, clientFilter, tagFilter, showCompleted, viewMode]);
+  }, [tasks, search, statusFilter, clientFilter, tagFilter, showCompleted, effectiveViewMode]);
 
   const pendingTasks = tasks.filter((t) => t.status === "pending").length;
   const inProgressTasks = tasks.filter((t) => t.status === "in_progress").length;
@@ -217,6 +236,93 @@ const TaskReminder = () => {
     setIsModalOpen(true);
   };
 
+  const activeFiltersCount = [
+    statusFilter !== "all",
+    clientFilter !== "all",
+    tagFilter !== "all",
+    !showCompleted,
+  ].filter(Boolean).length;
+
+  const filterControls = (
+    <>
+      {effectiveViewMode === "list" && (
+        <div className={cn("flex flex-wrap gap-2", isMobile && "flex-col")}>
+          {(["all", "pending", "in_progress", "completed"] as const).map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setStatusFilter(status)}
+              className={cn(
+                "whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                isMobile && "w-full text-left",
+                statusFilter === status
+                  ? status === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : status === "pending"
+                      ? "border border-gray-500/30 bg-gray-500/10 text-gray-400"
+                      : status === "in_progress"
+                        ? "border border-blue-500/30 bg-blue-500/10 text-blue-400"
+                        : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {status === "all"
+                ? "Tous"
+                : status === "pending"
+                  ? "En attente"
+                  : status === "in_progress"
+                    ? "En cours"
+                    : "Terminées"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {clients.length > 0 && (
+        <select
+          value={clientFilter}
+          onChange={(e) => setClientFilter(e.target.value)}
+          className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 sm:w-auto"
+        >
+          <option value="all">Tous les clients</option>
+          {clients.map((client) => (
+            <option key={client} value={client}>
+              {client}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {tags.length > 0 && (
+        <select
+          value={tagFilter}
+          onChange={(e) => setTagFilter(e.target.value)}
+          className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 sm:w-auto"
+        >
+          <option value="all">Tous les tags</option>
+          {tags.map((tag) => (
+            <option key={tag} value={tag}>
+              #{tag}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setShowCompleted(!showCompleted)}
+        className={cn(
+          "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+          isMobile && "w-full",
+          showCompleted ? "bg-muted text-foreground" : "bg-muted/50 text-muted-foreground"
+        )}
+      >
+        <CheckSquare className="h-4 w-4" />
+        Afficher terminées
+      </button>
+    </>
+  );
+
   if (!isLoaded) {
     return (
       <ToolLayout tool={tool}>
@@ -231,62 +337,72 @@ const TaskReminder = () => {
     <ToolLayout tool={tool}>
       <div
         className={cn(
-          "tool-workspace mx-auto space-y-6 animate-fade-in",
-          viewMode === "kanban" ? "max-w-7xl" : "max-w-5xl"
+          "tool-workspace mx-auto space-y-4 animate-fade-in md:space-y-6",
+          effectiveViewMode === "kanban" ? "max-w-7xl" : "max-w-5xl",
+          isMobile && "pb-24"
         )}
       >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
-            <p className="tool-kicker">
-              <CalendarClock className="w-3.5 h-3.5" /> Cadence de travail
-            </p>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Le prochain geste est clair</h2>
-            <p className="text-muted-foreground text-sm">
-              Planifiez, relancez et fermez les boucles sans perdre le fil.
-            </p>
+            {!isMobile && (
+              <p className="tool-kicker">
+                <CalendarClock className="w-3.5 h-3.5" /> Cadence de travail
+              </p>
+            )}
+            <h2 className="text-xl font-bold text-foreground mb-0.5 md:text-2xl md:mb-1">
+              {isMobile ? "Mes tâches" : "Le prochain geste est clair"}
+            </h2>
+            {!isMobile && (
+              <p className="text-muted-foreground text-sm">
+                Planifiez, relancez et fermez les boucles sans perdre le fil.
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-border bg-muted/30 p-0.5">
+          {!isMobile && (
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-lg border border-border bg-muted/30 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("kanban")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    viewMode === "kanban"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  aria-pressed={viewMode === "kanban"}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Kanban
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    viewMode === "list"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  aria-pressed={viewMode === "list"}
+                >
+                  <List className="h-4 w-4" />
+                  Liste
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setViewMode("kanban")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  viewMode === "kanban"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                aria-pressed={viewMode === "kanban"}
+                onClick={openNewModal}
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
               >
-                <LayoutGrid className="h-4 w-4" />
-                Kanban
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  viewMode === "list"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                aria-pressed={viewMode === "list"}
-              >
-                <List className="h-4 w-4" />
-                Liste
+                <Plus className="w-4 h-4" />
+                Nouvelle tâche
               </button>
             </div>
-            <button
-              onClick={openNewModal}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nouvelle tâche</span>
-            </button>
-          </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className={cn("grid gap-3", isMobile ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4")}>
           <div className="insight-card">
             <ListTodo className="insight-icon text-primary" />
             <div>
@@ -301,111 +417,67 @@ const TaskReminder = () => {
               <span>en retard</span>
             </div>
           </div>
-          <div className="insight-card">
-            <CalendarClock className="insight-icon text-blue-400" />
-            <div>
-              <strong>{dueSoonTasks}</strong>
-              <span>dans les 3 jours</span>
-            </div>
-          </div>
-          <div className="insight-card">
-            <CheckSquare className="insight-icon text-emerald-400" />
-            <div>
-              <strong>{completedTasks}</strong>
-              <span>terminées</span>
-            </div>
-          </div>
+          {!isMobile && (
+            <>
+              <div className="insight-card">
+                <CalendarClock className="insight-icon text-blue-400" />
+                <div>
+                  <strong>{dueSoonTasks}</strong>
+                  <span>dans les 3 jours</span>
+                </div>
+              </div>
+              <div className="insight-card">
+                <CheckSquare className="insight-icon text-emerald-400" />
+                <div>
+                  <strong>{completedTasks}</strong>
+                  <span>terminées</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Rechercher une tâche..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="search-input"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
-
-            {viewMode === "list" && (
-              <>
-                {(["all", "pending", "in_progress", "completed"] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={cn(
-                      "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                      statusFilter === status
-                        ? status === "all"
-                          ? "bg-primary text-primary-foreground"
-                          : status === "pending"
-                            ? "border border-gray-500/30 bg-gray-500/10 text-gray-400"
-                            : status === "in_progress"
-                              ? "border border-blue-500/30 bg-blue-500/10 text-blue-400"
-                              : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {status === "all"
-                      ? "Tous"
-                      : status === "pending"
-                        ? "En attente"
-                        : status === "in_progress"
-                          ? "En cours"
-                          : "Terminées"}
-                  </button>
-                ))}
-              </>
-            )}
-
-            {clients.length > 0 && (
-              <select
-                value={clientFilter}
-                onChange={(e) => setClientFilter(e.target.value)}
-                className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Rechercher…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="search-input"
+              />
+            </div>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(true)}
+                className={cn(
+                  "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground",
+                  activeFiltersCount > 0 && "border-primary/50 bg-primary/10 text-primary"
+                )}
+                aria-label="Filtres"
               >
-                <option value="all">Tous les clients</option>
-                {clients.map((client) => (
-                  <option key={client} value={client}>
-                    {client}
-                  </option>
-                ))}
-              </select>
+                <Filter className="h-4 w-4" />
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
             )}
-
-            {tags.length > 0 && (
-              <select
-                value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="all">Tous les tags</option>
-                {tags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    #{tag}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            <button
-              onClick={() => setShowCompleted(!showCompleted)}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                showCompleted ? "bg-muted text-foreground" : "bg-muted/50 text-muted-foreground"
-              )}
-            >
-              <CheckSquare className="h-4 w-4" />
-              Afficher terminées
-            </button>
           </div>
+
+          {!isMobile && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+              {filterControls}
+            </div>
+          )}
         </div>
 
-        {viewMode === "kanban" ? (
+        {effectiveViewMode === "kanban" ? (
           filteredTasks.length > 0 || tasks.length === 0 ? (
             <TaskKanbanBoard
               tasks={filteredTasks}
@@ -449,6 +521,47 @@ const TaskReminder = () => {
           </div>
         )}
 
+        {isMobile && (
+          <button
+            type="button"
+            onClick={openNewModal}
+            className="fixed bottom-6 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
+            style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+            aria-label="Nouvelle tâche"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        )}
+
+        <Drawer open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <DrawerContent className="max-h-[85vh]">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Filtres</DrawerTitle>
+            </DrawerHeader>
+            <div className="space-y-3 overflow-y-auto px-4 pb-2">{filterControls}</div>
+            <DrawerFooter className="flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setStatusFilter("all");
+                  setClientFilter("all");
+                  setTagFilter("all");
+                  setShowCompleted(true);
+                }}
+              >
+                Réinitialiser
+              </Button>
+              <DrawerClose asChild>
+                <Button type="button" className="flex-1">
+                  Appliquer
+                </Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+
         <TaskModal
           isOpen={isModalOpen}
           onClose={() => {
@@ -462,7 +575,9 @@ const TaskReminder = () => {
         <TaskDetailSheet
           task={viewingTask}
           open={!!viewingTask}
-          onOpenChange={(open) => { if (!open) setViewingTask(null); }}
+          onOpenChange={(open) => {
+            if (!open) setViewingTask(null);
+          }}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
