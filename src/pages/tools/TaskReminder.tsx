@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -339,7 +340,7 @@ const TaskReminder = () => {
         className={cn(
           "tool-workspace mx-auto space-y-4 animate-fade-in md:space-y-6",
           effectiveViewMode === "kanban" ? "max-w-7xl" : "max-w-5xl",
-          isMobile && "pb-24"
+          "pb-24"
         )}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -521,18 +522,6 @@ const TaskReminder = () => {
           </div>
         )}
 
-        {isMobile && (
-          <button
-            type="button"
-            onClick={openNewModal}
-            className="fixed bottom-6 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
-            style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
-            aria-label="Nouvelle tâche"
-          >
-            <Plus className="h-6 w-6" />
-          </button>
-        )}
-
         <Drawer open={filtersOpen} onOpenChange={setFiltersOpen}>
           <DrawerContent className="max-h-[85vh]">
             <DrawerHeader className="text-left">
@@ -584,6 +573,23 @@ const TaskReminder = () => {
           clientColors={clientColors}
         />
       </div>
+
+      {/* Portal: évite que animate-fade-in (transform) casse position:fixed */}
+      {!isModalOpen &&
+        !viewingTask &&
+        !filtersOpen &&
+        createPortal(
+          <button
+            type="button"
+            onClick={openNewModal}
+            className="pointer-events-auto fixed right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:bg-primary/90 hover:scale-105 active:scale-95"
+            style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}
+            aria-label="Nouvelle tâche"
+          >
+            <Plus className="h-6 w-6" />
+          </button>,
+          document.body
+        )}
     </ToolLayout>
   );
 };
