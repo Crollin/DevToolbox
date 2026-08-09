@@ -117,16 +117,16 @@ const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors
                 </div>
               )}
               {task.link && (
-                <div className="flex items-center gap-2">
-                  <LinkIcon className="w-4 h-4" />
+                <div className="flex items-center gap-2 min-w-0">
+                  <LinkIcon className="w-4 h-4 shrink-0" />
                   <a
                     href={task.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline flex items-center gap-1"
+                    className="text-primary hover:underline flex items-center gap-1 min-w-0"
                   >
-                    {task.link}
-                    <ExternalLink className="w-3 h-3" />
+                    <span className="truncate">{task.link}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
                   </a>
                 </div>
               )}
@@ -139,7 +139,7 @@ const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors
             variant="ghost"
             size="sm"
             onClick={() => onEdit(task)}
-            className="h-8 w-8 p-0"
+            className="h-10 w-10 p-0 md:h-8 md:w-8"
             title="Modifier"
           >
             <Pencil className="w-4 h-4" />
@@ -148,7 +148,7 @@ const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors
             variant="ghost"
             size="sm"
             onClick={handleDelete}
-            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+            className="h-10 w-10 p-0 text-destructive hover:text-destructive md:h-8 md:w-8"
             title="Supprimer"
           >
             <Trash2 className="w-4 h-4" />
