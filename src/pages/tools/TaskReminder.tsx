@@ -36,6 +36,20 @@ import {
 import { Button } from "@/components/ui/button";
 
 type ViewMode = "kanban" | "list";
+type StatusFilter =
+  | "all"
+  | "active"
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "overdue"
+  | "due_soon";
+
+const getDaysUntilDue = (dueDate: string, today: Date): number => {
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  return Math.ceil((due.getTime() - today.getTime()) / 86400000);
+};
 
 const TaskReminder = () => {
   const tool = tools.find((t) => t.id === "task-reminder")!;
@@ -44,7 +58,7 @@ const TaskReminder = () => {
 
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "in_progress" | "completed">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [clientFilter, setClientFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [showCompleted, setShowCompleted] = useState(true);
@@ -53,6 +67,12 @@ const TaskReminder = () => {
   const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [clientColors, setClientColors] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const todayStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   // Mobile: force list view (kanban remains desktop-first)
   useEffect(() => {
@@ -102,29 +122,45 @@ const TaskReminder = () => {
         (task.client && task.client.toLowerCase().includes(search.toLowerCase())) ||
         (task.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
 
-      const matchesStatus = effectiveViewMode === "kanban" || statusFilter === "all" || task.status === statusFilter;
+      const daysUntilDue = getDaysUntilDue(task.dueDate, todayStart);
+      let matchesStatus = true;
+      if (statusFilter === "overdue") {
+        matchesStatus = task.status !== "completed" && daysUntilDue < 0;
+      } else if (statusFilter === "due_soon") {
+        matchesStatus =
+          task.status !== "completed" && daysUntilDue >= 0 && daysUntilDue <= 3;
+      } else if (statusFilter === "active") {
+        matchesStatus = task.status === "pending" || task.status === "in_progress";
+      } else if (statusFilter !== "all") {
+        matchesStatus = task.status === statusFilter;
+      }
+
       const matchesClient = clientFilter === "all" || task.client === clientFilter;
       const matchesTag = tagFilter === "all" || (task.tags || []).includes(tagFilter);
-      const matchesCompleted = showCompleted || task.status !== "completed";
+      const matchesCompleted =
+        statusFilter === "completed" || showCompleted || task.status !== "completed";
 
       return matchesSearch && matchesStatus && matchesClient && matchesTag && matchesCompleted;
     });
-  }, [tasks, search, statusFilter, clientFilter, tagFilter, showCompleted, effectiveViewMode]);
+  }, [tasks, search, statusFilter, clientFilter, tagFilter, showCompleted, todayStart]);
 
   const pendingTasks = tasks.filter((t) => t.status === "pending").length;
   const inProgressTasks = tasks.filter((t) => t.status === "in_progress").length;
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
 
-  const today = new Date();
   const dueSoonTasks = tasks.filter((task) => {
     if (task.status === "completed") return false;
-    const due = new Date(task.dueDate);
-    const days = (due.getTime() - today.getTime()) / 86400000;
+    const days = getDaysUntilDue(task.dueDate, todayStart);
     return days >= 0 && days <= 3;
   }).length;
-  const overdueTasks = tasks.filter(
-    (task) => task.status !== "completed" && new Date(task.dueDate) < today
-  ).length;
+  const overdueTasks = tasks.filter((task) => {
+    if (task.status === "completed") return false;
+    return getDaysUntilDue(task.dueDate, todayStart) < 0;
+  }).length;
+
+  const toggleStatusFilter = (filter: StatusFilter) => {
+    setStatusFilter((current) => (current === filter ? "all" : filter));
+  };
 
   const handleSave = async (taskData: CreateTaskInput, files: File[]) => {
     try {
@@ -246,38 +282,43 @@ const TaskReminder = () => {
 
   const filterControls = (
     <>
-      {effectiveViewMode === "list" && (
-        <div className={cn("flex flex-wrap gap-2", isMobile && "flex-col")}>
-          {(["all", "pending", "in_progress", "completed"] as const).map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setStatusFilter(status)}
-              className={cn(
-                "whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isMobile && "w-full text-left",
-                statusFilter === status
-                  ? status === "all"
-                    ? "bg-primary text-primary-foreground"
-                    : status === "pending"
-                      ? "border border-gray-500/30 bg-gray-500/10 text-gray-400"
-                      : status === "in_progress"
-                        ? "border border-blue-500/30 bg-blue-500/10 text-blue-400"
-                        : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {status === "all"
-                ? "Tous"
-                : status === "pending"
-                  ? "En attente"
-                  : status === "in_progress"
-                    ? "En cours"
-                    : "Terminées"}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className={cn("flex flex-wrap gap-2", isMobile && "flex-col")}>
+        {(
+          [
+            { value: "all", label: "Tous" },
+            { value: "overdue", label: "En retard" },
+            { value: "due_soon", label: "Dans les 3 jours" },
+            { value: "pending", label: "En attente" },
+            { value: "in_progress", label: "En cours" },
+            { value: "completed", label: "Terminées" },
+          ] as const
+        ).map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setStatusFilter(value)}
+            className={cn(
+              "whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              isMobile && "w-full text-left",
+              statusFilter === value
+                ? value === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : value === "overdue"
+                    ? "border border-red-500/30 bg-red-500/10 text-red-400"
+                    : value === "due_soon"
+                      ? "border border-amber-500/30 bg-amber-500/10 text-amber-400"
+                      : value === "pending"
+                        ? "border border-gray-500/30 bg-gray-500/10 text-gray-400"
+                        : value === "in_progress"
+                          ? "border border-blue-500/30 bg-blue-500/10 text-blue-400"
+                          : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {clients.length > 0 && (
         <select
@@ -404,36 +445,68 @@ const TaskReminder = () => {
         </div>
 
         <div className={cn("grid gap-3", isMobile ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4")}>
-          <div className="insight-card">
+          <button
+            type="button"
+            onClick={() => toggleStatusFilter("active")}
+            className={cn(
+              "insight-card text-left transition-colors",
+              statusFilter === "active" && "ring-1 ring-primary/50 bg-primary/5"
+            )}
+            aria-pressed={statusFilter === "active"}
+          >
             <ListTodo className="insight-icon text-primary" />
             <div>
               <strong>{pendingTasks + inProgressTasks}</strong>
               <span>à traiter</span>
             </div>
-          </div>
-          <div className="insight-card">
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleStatusFilter("overdue")}
+            className={cn(
+              "insight-card text-left transition-colors",
+              statusFilter === "overdue" && "ring-1 ring-red-500/50 bg-red-500/5"
+            )}
+            aria-pressed={statusFilter === "overdue"}
+          >
             <CircleAlert className="insight-icon text-accent" />
             <div>
               <strong>{overdueTasks}</strong>
               <span>en retard</span>
             </div>
-          </div>
+          </button>
           {!isMobile && (
             <>
-              <div className="insight-card">
+              <button
+                type="button"
+                onClick={() => toggleStatusFilter("due_soon")}
+                className={cn(
+                  "insight-card text-left transition-colors",
+                  statusFilter === "due_soon" && "ring-1 ring-amber-500/50 bg-amber-500/5"
+                )}
+                aria-pressed={statusFilter === "due_soon"}
+              >
                 <CalendarClock className="insight-icon text-blue-400" />
                 <div>
                   <strong>{dueSoonTasks}</strong>
                   <span>dans les 3 jours</span>
                 </div>
-              </div>
-              <div className="insight-card">
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleStatusFilter("completed")}
+                className={cn(
+                  "insight-card text-left transition-colors",
+                  statusFilter === "completed" && "ring-1 ring-emerald-500/50 bg-emerald-500/5"
+                )}
+                aria-pressed={statusFilter === "completed"}
+              >
                 <CheckSquare className="insight-icon text-emerald-400" />
                 <div>
                   <strong>{completedTasks}</strong>
                   <span>terminées</span>
                 </div>
-              </div>
+              </button>
             </>
           )}
         </div>
