@@ -98,6 +98,8 @@ curl -s -X POST https://devtoolbox.creactiveweb.com/api/tasks \
 ## Intégrations documentées
 
 - [Extension Raycast](../../raycast/README.md)
+- [MCP Task Reminder (local)](../../mcp-task-reminder/README.md)
+- [Hermes / skill](../../hermes/README.md)
 
 ## Sécurité
 

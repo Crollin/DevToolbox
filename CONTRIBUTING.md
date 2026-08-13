@@ -53,6 +53,7 @@ cd backend && npm test
 - [Hub Intégrations API](docs/integrations/README.md)
 - [Personal Access Tokens](docs/integrations/personal-access-tokens.md) — tokens `dt_...` via **Mon compte → Accès API**
 - [Extension Raycast](raycast/README.md)
+- [MCP Task Reminder (local)](mcp-task-reminder/README.md)
 - [Agent Hermes](hermes/README.md)
 
 ```bash

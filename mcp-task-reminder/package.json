@@ -1,0 +1,29 @@
+{
+  "name": "devtoolbox-mcp-task-reminder",
+  "version": "1.0.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "description": "Serveur MCP local (stdio) pour DevToolbox Task Reminder",
+  "type": "module",
+  "bin": {
+    "devtoolbox-mcp-task-reminder": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.7.2"
+  }
+}
