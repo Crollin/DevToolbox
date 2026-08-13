@@ -29,6 +29,7 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 - **Docker Compose** prêt pour self-host (images GHCR)
 - **Intégrations API** : Personal Access Tokens (`dt_…`) via **Mon compte → Accès API** — [guide](docs/integrations/personal-access-tokens.md)
 - **Extension [Raycast](raycast/README.md)** : licences, tâches, Knowledge Base
+- **[MCP Task Reminder](mcp-task-reminder/README.md)** : Claude / Cursor en local (stdio)
 
 ## Démarrage rapide (Docker)
 
@@ -81,6 +82,7 @@ Configurez `VITE_API_URL` si besoin (voir `.env.example`).
 - [Guide Docker](DOCKER.md)
 - [API backend](backend/README.md)
 - [Extension Raycast](raycast/README.md)
+- [MCP Task Reminder](mcp-task-reminder/README.md)
 - [CHANGELOG](CHANGELOG.md)
 - [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md)
 

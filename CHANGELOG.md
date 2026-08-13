@@ -6,6 +6,10 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+### Ajouté
+
+- Serveur **MCP local** Task Reminder (`mcp-task-reminder/`) pour Claude Desktop, Claude Code et Cursor (stdio + PAT scope `tasks`)
+
 ## [1.4.0] - 2026-07-30
 
 ### Ajouté

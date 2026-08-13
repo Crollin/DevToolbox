@@ -16,7 +16,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 type Channel = "ntfy" | "email" | "telegram";
 const CHANNELS: Array<{ id: Channel; label: string }> = [
@@ -57,7 +56,7 @@ interface TaskModalProps {
 }
 
 const fieldClass =
-  "w-full rounded-lg border border-border bg-input px-3 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 md:text-sm md:py-2";
+  "w-full rounded-lg border border-border bg-input px-3 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 md:py-2 md:text-sm";
 
 const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
   const isMobile = useIsMobile();
@@ -192,6 +191,8 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
       current.includes(channel) ? current.filter((c) => c !== channel) : [...current, channel]
     );
 
+  const canGoNext = Boolean(title.trim() && dueDate);
+
   const submit = async (event?: React.FormEvent) => {
     event?.preventDefault();
     if (!title.trim() || !dueDate) return;
@@ -222,10 +223,25 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
     }
   };
 
+  const handleFormSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (step === 1) {
+      if (!canGoNext) return;
+      setStep(2);
+      return;
+    }
+    void submit();
+  };
+
   if (!isOpen) return null;
 
   const PreviewIcon = preview ? Pencil : Eye;
   const heading = editTask ? "Modifier la tâche" : "Nouvelle tâche";
+  const saveLabel = isSaving
+    ? "Enregistrement…"
+    : editTask
+      ? "Enregistrer"
+      : "Créer la tâche";
 
   const step1Fields = (
     <>
@@ -237,32 +253,58 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
           onChange={(e) => setTitle(e.target.value)}
           required
           placeholder="Ex. Valider la maquette d'accueil"
+          autoFocus
         />
       </div>
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
           <Label>Description</Label>
           <div className="flex gap-1 rounded-md border border-border bg-muted/50 p-1">
-            <button type="button" onClick={() => insertMarkdown("**")} title="Gras" className="rounded p-2 hover:bg-background">
+            <button
+              type="button"
+              onClick={() => insertMarkdown("**")}
+              title="Gras"
+              className="rounded p-1.5 hover:bg-background"
+            >
               <Bold className="h-3.5 w-3.5" />
             </button>
-            <button type="button" onClick={() => insertMarkdown("*")} title="Italique" className="rounded p-2 hover:bg-background">
+            <button
+              type="button"
+              onClick={() => insertMarkdown("*")}
+              title="Italique"
+              className="rounded p-1.5 hover:bg-background"
+            >
               <Italic className="h-3.5 w-3.5" />
             </button>
-            <button type="button" onClick={() => insertMarkdown("- ", "")} title="Liste" className="rounded p-2 hover:bg-background">
+            <button
+              type="button"
+              onClick={() => insertMarkdown("- ", "")}
+              title="Liste"
+              className="rounded p-1.5 hover:bg-background"
+            >
               <List className="h-3.5 w-3.5" />
             </button>
-            <button type="button" onClick={() => insertMarkdown("[", "](https://)")} title="Lien" className="rounded p-2 hover:bg-background">
+            <button
+              type="button"
+              onClick={() => insertMarkdown("[", "](https://)")}
+              title="Lien"
+              className="rounded p-1.5 hover:bg-background"
+            >
               <Link className="h-3.5 w-3.5" />
             </button>
-            <button type="button" onClick={() => setPreview(!preview)} title="Prévisualiser" className="rounded p-2 hover:bg-background">
+            <button
+              type="button"
+              onClick={() => setPreview(!preview)}
+              title="Prévisualiser"
+              className="rounded p-1.5 hover:bg-background"
+            >
               <PreviewIcon className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
         {preview ? (
           <div
-            className="prose prose-sm min-h-[130px] max-w-none rounded-lg border border-border bg-input p-3 dark:prose-invert"
+            className="prose prose-sm min-h-[100px] max-w-none rounded-lg border border-border bg-input p-3 dark:prose-invert"
             dangerouslySetInnerHTML={{
               __html: DOMPurify.sanitize(
                 marked.parse(description || "_Aucune description_") as string
@@ -272,14 +314,14 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
         ) : (
           <textarea
             ref={editorRef}
-            className={fieldClass + " min-h-[120px] resize-y font-mono text-sm md:min-h-[140px]"}
+            className={fieldClass + " min-h-[100px] resize-y font-mono text-sm md:min-h-[120px]"}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Notes, contexte, checklist… Markdown accepté."
           />
         )}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label>Date d'échéance *</Label>
           <input
@@ -342,7 +384,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
                       onClick={() =>
                         setColorPickerFor(colorPickerFor === ci.id ? null : ci.id)
                       }
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-muted sm:h-8 sm:w-8"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-muted sm:h-8 sm:w-8"
                       title="Couleur du client"
                     >
                       <span
@@ -351,7 +393,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
                       />
                     </button>
                     {colorPickerFor === ci.id && (
-                      <div className="absolute right-0 top-12 z-20 flex gap-1.5 rounded-lg border border-border bg-card p-2 shadow-lg">
+                      <div className="absolute right-0 top-11 z-20 flex gap-1.5 rounded-lg border border-border bg-card p-2 shadow-lg">
                         {CLIENT_COLORS.map((color) => (
                           <button
                             key={color}
@@ -377,7 +419,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
             <button
               type="button"
               onClick={addClient}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-muted sm:h-auto sm:w-auto sm:px-3"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-muted sm:h-auto sm:w-auto sm:px-3"
               title="Ajouter le client"
             >
               <Plus className="h-4 w-4" />
@@ -394,13 +436,13 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
               type="button"
               key={tag}
               onClick={() => setTags(tags.filter((item) => item !== tag))}
-              className="rounded-md bg-primary/15 px-2 py-1.5 text-xs text-primary"
+              className="rounded-md bg-primary/15 px-2 py-1 text-xs text-primary"
             >
               #{tag} ×
             </button>
           ))}
           <input
-            className="min-w-[140px] flex-1 bg-transparent px-1 py-1.5 text-sm outline-none"
+            className="min-w-[140px] flex-1 bg-transparent px-1 py-1 text-sm outline-none"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
@@ -417,12 +459,12 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
 
       <div>
         <Label>Canaux de notification pour cette tâche</Label>
-        <p className="mb-2 mt-1 text-xs text-muted-foreground">
-          Pré-rempli avec vos canaux par défaut. Modifiez si besoin pour cette tâche.
+        <p className="mb-1.5 mt-1 text-xs text-muted-foreground">
+          Pré-rempli avec vos canaux par défaut. Modifiez si besoin.
         </p>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
           {CHANNELS.map((channel) => (
-            <label key={channel.id} className="flex min-h-11 items-center gap-2 text-sm">
+            <label key={channel.id} className="flex items-center gap-2 text-sm">
               <Checkbox
                 checked={notificationChannels.includes(channel.id)}
                 onCheckedChange={() => toggle(channel.id)}
@@ -433,7 +475,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label>Lien / URL</Label>
           <input
@@ -457,9 +499,9 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
 
       <div>
         <Label>Rappels avant l'échéance</Label>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
+        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-2">
           {[7, 3, 1, 0].map((days) => (
-            <label key={days} className="flex min-h-11 items-center gap-2 text-sm">
+            <label key={days} className="flex items-center gap-2 text-sm">
               <Checkbox
                 checked={reminderDays.includes(days)}
                 onCheckedChange={() =>
@@ -486,6 +528,8 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
     </>
   );
 
+  const fields = step === 1 ? step1Fields : step2Fields;
+
   if (isMobile) {
     return (
       <Drawer
@@ -495,27 +539,14 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
         }}
       >
         <DrawerContent className="max-h-[94vh]">
-          <DrawerHeader className="text-left">
+          <DrawerHeader className="pb-2 text-left">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               Étape {step}/2
             </p>
             <DrawerTitle>{heading}</DrawerTitle>
           </DrawerHeader>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (step === 1) {
-                if (!title.trim() || !dueDate) return;
-                setStep(2);
-                return;
-              }
-              void submit();
-            }}
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <div className="space-y-5 overflow-y-auto px-4 pb-2">
-              {step === 1 ? step1Fields : step2Fields}
-            </div>
+          <form onSubmit={handleFormSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="space-y-3 overflow-y-auto px-4 pb-2">{fields}</div>
             <DrawerFooter className="flex-row gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {step === 1 ? (
                 <>
@@ -528,11 +559,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
                   >
                     Annuler
                   </Button>
-                  <Button
-                    type="submit"
-                    className="min-h-11 flex-1"
-                    disabled={!title.trim() || !dueDate}
-                  >
+                  <Button type="submit" className="min-h-11 flex-1" disabled={!canGoNext}>
                     Suivant
                   </Button>
                 </>
@@ -562,13 +589,13 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card shadow-xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card/95 p-5 backdrop-blur">
+      <div className="relative flex max-h-[min(88vh,640px)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Rappel de travail
+              Étape {step}/2
             </p>
-            <h2 className="text-xl font-semibold">{heading}</h2>
+            <h2 className="text-lg font-semibold">{heading}</h2>
           </div>
           <button
             type="button"
@@ -578,27 +605,34 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
             <X className="h-4 w-4" />
           </button>
         </div>
-        <form onSubmit={submit} className="space-y-5 p-5">
-          {step1Fields}
-          {step2Fields}
-          <div className="flex justify-end gap-2 border-t border-border pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSaving}
-              className="rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className={cn(
-                "rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              )}
-            >
-              {isSaving ? "Enregistrement…" : editTask ? "Enregistrer" : "Créer la tâche"}
-            </button>
+
+        <form onSubmit={handleFormSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="space-y-3 overflow-y-auto px-5 py-4">{fields}</div>
+          <div className="flex shrink-0 justify-end gap-2 border-t border-border px-5 py-3">
+            {step === 1 ? (
+              <>
+                <Button type="button" variant="ghost" onClick={onClose} disabled={isSaving}>
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={!canGoNext}>
+                  Suivant
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setStep(1)}
+                  disabled={isSaving}
+                >
+                  Retour
+                </Button>
+                <Button type="submit" disabled={isSaving}>
+                  {saveLabel}
+                </Button>
+              </>
+            )}
           </div>
         </form>
       </div>

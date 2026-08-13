@@ -12,6 +12,8 @@ DevToolbox expose une API REST authentifiée (JWT ou Personal Access Token `dt_.
 | Client | Usage | Scope(s) typique(s) | Documentation |
 |--------|-------|---------------------|---------------|
 | [Raycast](../../raycast/README.md) | Licences, tâches, KB depuis macOS | `licences`, `tasks`, `knowledge_base` | Extension locale hors Store |
+| [MCP Task Reminder](../../mcp-task-reminder/README.md) | Claude / Cursor (stdio local) → tâches | `tasks` | Serveur MCP local |
+| [Hermes / skill](../../hermes/README.md) | Agent HTTP + skill Task Reminder | `tasks` | PAT + `SKILL.md` |
 | Scripts / automatisations | `curl`, n8n, cron… | Selon besoin | [Guide PAT](personal-access-tokens.md) |
 
 ## Interface utilisateur
