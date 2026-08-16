@@ -2,27 +2,10 @@ import db from '../db/database';
 import { parseNotificationChannels } from './notificationChannels';
 import { sendDomainNotifications, NotificationDispatchConfig } from './notificationDispatch';
 import { loadEmailPreferencesForUser } from './email';
-
-function getDaysUntilExpiry(expiresAt: string | null): number | null {
-  if (!expiresAt) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const expiry = new Date(expiresAt);
-  expiry.setHours(0, 0, 0, 0);
-  const diffTime = expiry.getTime() - today.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-}
+import { getDaysUntilExpiry } from './domainBillingExport';
 
 function shouldSendReminder(daysUntilExpiry: number | null): boolean {
-  if (daysUntilExpiry === null) return false;
-  return (
-    daysUntilExpiry === 60 ||
-    daysUntilExpiry === 30 ||
-    daysUntilExpiry === 7 ||
-    daysUntilExpiry === 1 ||
-    daysUntilExpiry === 0 ||
-    daysUntilExpiry === -1
-  );
+  return daysUntilExpiry !== null && [60, 30, 7, 1, 0, -1].includes(daysUntilExpiry);
 }
 
 /**
@@ -74,23 +57,20 @@ export async function checkAndSendDomainReminders(): Promise<void> {
         expires_at: string | null;
       }>;
 
-      const toNotify = domains
-        .map((d) => {
-          const daysUntilExpiry = getDaysUntilExpiry(d.expires_at);
-          return {
-            name: d.name,
-            clientName: d.client_name,
-            clientEmail: d.client_email,
-            payer: d.payer,
-            sellYearly: d.sell_yearly,
-            currency: d.currency || 'EUR',
-            daysUntilExpiry: daysUntilExpiry ?? 0,
-            isExpired: (daysUntilExpiry ?? 0) < 0,
-            _daysUntilExpiry: daysUntilExpiry,
-          };
-        })
-        .filter((d) => shouldSendReminder(d._daysUntilExpiry))
-        .map(({ _daysUntilExpiry, ...domain }) => domain);
+      const toNotify = domains.flatMap((d) => {
+        const days = getDaysUntilExpiry(d.expires_at);
+        if (!shouldSendReminder(days)) return [];
+        return [{
+          name: d.name,
+          clientName: d.client_name,
+          clientEmail: d.client_email,
+          payer: d.payer,
+          sellYearly: d.sell_yearly,
+          currency: d.currency || 'EUR',
+          daysUntilExpiry: days ?? 0,
+          isExpired: (days ?? 0) < 0,
+        }];
+      });
 
       if (toNotify.length === 0) continue;
 

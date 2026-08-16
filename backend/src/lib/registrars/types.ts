@@ -19,7 +19,7 @@ export interface DomainCompareResult {
   domain: string;
   available: boolean | null;
   offers: RegistrarOffer[];
-  o2switch: { note: string; url: string };
+  o2switch: { note: string; url: string } | null;
 }
 
 export interface CompareResponse {
@@ -61,32 +61,21 @@ export function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+const EMPTY_OFFER = {
+  currency: null,
+  registration: null,
+  renewal: null,
+  registrationEur: null,
+  renewalEur: null,
+  available: null,
+} as const;
+
 export function skippedOffer(registrar: RegistrarId, message: string): RegistrarOffer {
-  return {
-    registrar,
-    status: 'skipped',
-    currency: null,
-    registration: null,
-    renewal: null,
-    registrationEur: null,
-    renewalEur: null,
-    available: null,
-    message,
-  };
+  return { registrar, status: 'skipped', ...EMPTY_OFFER, message };
 }
 
 export function errorOffer(registrar: RegistrarId, message: string): RegistrarOffer {
-  return {
-    registrar,
-    status: 'error',
-    currency: null,
-    registration: null,
-    renewal: null,
-    registrationEur: null,
-    renewalEur: null,
-    available: null,
-    message,
-  };
+  return { registrar, status: 'error', ...EMPTY_OFFER, message };
 }
 
 /** Parse "acme" + tlds, or a full FQDN like "acme.com". */

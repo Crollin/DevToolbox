@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface DomainFormModalProps {
-  open: boolean;
   initial?: PortfolioDomain | null;
   onClose: () => void;
   onSave: (data: PortfolioDomainInput) => Promise<void>;
@@ -28,7 +27,7 @@ const emptyForm: PortfolioDomainInput = {
   billingStatus: 'pending',
 };
 
-export function DomainFormModal({ open, initial, onClose, onSave }: DomainFormModalProps) {
+export function DomainFormModal({ initial, onClose, onSave }: DomainFormModalProps) {
   const [form, setForm] = useState<PortfolioDomainInput>(
     initial
       ? {
@@ -49,8 +48,6 @@ export function DomainFormModal({ open, initial, onClose, onSave }: DomainFormMo
       : emptyForm
   );
   const [saving, setSaving] = useState(false);
-
-  if (!open) return null;
 
   const set = <K extends keyof PortfolioDomainInput>(key: K, value: PortfolioDomainInput[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));

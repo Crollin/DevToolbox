@@ -84,8 +84,6 @@ export const REGISTRAR_LABELS: Record<PortfolioRegistrar, string> = {
   other: 'Autre',
 };
 
-export type CompareRegistrarId = RegistrarId;
-
 export interface CompareSettings {
   cloudflare: boolean;
   hostinger: boolean;
@@ -122,8 +120,8 @@ export function saveCompareSettings(settings: CompareSettings): void {
   localStorage.setItem(COMPARE_SETTINGS_KEY, JSON.stringify(settings));
 }
 
-export function settingsToRegistrars(settings: CompareSettings): CompareRegistrarId[] {
-  const list: CompareRegistrarId[] = [];
+export function settingsToRegistrars(settings: CompareSettings): RegistrarId[] {
+  const list: RegistrarId[] = [];
   if (settings.cloudflare) list.push('cloudflare');
   if (settings.hostinger) list.push('hostinger');
   if (settings.ovh) list.push('ovh');
