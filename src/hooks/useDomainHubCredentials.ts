@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
 export interface DomainHubCredentialsForm {
   cloudflareApiToken: string;
@@ -44,18 +45,29 @@ export function useDomainHubCredentials(enabled: boolean) {
   const [credentials, setCredentials] = useState<DomainHubCredentialsForm>(EMPTY_CREDENTIALS);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     if (!enabled) {
       setCredentials(EMPTY_CREDENTIALS);
+      setLoaded(false);
+      setLoadError(false);
       return;
     }
     setLoading(true);
+    setLoadError(false);
     try {
       const data = await api.get<DomainHubCredentialsForm>("/account/domain-hub-credentials");
       setCredentials(normalize(data));
-    } catch {
-      setCredentials(EMPTY_CREDENTIALS);
+      setLoaded(true);
+    } catch (err) {
+      setLoadError(true);
+      toast({
+        title: "Chargement impossible",
+        description: err instanceof Error ? err.message : "Impossible de charger les identifiants Domain Hub.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -66,6 +78,9 @@ export function useDomainHubCredentials(enabled: boolean) {
   }, [load]);
 
   const save = useCallback(async () => {
+    if (!loaded) {
+      throw new Error("Les identifiants Domain Hub ne sont pas encore chargés.");
+    }
     const payload = {
       cloudflareApiToken: credentials.cloudflareApiToken,
       cloudflareAccountId: credentials.cloudflareAccountId,
@@ -83,7 +98,7 @@ export function useDomainHubCredentials(enabled: boolean) {
     } finally {
       setSaving(false);
     }
-  }, [credentials]);
+  }, [credentials, loaded]);
 
   const noRegistrarConfigured =
     !credentials.configured.cloudflare &&
@@ -95,6 +110,8 @@ export function useDomainHubCredentials(enabled: boolean) {
     setCredentials,
     loading,
     saving,
+    loaded,
+    loadError,
     load,
     save,
     noRegistrarConfigured,

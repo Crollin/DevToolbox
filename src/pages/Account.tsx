@@ -121,6 +121,9 @@ const Account = () => {
     setCredentials: setDomainHubCredentials,
     loading: domainHubLoading,
     saving: domainHubSaving,
+    loaded: domainHubLoaded,
+    loadError: domainHubLoadError,
+    load: loadDomainHubCredentials,
     save: saveDomainHubCredentials,
     noRegistrarConfigured,
   } = useDomainHubCredentials(domainHubEnabled);
@@ -999,8 +1002,31 @@ const Account = () => {
                     <p className="text-sm text-muted-foreground">Chargement...</p>
                   </CardContent>
                 </Card>
+              ) : domainHubLoadError && !domainHubLoaded ? (
+                <Card>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-foreground">
+                      Impossible de charger les identifiants Domain Hub. Réessayez avant de modifier ou enregistrer.
+                    </div>
+                    <Button variant="outline" onClick={() => void loadDomainHubCredentials()}>
+                      Réessayer
+                    </Button>
+                  </CardContent>
+                </Card>
               ) : (
                 <>
+                  {domainHubLoadError && (
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-foreground">
+                      Le rechargement a échoué. Les valeurs affichées peuvent être obsolètes.
+                      <Button
+                        variant="link"
+                        className="ml-2 h-auto p-0 text-sm"
+                        onClick={() => void loadDomainHubCredentials()}
+                      >
+                        Réessayer
+                      </Button>
+                    </div>
+                  )}
                   {noRegistrarConfigured && (
                     <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">
                       Ajoutez au moins un registrar pour utiliser Domain Hub.
@@ -1175,7 +1201,10 @@ const Account = () => {
                     </CardContent>
                   </Card>
 
-                  <Button onClick={handleDomainHubSave} disabled={domainHubSaving}>
+                  <Button
+                    onClick={handleDomainHubSave}
+                    disabled={domainHubSaving || !domainHubLoaded}
+                  >
                     {domainHubSaving ? "Enregistrement..." : "Sauvegarder"}
                   </Button>
                 </>
