@@ -6,9 +6,24 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-16
+
 ### Ajouté
 
 - Serveur **MCP local** Task Reminder (`mcp-task-reminder/`) pour Claude Desktop, Claude Code et Cursor (stdio + PAT scope `tasks`)
+- Filtres de tâches par statut et échéance
+- Bouton **nouvelle tâche** (FAB) aussi sur desktop
+
+### Modifié
+
+- UX mobile de Task Reminder (layout, wizard de création, Kanban)
+- Domain Hub : suppression des couches à un seul appelant (`FeatureGate`, `CompareLoading`, options CSV mortes, offres registrar fantômes)
+- Labels Docker et badges version alignés sur `1.5.0`
+
+### Corrigé
+
+- FAB mobile fixé au viewport
+- Glisser-déposer Kanban et changement de statut plus fiables
 
 ## [1.4.0] - 2026-07-30
 
@@ -116,7 +131,8 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 Version initiale : 16 outils, auth JWT, notifications multi-canaux (Ntfy, email, Telegram), déploiement Docker.
 
-[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Crollin/DevToolbox/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Crollin/DevToolbox/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Crollin/DevToolbox/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Crollin/DevToolbox/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/Crollin/DevToolbox/compare/v1.2.0...v1.2.1
