@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Globe, Plus, RefreshCw, Search, Pencil, Trash2, Download, Loader2 } from 'lucide-react';
 import { tools } from '@/data/tools';
 import ToolLayout from '@/components/ToolLayout';
@@ -22,6 +23,8 @@ import {
   saveCompareSettings,
 } from '@/types/domain';
 import { toast } from '@/hooks/use-toast';
+import { useDomainHubCredentials } from '@/hooks/useDomainHubCredentials';
+import { useFeatureFlags } from '@/contexts/FeatureFlagsContext';
 import { cn } from '@/lib/utils';
 
 function daysUntil(date: string | null): number | null {
@@ -34,6 +37,9 @@ function daysUntil(date: string | null): number | null {
 }
 
 const DomainHub = () => {
+  const navigate = useNavigate();
+  const { domainHubEnabled } = useFeatureFlags();
+  const { noRegistrarConfigured, loaded: credentialsLoaded } = useDomainHubCredentials(domainHubEnabled);
   const tool = tools.find((t) => t.id === 'domain-hub')!;
   const { compare, loading: comparing, error: compareError, data, pendingLabel } = useDomainCompare();
   const {
@@ -158,7 +164,10 @@ const DomainHub = () => {
     } catch (err) {
       toast({
         title: 'Sync impossible',
-        description: err instanceof Error ? err.message : 'HOSTINGER_API_TOKEN ?',
+        description:
+          err instanceof Error
+            ? err.message
+            : 'Configurez votre token Hostinger dans Mon compte → Domain Hub.',
         variant: 'destructive',
       });
     }
@@ -214,6 +223,18 @@ const DomainHub = () => {
           </div>
         </div>
       </div>
+
+      {credentialsLoaded && noRegistrarConfigured && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm mb-4">
+          <p>
+            Aucune clé registrar configurée. Ajoutez Cloudflare, Hostinger ou OVH pour comparer et
+            synchroniser.
+          </p>
+          <Button variant="link" className="px-0" onClick={() => navigate('/account?tab=domain-hub')}>
+            Configurer dans Mon compte
+          </Button>
+        </div>
+      )}
 
       <Tabs defaultValue="compare">
         <TabsList>
