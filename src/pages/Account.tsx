@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2, Copy, KeyRound, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2, Copy, KeyRound, Trash2, Globe } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import {
@@ -20,8 +20,22 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { useDomainHubCredentials } from "@/hooks/useDomainHubCredentials";
 import api from "@/lib/api";
 import { useFeatureFlags } from "@/contexts/FeatureFlagsContext";
+
+const OVH_SUBSIDIARIES: Array<{ value: string; label: string }> = [
+  { value: "FR", label: "France (FR)" },
+  { value: "GB", label: "Royaume-Uni (GB)" },
+  { value: "DE", label: "Allemagne (DE)" },
+  { value: "ES", label: "Espagne (ES)" },
+  { value: "IT", label: "Italie (IT)" },
+  { value: "PL", label: "Pologne (PL)" },
+  { value: "PT", label: "Portugal (PT)" },
+  { value: "IE", label: "Irlande (IE)" },
+  { value: "NL", label: "Pays-Bas (NL)" },
+  { value: "BE", label: "Belgique (BE)" },
+];
 
 const THEME_OPTIONS = [
   { value: "light", label: "Clair" },
@@ -94,8 +108,30 @@ const PERSONAL_TOKEN_SCOPE_OPTIONS = [
 const Account = () => {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
-  const { domainHubEnabled } = useFeatureFlags();
+  const { domainHubEnabled, isLoading: flagsLoading } = useFeatureFlags();
   const { setTheme } = useTheme();
+
+  const [tab, setTab] = useState(() => {
+    const q = new URLSearchParams(window.location.search).get("tab");
+    return q === "domain-hub" ? "domain-hub" : "profil";
+  });
+
+  const {
+    credentials: domainHubCredentials,
+    setCredentials: setDomainHubCredentials,
+    loading: domainHubLoading,
+    saving: domainHubSaving,
+    save: saveDomainHubCredentials,
+    noRegistrarConfigured,
+  } = useDomainHubCredentials(domainHubEnabled);
+
+  const ovhSubsidiaryOptions = useMemo(() => {
+    const current = domainHubCredentials.ovhSubsidiary;
+    if (!current || OVH_SUBSIDIARIES.some((opt) => opt.value === current)) {
+      return OVH_SUBSIDIARIES;
+    }
+    return [...OVH_SUBSIDIARIES, { value: current, label: current }];
+  }, [domainHubCredentials.ovhSubsidiary]);
 
   const personalTokenScopeOptions = useMemo(
     () => PERSONAL_TOKEN_SCOPE_OPTIONS.filter(
@@ -175,6 +211,12 @@ const Account = () => {
       setThemeValue(user.preferences?.theme || "system");
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!flagsLoading && !domainHubEnabled && tab === "domain-hub") {
+      setTab("profil");
+    }
+  }, [flagsLoading, domainHubEnabled, tab]);
 
   const loadSmtpConfig = async () => {
     setSmtpLoading(true);
@@ -471,6 +513,22 @@ const Account = () => {
     }
   };
 
+  const handleDomainHubSave = async () => {
+    try {
+      await saveDomainHubCredentials();
+      toast({
+        title: "Clés Domain Hub enregistrées",
+        description: "Les identifiants registrar ont été mis à jour.",
+      });
+    } catch (err) {
+      toast({
+        title: "Erreur",
+        description: err instanceof Error ? err.message : "Impossible de sauvegarder.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
@@ -490,8 +548,8 @@ const Account = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-3xl">
-        <Tabs defaultValue="profil" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+          <TabsList className={`grid w-full ${domainHubEnabled ? "grid-cols-6" : "grid-cols-5"}`}>
             <TabsTrigger value="profil" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Profil
@@ -512,6 +570,12 @@ const Account = () => {
               <KeyRound className="w-4 h-4 mr-2" />
               Accès API
             </TabsTrigger>
+            {domainHubEnabled && (
+              <TabsTrigger value="domain-hub">
+                <Globe className="w-4 h-4 mr-2" />
+                Domain Hub
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profil">
@@ -926,6 +990,198 @@ const Account = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {domainHubEnabled && (
+            <TabsContent value="domain-hub" className="space-y-4">
+              {domainHubLoading ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground">Chargement...</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {noRegistrarConfigured && (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-foreground">
+                      Ajoutez au moins un registrar pour utiliser Domain Hub.
+                    </div>
+                  )}
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        Cloudflare
+                        {domainHubCredentials.configured.cloudflare && (
+                          <span className="inline-flex items-center gap-1 text-sm font-normal text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Configuré
+                          </span>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        Jeton API et identifiant de compte pour comparer et commander des domaines via Cloudflare Registrar.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dh-cf-token">Jeton API</Label>
+                        <Input
+                          id="dh-cf-token"
+                          type="password"
+                          autoComplete="new-password"
+                          value={domainHubCredentials.cloudflareApiToken}
+                          onChange={(e) =>
+                            setDomainHubCredentials((c) => ({ ...c, cloudflareApiToken: e.target.value }))
+                          }
+                          placeholder="••••••••"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Créez un jeton dans le tableau de bord Cloudflare (API Tokens). Laissez « *** » pour conserver le jeton actuel.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dh-cf-account">Account ID</Label>
+                        <Input
+                          id="dh-cf-account"
+                          value={domainHubCredentials.cloudflareAccountId}
+                          onChange={(e) =>
+                            setDomainHubCredentials((c) => ({ ...c, cloudflareAccountId: e.target.value }))
+                          }
+                          placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Visible dans la barre latérale de n'importe quel domaine sur dash.cloudflare.com.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        Hostinger
+                        {domainHubCredentials.configured.hostinger && (
+                          <span className="inline-flex items-center gap-1 text-sm font-normal text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Configuré
+                          </span>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        Jeton API hPanel pour comparer les tarifs et synchroniser les dates d'expiration.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dh-hostinger-token">Jeton API</Label>
+                        <Input
+                          id="dh-hostinger-token"
+                          type="password"
+                          autoComplete="new-password"
+                          value={domainHubCredentials.hostingerApiToken}
+                          onChange={(e) =>
+                            setDomainHubCredentials((c) => ({ ...c, hostingerApiToken: e.target.value }))
+                          }
+                          placeholder="••••••••"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Générez un jeton depuis hPanel → Compte → API. Laissez « *** » pour conserver le jeton actuel.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        OVH
+                        {domainHubCredentials.configured.ovh && (
+                          <span className="inline-flex items-center gap-1 text-sm font-normal text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Configuré
+                          </span>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        Clés d'application OVH (App Key, App Secret, Consumer Key) et filiale du catalogue.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dh-ovh-app-key">App Key</Label>
+                        <Input
+                          id="dh-ovh-app-key"
+                          type="password"
+                          autoComplete="new-password"
+                          value={domainHubCredentials.ovhAppKey}
+                          onChange={(e) =>
+                            setDomainHubCredentials((c) => ({ ...c, ovhAppKey: e.target.value }))
+                          }
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dh-ovh-app-secret">App Secret</Label>
+                        <Input
+                          id="dh-ovh-app-secret"
+                          type="password"
+                          autoComplete="new-password"
+                          value={domainHubCredentials.ovhAppSecret}
+                          onChange={(e) =>
+                            setDomainHubCredentials((c) => ({ ...c, ovhAppSecret: e.target.value }))
+                          }
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dh-ovh-consumer-key">Consumer Key</Label>
+                        <Input
+                          id="dh-ovh-consumer-key"
+                          type="password"
+                          autoComplete="new-password"
+                          value={domainHubCredentials.ovhConsumerKey}
+                          onChange={(e) =>
+                            setDomainHubCredentials((c) => ({ ...c, ovhConsumerKey: e.target.value }))
+                          }
+                          placeholder="••••••••"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Créez les clés sur api.ovh.com. Laissez « *** » pour conserver une clé déjà enregistrée.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dh-ovh-subsidiary">Filiale</Label>
+                        <Select
+                          value={domainHubCredentials.ovhSubsidiary}
+                          onValueChange={(value) =>
+                            setDomainHubCredentials((c) => ({ ...c, ovhSubsidiary: value }))
+                          }
+                        >
+                          <SelectTrigger id="dh-ovh-subsidiary">
+                            <SelectValue placeholder="Choisir une filiale" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ovhSubsidiaryOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Détermine le catalogue et la devise utilisés pour les prix OVH.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Button onClick={handleDomainHubSave} disabled={domainHubSaving}>
+                    {domainHubSaving ? "Enregistrement..." : "Sauvegarder"}
+                  </Button>
+                </>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
