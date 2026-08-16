@@ -11,10 +11,8 @@ export interface BillingExportRow {
   billing_status: string;
 }
 
-export interface BillingExportOptions {
-  vatRate?: number;
-  dueDays?: number;
-}
+const VAT_RATE = 0.2;
+const DUE_DAYS = 30;
 
 const CSV_HEADERS = [
   'client_name',
@@ -43,24 +41,19 @@ function getUnitPrice(row: BillingExportRow): number | null {
   return amount;
 }
 
-function computeDueDate(expiresAt: string | null, dueDays: number): string {
+function computeDueDate(expiresAt: string | null): string {
   if (expiresAt) {
     return expiresAt.slice(0, 10);
   }
   const due = new Date();
-  due.setDate(due.getDate() + dueDays);
+  due.setDate(due.getDate() + DUE_DAYS);
   return due.toISOString().slice(0, 10);
 }
 
-export function formatBillingRow(
-  row: BillingExportRow,
-  options: BillingExportOptions = {}
-): string[] | null {
+export function formatBillingRow(row: BillingExportRow): string[] | null {
   const unitPrice = getUnitPrice(row);
   if (unitPrice == null) return null;
 
-  const vatRate = options.vatRate ?? 0.2;
-  const dueDays = options.dueDays ?? 30;
   const description = `Renouvellement nom de domaine ${row.name}${
     row.client_name ? ` — ${row.client_name}` : ''
   }`;
@@ -71,23 +64,20 @@ export function formatBillingRow(
     description,
     '1',
     unitPrice.toFixed(2),
-    String(vatRate),
+    String(VAT_RATE),
     row.currency || 'EUR',
-    computeDueDate(row.expires_at, dueDays),
+    computeDueDate(row.expires_at),
     row.name,
     row.registrar,
     row.expires_at ? row.expires_at.slice(0, 10) : '',
   ];
 }
 
-export function buildBillingCsv(
-  rows: BillingExportRow[],
-  options: BillingExportOptions = {}
-): string {
+export function buildBillingCsv(rows: BillingExportRow[]): string {
   const lines = [CSV_HEADERS.join(';')];
 
   for (const row of rows) {
-    const formatted = formatBillingRow(row, options);
+    const formatted = formatBillingRow(row);
     if (!formatted) continue;
     lines.push(formatted.map(escapeCsvField).join(';'));
   }

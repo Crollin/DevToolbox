@@ -64,9 +64,7 @@ export function CompareResults({ results, showO2switch = false }: CompareResults
                   </tr>
                 </thead>
                 <tbody>
-                  {result.offers
-                    .filter((offer) => offer.message !== 'Registrar désactivé')
-                    .map((offer) => (
+                  {result.offers.map((offer) => (
                     <tr
                       key={offer.registrar}
                       className={cn(

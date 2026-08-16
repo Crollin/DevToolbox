@@ -4,6 +4,7 @@ import {
   CompareResponse,
   CompareSettings,
   DEFAULT_COMPARE_TLDS,
+  REGISTRAR_LABELS,
   settingsToRegistrars,
 } from '@/types/domain';
 
@@ -25,9 +26,7 @@ export function useDomainCompare() {
       }
 
       const domainCount = name.includes('.') ? 1 : tlds.length;
-      const registrarNames = registrars
-        .map((r) => (r === 'cloudflare' ? 'Cloudflare' : r === 'hostinger' ? 'Hostinger' : 'OVH'))
-        .join(', ');
+      const registrarNames = registrars.map((r) => REGISTRAR_LABELS[r]).join(', ');
 
       setLoading(true);
       setError(null);
@@ -58,5 +57,5 @@ export function useDomainCompare() {
     []
   );
 
-  return { compare, loading, error, data, setData, pendingLabel };
+  return { compare, loading, error, data, pendingLabel };
 }

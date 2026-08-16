@@ -10,14 +10,9 @@ import {
   O2SWITCH_INFO,
   RegistrarId,
   RegistrarOffer,
-  skippedOffer,
 } from './types';
 
 const ALL_REGISTRARS: RegistrarId[] = ['cloudflare', 'hostinger', 'ovh'];
-
-function disabledOffer(registrar: RegistrarId): RegistrarOffer {
-  return skippedOffer(registrar, 'Registrar désactivé');
-}
 
 function consensusAvailable(offers: RegistrarOffer[]): boolean | null {
   const known = offers.filter(
@@ -61,26 +56,22 @@ export async function compareDomains(input: CompareInput): Promise<CompareRespon
   ]);
 
   const results: DomainCompareResult[] = domains.map((domain, index) => {
-    const offers: RegistrarOffer[] = ALL_REGISTRARS.map((registrar) => {
-      if (!enabled.has(registrar)) {
-        return disabledOffer(registrar);
-      }
-      if (registrar === 'cloudflare') {
-        return cfMap.get(domain) ?? errorOffer('cloudflare', 'Réponse manquante');
-      }
-      if (registrar === 'hostinger') {
-        return hiMap.get(domain) ?? errorOffer('hostinger', 'Réponse manquante');
-      }
-      return ovhOffers[index] ?? errorOffer('ovh', 'Réponse manquante');
-    });
+    const offers: RegistrarOffer[] = [];
+    if (enabled.has('cloudflare')) {
+      offers.push(cfMap.get(domain) ?? errorOffer('cloudflare', 'Réponse manquante'));
+    }
+    if (enabled.has('hostinger')) {
+      offers.push(hiMap.get(domain) ?? errorOffer('hostinger', 'Réponse manquante'));
+    }
+    if (enabled.has('ovh')) {
+      offers.push(ovhOffers[index] ?? errorOffer('ovh', 'Réponse manquante'));
+    }
 
     return {
       domain,
       available: consensusAvailable(offers),
       offers,
-      o2switch: includeO2switch
-        ? { note: O2SWITCH_INFO.note, url: O2SWITCH_INFO.url }
-        : { note: '', url: O2SWITCH_INFO.url },
+      o2switch: includeO2switch ? { note: O2SWITCH_INFO.note, url: O2SWITCH_INFO.url } : null,
     };
   });
 

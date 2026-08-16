@@ -10,14 +10,12 @@ export function useDomainPortfolio() {
   const { isAuthenticated } = useAuth();
   const [domains, setDomains] = useState<PortfolioDomain[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!isAuthenticated) {
       setIsLoaded(true);
       return;
     }
-    setLoading(true);
     try {
       const data = await api.get<{ domains: PortfolioDomain[] }>('/domains');
       setDomains(data.domains || []);
@@ -25,7 +23,6 @@ export function useDomainPortfolio() {
       console.error('Erreur chargement domaines:', error);
       setDomains([]);
     } finally {
-      setLoading(false);
       setIsLoaded(true);
     }
   }, [isAuthenticated]);
@@ -105,7 +102,6 @@ export function useDomainPortfolio() {
   return {
     domains,
     isLoaded,
-    loading,
     load,
     addDomain,
     updateDomain,

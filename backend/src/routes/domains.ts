@@ -96,15 +96,10 @@ router.post('/compare', validateBody(domainCompareSchema), async (req, res) => {
 router.get('/', (req, res) => {
   try {
     const rows = db.prepare(`
-      SELECT * FROM domains WHERE user_id = ? ORDER BY name ASC
+      SELECT * FROM domains
+      WHERE user_id = ?
+      ORDER BY (expires_at IS NULL), expires_at ASC, name ASC
     `).all(req.user!.id) as DomainRow[];
-
-    rows.sort((a, b) => {
-      if (!a.expires_at && !b.expires_at) return a.name.localeCompare(b.name);
-      if (!a.expires_at) return 1;
-      if (!b.expires_at) return -1;
-      return a.expires_at.localeCompare(b.expires_at) || a.name.localeCompare(b.name);
-    });
 
     res.json({ domains: rows.map(serializeDomain) });
   } catch (error) {
@@ -203,35 +198,12 @@ router.put('/:id', validateBody(domainPortfolioUpdateSchema), (req, res) => {
     }>;
 
     const now = new Date().toISOString();
-    const name = body.name !== undefined ? body.name.trim().toLowerCase() : existing.name;
-    const registrar = body.registrar ?? existing.registrar;
-    const clientName =
-      body.clientName !== undefined ? emptyToNull(body.clientName) : existing.client_name;
-    const clientEmail =
-      body.clientEmail !== undefined ? emptyToNull(body.clientEmail) : existing.client_email;
     const payer = body.payer ?? existing.payer;
-    const costYearly = body.costYearly !== undefined ? body.costYearly : existing.cost_yearly;
-    const sellYearly = body.sellYearly !== undefined ? body.sellYearly : existing.sell_yearly;
-    const currency = body.currency ?? existing.currency;
-    const expiresAt =
-      body.expiresAt !== undefined ? emptyToNull(body.expiresAt) : existing.expires_at;
-    const autoRenew =
-      body.autoRenew !== undefined ? (body.autoRenew ? 1 : 0) : existing.auto_renew;
-    const notes = body.notes !== undefined ? emptyToNull(body.notes) : existing.notes;
-    const externalId =
-      body.externalId !== undefined ? emptyToNull(body.externalId) : existing.external_id;
-    const notificationsEnabled =
-      body.notificationsEnabled !== undefined
-        ? body.notificationsEnabled
-          ? 1
-          : 0
-        : existing.notifications_enabled;
     const billingStatus =
-      body.billingStatus !== undefined
-        ? body.billingStatus
-        : body.payer !== undefined
-          ? defaultBillingStatus(payer)
-          : existing.billing_status || defaultBillingStatus(payer);
+      body.billingStatus ??
+      (body.payer !== undefined
+        ? defaultBillingStatus(payer)
+        : existing.billing_status || defaultBillingStatus(payer));
 
     db.prepare(`
       UPDATE domains SET
@@ -241,19 +213,21 @@ router.put('/:id', validateBody(domainPortfolioUpdateSchema), (req, res) => {
         updated_at = ?
       WHERE id = ? AND user_id = ?
     `).run(
-      name,
-      registrar,
-      clientName,
-      clientEmail,
+      body.name !== undefined ? body.name.trim().toLowerCase() : existing.name,
+      body.registrar ?? existing.registrar,
+      body.clientName !== undefined ? emptyToNull(body.clientName) : existing.client_name,
+      body.clientEmail !== undefined ? emptyToNull(body.clientEmail) : existing.client_email,
       payer,
-      costYearly,
-      sellYearly,
-      currency,
-      expiresAt,
-      autoRenew,
-      notes,
-      externalId,
-      notificationsEnabled,
+      body.costYearly !== undefined ? body.costYearly : existing.cost_yearly,
+      body.sellYearly !== undefined ? body.sellYearly : existing.sell_yearly,
+      body.currency ?? existing.currency,
+      body.expiresAt !== undefined ? emptyToNull(body.expiresAt) : existing.expires_at,
+      body.autoRenew !== undefined ? (body.autoRenew ? 1 : 0) : existing.auto_renew,
+      body.notes !== undefined ? emptyToNull(body.notes) : existing.notes,
+      body.externalId !== undefined ? emptyToNull(body.externalId) : existing.external_id,
+      body.notificationsEnabled !== undefined
+        ? (body.notificationsEnabled ? 1 : 0)
+        : existing.notifications_enabled,
       billingStatus,
       now,
       req.params.id,

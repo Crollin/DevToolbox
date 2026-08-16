@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Globe, Plus, RefreshCw, Search, Pencil, Trash2, Download } from 'lucide-react';
+import { Globe, Plus, RefreshCw, Search, Pencil, Trash2, Download, Loader2 } from 'lucide-react';
 import { tools } from '@/data/tools';
 import ToolLayout from '@/components/ToolLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useDomainCompare } from '@/hooks/useDomainCompare';
 import { useDomainPortfolio } from '@/hooks/useDomainPortfolio';
 import { CompareResults } from '@/components/domain/CompareResults';
-import { CompareLoading } from '@/components/domain/CompareLoading';
 import { DomainFormModal } from '@/components/domain/DomainFormModal';
 import {
   CompareSettings,
@@ -79,11 +78,6 @@ const DomainHub = () => {
       prev.includes(tld) ? prev.filter((t) => t !== tld) : [...prev, tld]
     );
   };
-
-  const pendingDomainCount = useMemo(() => {
-    if (name.includes('.')) return 1;
-    return tlds.length || DEFAULT_COMPARE_TLDS.length;
-  }, [name, tlds]);
 
   const toggleRegistrar = (key: keyof CompareSettings) => {
     setCompareSettings((prev) => {
@@ -302,7 +296,10 @@ const DomainHub = () => {
           )}
 
           {comparing && pendingLabel && (
-            <CompareLoading label={pendingLabel} domainCount={pendingDomainCount} />
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-6">
+              <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
+              <p className="font-medium text-foreground">{pendingLabel}</p>
+            </div>
           )}
 
           {!comparing && data && (
@@ -451,7 +448,6 @@ const DomainHub = () => {
       {modalOpen && (
         <DomainFormModal
           key={editing?.id || 'new'}
-          open={modalOpen}
           initial={editing}
           onClose={() => {
             setModalOpen(false);

@@ -4,13 +4,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SearchProvider } from "@/contexts/SearchContext";
-import { FeatureFlagsProvider } from "@/contexts/FeatureFlagsContext";
+import { FeatureFlagsProvider, useFeatureFlags } from "@/contexts/FeatureFlagsContext";
 import { ThemeSyncFromUser } from "@/components/ThemeSyncFromUser";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { FeatureGate } from "@/components/FeatureGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ResetPasswordHandler } from "@/components/auth/ResetPasswordHandler";
@@ -53,6 +52,13 @@ const RouteFallback = () => (
   </div>
 );
 
+function DomainHubRoute() {
+  const { domainHubEnabled, isLoading } = useFeatureFlags();
+  if (isLoading) return <RouteFallback />;
+  if (!domainHubEnabled) return <Navigate to="/" replace />;
+  return <DomainHub />;
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
     <QueryClientProvider client={queryClient}>
@@ -86,7 +92,7 @@ const App = () => (
                 <Route path="/tools/task-reminder" element={<ProtectedRoute><TaskReminder /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base/new" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
-                <Route path="/tools/domain-hub" element={<ProtectedRoute><FeatureGate feature="domainHub"><DomainHub /></FeatureGate></ProtectedRoute>} />
+                <Route path="/tools/domain-hub" element={<ProtectedRoute><DomainHubRoute /></ProtectedRoute>} />
                 <Route path="/tools/wp-config-generator" element={<ProtectedRoute><WPConfigGenerator /></ProtectedRoute>} />
                 <Route path="/tools/plugin-header-builder" element={<ProtectedRoute><PluginHeaderBuilder /></ProtectedRoute>} />
                 <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
