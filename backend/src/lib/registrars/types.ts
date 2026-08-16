@@ -1,3 +1,7 @@
+import type { RegistrarCredentials } from '../domainHubCredentials';
+
+export type { RegistrarCredentials };
+
 export type RegistrarId = 'cloudflare' | 'hostinger' | 'ovh';
 
 export type OfferStatus = 'ok' | 'skipped' | 'error';
@@ -33,6 +37,7 @@ export interface CompareInput {
   /** Registrars to query; omitted = all three. */
   registrars?: RegistrarId[];
   includeO2switch?: boolean;
+  credentials?: RegistrarCredentials;
 }
 
 export const DEFAULT_TLDS = ['com', 'fr', 'net', 'org', 'io', 'dev', 'app', 'eu'] as const;
