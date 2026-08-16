@@ -1066,7 +1066,7 @@ const Account = () => {
                         </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="dh-cf-account">Account ID</Label>
+                        <Label htmlFor="dh-cf-account">Identifiant de compte</Label>
                         <Input
                           id="dh-cf-account"
                           value={domainHubCredentials.cloudflareAccountId}

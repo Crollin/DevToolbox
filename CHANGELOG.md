@@ -6,6 +6,14 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+### Ajouté
+
+- Domain Hub : clés API registrar **par utilisateur** (Mon compte → Domain Hub) quand `DOMAIN_HUB_ENABLED=true`
+
+### Retiré
+
+- **Breaking** : plus de repli sur les variables d'environnement registrar (`CLOUDFLARE_*`, `HOSTINGER_*`, `OVH_*`) pour les appels API. Configurer les identifiants dans Mon compte.
+
 ## [1.5.0] - 2026-08-16
 
 ### Ajouté

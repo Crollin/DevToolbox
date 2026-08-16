@@ -41,7 +41,8 @@ function normalize(data: Partial<DomainHubCredentialsForm> | null | undefined): 
   };
 }
 
-export function useDomainHubCredentials(enabled: boolean) {
+export function useDomainHubCredentials(enabled: boolean, options?: { quiet?: boolean }) {
+  const quiet = Boolean(options?.quiet);
   const [credentials, setCredentials] = useState<DomainHubCredentialsForm>(EMPTY_CREDENTIALS);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -63,15 +64,17 @@ export function useDomainHubCredentials(enabled: boolean) {
       setLoaded(true);
     } catch (err) {
       setLoadError(true);
-      toast({
-        title: "Chargement impossible",
-        description: err instanceof Error ? err.message : "Impossible de charger les identifiants Domain Hub.",
-        variant: "destructive",
-      });
+      if (!quiet) {
+        toast({
+          title: "Chargement impossible",
+          description: err instanceof Error ? err.message : "Impossible de charger les identifiants Domain Hub.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, [enabled]);
+  }, [enabled, quiet]);
 
   useEffect(() => {
     void load();

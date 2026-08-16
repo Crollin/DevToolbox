@@ -39,7 +39,11 @@ function daysUntil(date: string | null): number | null {
 const DomainHub = () => {
   const navigate = useNavigate();
   const { domainHubEnabled } = useFeatureFlags();
-  const { noRegistrarConfigured, loaded: credentialsLoaded } = useDomainHubCredentials(domainHubEnabled);
+  const {
+    noRegistrarConfigured,
+    loaded: credentialsLoaded,
+    loadError: credentialsLoadError,
+  } = useDomainHubCredentials(domainHubEnabled, { quiet: true });
   const tool = tools.find((t) => t.id === 'domain-hub')!;
   const { compare, loading: comparing, error: compareError, data, pendingLabel } = useDomainCompare();
   const {
@@ -223,6 +227,15 @@ const DomainHub = () => {
           </div>
         </div>
       </div>
+
+      {credentialsLoadError && (
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm mb-4">
+          <p>
+            Impossible de vérifier les identifiants registrar. Vous pouvez quand même utiliser le
+            portefeuille ; la comparaison et la sync Hostinger nécessitent des clés dans Mon compte.
+          </p>
+        </div>
+      )}
 
       {credentialsLoaded && noRegistrarConfigured && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm mb-4">
