@@ -11,6 +11,7 @@ import {
   domainBillingExportQuerySchema,
 } from '../lib/validate';
 import { compareDomains } from '../lib/registrars/compare';
+import { getCredentialsRow, toRegistrarCredentials } from '../lib/domainHubCredentials';
 import { buildBillingCsv, filterBillingRows, type BillingExportRow } from '../lib/domainBillingExport';
 
 const router = express.Router();
@@ -82,7 +83,8 @@ router.post('/compare', validateBody(domainCompareSchema), async (req, res) => {
       registrars?: Array<'cloudflare' | 'hostinger' | 'ovh'>;
       includeO2switch?: boolean;
     };
-    const result = await compareDomains({ name, tlds, registrars, includeO2switch });
+    const creds = toRegistrarCredentials(getCredentialsRow(req.user!.id));
+    const result = await compareDomains({ name, tlds, registrars, includeO2switch, credentials: creds });
     res.json(result);
   } catch (error) {
     console.error('Erreur domains/compare:', error);
@@ -260,13 +262,13 @@ router.delete('/:id', (req, res) => {
 // Sync expiration from Hostinger portfolio (best-effort)
 router.post('/sync/hostinger', async (req, res) => {
   try {
-    const token = process.env.HOSTINGER_API_TOKEN;
-    if (!token) {
-      return res.status(400).json({ error: 'HOSTINGER_API_TOKEN non configuré' });
+    const creds = toRegistrarCredentials(getCredentialsRow(req.user!.id));
+    if (!creds.hostingerApiToken) {
+      return res.status(400).json({ error: 'Token Hostinger non configuré — ajoutez-le dans Mon compte → Domain Hub' });
     }
 
     const apiRes = await fetch('https://developers.hostinger.com/api/domains/v1/portfolio', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${creds.hostingerApiToken}` },
     });
 
     if (!apiRes.ok) {

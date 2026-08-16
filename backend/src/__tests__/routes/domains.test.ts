@@ -6,6 +6,7 @@ describe('Domains API', () => {
   let authToken: string;
 
   beforeEach(async () => {
+    process.env.DOMAIN_HUB_ENABLED = 'true';
     const res = await request(app)
       .post('/api/auth/register')
       .send({
@@ -14,6 +15,15 @@ describe('Domains API', () => {
         name: 'Domains Test User',
       });
     authToken = res.body.token;
+  });
+
+  it('sync Hostinger uses user credentials not env', async () => {
+    process.env.HOSTINGER_API_TOKEN = 'env-should-be-ignored';
+    const res = await request(app)
+      .post('/api/domains/sync/hostinger')
+      .set('Authorization', `Bearer ${authToken}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Hostinger/i);
   });
 
   it('GET /api/domains requiert une authentification', async () => {

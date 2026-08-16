@@ -1,3 +1,4 @@
+import type { RegistrarCredentials } from '../domainHubCredentials';
 import {
   errorOffer,
   RegistrarOffer,
@@ -153,12 +154,15 @@ function buildHostingerOffer(
 }
 
 /** One availability call + cached catalog per TLD. */
-export async function checkHostingerOffers(domains: string[]): Promise<Map<string, RegistrarOffer>> {
+export async function checkHostingerOffers(
+  domains: string[],
+  creds: RegistrarCredentials
+): Promise<Map<string, RegistrarOffer>> {
   const map = new Map<string, RegistrarOffer>();
-  const token = process.env.HOSTINGER_API_TOKEN;
+  const token = creds.hostingerApiToken;
 
   if (!token) {
-    const skipped = skippedOffer('hostinger', 'HOSTINGER_API_TOKEN non configuré');
+    const skipped = skippedOffer('hostinger', 'Token Hostinger non configuré — ajoutez-le dans Mon compte');
     for (const d of domains) map.set(d, { ...skipped });
     return map;
   }
@@ -234,7 +238,10 @@ export async function checkHostingerOffers(domains: string[]): Promise<Map<strin
   return map;
 }
 
-export async function checkHostingerOffer(domain: string): Promise<RegistrarOffer> {
-  const map = await checkHostingerOffers([domain]);
+export async function checkHostingerOffer(
+  domain: string,
+  creds: RegistrarCredentials
+): Promise<RegistrarOffer> {
+  const map = await checkHostingerOffers([domain], creds);
   return map.get(domain) ?? errorOffer('hostinger', 'Réponse vide');
 }

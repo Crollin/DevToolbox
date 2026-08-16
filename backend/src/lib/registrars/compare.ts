@@ -1,6 +1,7 @@
 import { checkCloudflareOffers } from './cloudflare';
 import { checkHostingerOffers } from './hostinger';
 import { checkOvhOffer } from './ovh';
+import type { RegistrarCredentials } from '../domainHubCredentials';
 import {
   CompareInput,
   CompareResponse,
@@ -14,6 +15,16 @@ import {
 
 const ALL_REGISTRARS: RegistrarId[] = ['cloudflare', 'hostinger', 'ovh'];
 
+const EMPTY_CREDS: RegistrarCredentials = {
+  cloudflareApiToken: null,
+  cloudflareAccountId: null,
+  hostingerApiToken: null,
+  ovhAppKey: null,
+  ovhAppSecret: null,
+  ovhConsumerKey: null,
+  ovhSubsidiary: null,
+};
+
 function consensusAvailable(offers: RegistrarOffer[]): boolean | null {
   const known = offers.filter(
     (o) => o.status === 'ok' && o.available !== null && o.available !== undefined
@@ -24,9 +35,9 @@ function consensusAvailable(offers: RegistrarOffer[]): boolean | null {
   return null;
 }
 
-async function safeOvh(domain: string): Promise<RegistrarOffer> {
+async function safeOvh(domain: string, creds: RegistrarCredentials): Promise<RegistrarOffer> {
   try {
-    return await checkOvhOffer(domain);
+    return await checkOvhOffer(domain, creds);
   } catch (err) {
     return errorOffer('ovh', err instanceof Error ? err.message : 'Erreur inconnue');
   }
@@ -38,6 +49,8 @@ export async function compareDomains(input: CompareInput): Promise<CompareRespon
     return { query: input.name, results: [] };
   }
 
+  const creds = input.credentials ?? EMPTY_CREDS;
+
   const enabled = new Set(
     input.registrars && input.registrars.length > 0 ? input.registrars : ALL_REGISTRARS
   );
@@ -45,13 +58,13 @@ export async function compareDomains(input: CompareInput): Promise<CompareRespon
 
   const [cfMap, hiMap, ovhOffers] = await Promise.all([
     enabled.has('cloudflare')
-      ? checkCloudflareOffers(domains)
+      ? checkCloudflareOffers(domains, creds)
       : Promise.resolve(new Map<string, RegistrarOffer>()),
     enabled.has('hostinger')
-      ? checkHostingerOffers(domains)
+      ? checkHostingerOffers(domains, creds)
       : Promise.resolve(new Map<string, RegistrarOffer>()),
     enabled.has('ovh')
-      ? Promise.all(domains.map((d) => safeOvh(d)))
+      ? Promise.all(domains.map((d) => safeOvh(d, creds)))
       : Promise.resolve([] as RegistrarOffer[]),
   ]);
 

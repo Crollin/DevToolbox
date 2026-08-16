@@ -179,6 +179,8 @@ Guide utilisateur : [Intégrations API](../docs/integrations/README.md) · [Pers
 
 **Module désactivé par défaut.** Définir `DOMAIN_HUB_ENABLED=true` dans `.env` pour monter les routes ci-dessous. Le frontend lit l'état via `GET /api/config` (`domainHubEnabled`).
 
+Les clés API registrar (Cloudflare, Hostinger, OVH) sont **par utilisateur** : chaque compte les renseigne dans **Mon compte → Domain Hub**. Elles ne se configurent plus via des variables d'environnement ; celles-ci ne sont pas utilisées à l'exécution pour les appels registrar. Taux USD→EUR optionnel : `DOMAIN_USD_EUR_RATE` (défaut `0.92`).
+
 - `POST /api/domains/compare` — Comparateur multi-registrar (Cloudflare, Hostinger, OVH)
   - Body: `{ name: string, tlds?: string[] }`
   - Retourne disponibilité + prix création/renouvellement ; providers non configurés → `status: skipped`
@@ -189,8 +191,6 @@ Guide utilisateur : [Intégrations API](../docs/integrations/README.md) · [Pers
 - `POST /api/domains/sync/hostinger` — Importe/met à jour les dates d'expiration depuis Hostinger
 - `GET /api/domains/export/billing.csv` — Export CSV facturation (filtres : `payer`, `days`, `billingStatus`)
 - `PATCH /api/domains/:id/billing` — Met à jour le statut facturation (`pending` | `invoiced` | `paid` | `n/a`)
-
-Variables registrar (toutes optionnelles) : `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `HOSTINGER_API_TOKEN`, `OVH_APP_KEY`, `OVH_APP_SECRET`, `OVH_CONSUMER_KEY`, `OVH_SUBSIDIARY`, `DOMAIN_USD_EUR_RATE`.
 
 ### Health Check
 - `GET /health` - Vérifie l'état du serveur
@@ -212,6 +212,8 @@ Variables registrar (toutes optionnelles) : `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_
 - `PORT` - Port du serveur (défaut: 1400)
 - `NODE_ENV` - Environnement (development/production)
 - `DB_PATH` - Chemin vers le fichier SQLite (défaut: ./data/devtoolbox.db)
+- `DOMAIN_HUB_ENABLED` - Active le module Domain Hub (défaut : désactivé). Les clés registrar se configurent par utilisateur dans Mon compte → Domain Hub, pas via l'environnement.
+- `DOMAIN_USD_EUR_RATE` - Taux de conversion USD→EUR pour le comparateur Domain Hub (défaut : `0.92`)
 
 ### Configuration Email (Optionnelle)
 

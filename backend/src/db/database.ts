@@ -733,6 +733,21 @@ export function initializeDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_expires_at ON domains(expires_at)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_domains_user_id_name ON domains(user_id, name)`);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS domain_hub_credentials (
+      user_id TEXT PRIMARY KEY,
+      cloudflare_api_token TEXT,
+      cloudflare_account_id TEXT,
+      hostinger_api_token TEXT,
+      ovh_app_key TEXT,
+      ovh_app_secret TEXT,
+      ovh_consumer_key TEXT,
+      ovh_subsidiary TEXT,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Migration : billing_status / last_billed_at sur domains
   try {
     const domainsTableInfo = db.prepare('PRAGMA table_info(domains)').all() as Array<{ name: string }>;

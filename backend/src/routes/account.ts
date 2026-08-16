@@ -15,6 +15,12 @@ import {
   parseNotificationChannels,
 } from '../lib/notificationChannels';
 import { testNotifications, NotificationDispatchConfig } from '../lib/notificationDispatch';
+import { isDomainHubEnabled } from '../lib/features';
+import {
+  getCredentialsRow,
+  toPublic,
+  upsertCredentials,
+} from '../lib/domainHubCredentials';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -418,6 +424,34 @@ router.put('/email-preferences', (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erreur lors de la mise à jour des préférences email:', error);
     res.status(500).json({ error: 'Erreur lors de la mise à jour des préférences' });
+  }
+});
+
+function requireDomainHub(_req: Request, res: Response): boolean {
+  if (!isDomainHubEnabled()) {
+    res.status(404).json({ error: 'Domain Hub désactivé' });
+    return false;
+  }
+  return true;
+}
+
+router.get('/domain-hub-credentials', (req, res) => {
+  if (!requireDomainHub(req, res)) return;
+  try {
+    res.json(toPublic(getCredentialsRow(req.user!.id)));
+  } catch (error) {
+    console.error('Erreur domain-hub-credentials GET:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des clés Domain Hub' });
+  }
+});
+
+router.put('/domain-hub-credentials', (req, res) => {
+  if (!requireDomainHub(req, res)) return;
+  try {
+    res.json(upsertCredentials(req.user!.id, req.body || {}));
+  } catch (error) {
+    console.error('Erreur domain-hub-credentials PUT:', error);
+    res.status(500).json({ error: 'Erreur lors de la sauvegarde des clés Domain Hub' });
   }
 });
 

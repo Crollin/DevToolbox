@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import type { RegistrarCredentials } from '../domainHubCredentials';
 import {
   errorOffer,
   RegistrarOffer,
@@ -19,8 +20,8 @@ interface OvhOffer {
   prices?: OvhPrice[];
 }
 
-function getSubsidiary(): string {
-  return process.env.OVH_SUBSIDIARY || 'FR';
+function getSubsidiary(creds: RegistrarCredentials): string {
+  return creds.ovhSubsidiary || 'FR';
 }
 
 function buyUrl(domain: string): string {
@@ -30,11 +31,12 @@ function buyUrl(domain: string): string {
 async function ovhRequest<T>(
   method: string,
   path: string,
+  creds: RegistrarCredentials,
   body?: unknown
 ): Promise<T> {
-  const appKey = process.env.OVH_APP_KEY!;
-  const appSecret = process.env.OVH_APP_SECRET!;
-  const consumerKey = process.env.OVH_CONSUMER_KEY!;
+  const appKey = creds.ovhAppKey!;
+  const appSecret = creds.ovhAppSecret!;
+  const consumerKey = creds.ovhConsumerKey!;
 
   const url = `${OVH_API}${path}`;
   const bodyStr = body !== undefined ? JSON.stringify(body) : '';
@@ -96,29 +98,33 @@ function extractPrices(offer: OvhOffer): {
   };
 }
 
-export async function checkOvhOffer(domain: string): Promise<RegistrarOffer> {
-  const appKey = process.env.OVH_APP_KEY;
-  const appSecret = process.env.OVH_APP_SECRET;
-  const consumerKey = process.env.OVH_CONSUMER_KEY;
+export async function checkOvhOffer(
+  domain: string,
+  creds: RegistrarCredentials
+): Promise<RegistrarOffer> {
+  const appKey = creds.ovhAppKey;
+  const appSecret = creds.ovhAppSecret;
+  const consumerKey = creds.ovhConsumerKey;
 
   if (!appKey || !appSecret || !consumerKey) {
-    return skippedOffer('ovh', 'OVH_APP_KEY / OVH_APP_SECRET / OVH_CONSUMER_KEY non configurés');
+    return skippedOffer('ovh', 'Clés OVH non configurées — ajoutez-les dans Mon compte');
   }
 
   try {
-    const cart = await ovhRequest<{ cartId: string }>('POST', '/order/cart', {
-      ovhSubsidiary: getSubsidiary(),
+    const cart = await ovhRequest<{ cartId: string }>('POST', '/order/cart', creds, {
+      ovhSubsidiary: getSubsidiary(creds),
       description: 'devtoolbox-domain-compare',
     });
 
     const offers = await ovhRequest<OvhOffer[]>(
       'GET',
-      `/order/cart/${encodeURIComponent(cart.cartId)}/domain?domain=${encodeURIComponent(domain)}`
+      `/order/cart/${encodeURIComponent(cart.cartId)}/domain?domain=${encodeURIComponent(domain)}`,
+      creds
     );
 
     // Best-effort cleanup
     try {
-      await ovhRequest('DELETE', `/order/cart/${encodeURIComponent(cart.cartId)}`);
+      await ovhRequest('DELETE', `/order/cart/${encodeURIComponent(cart.cartId)}`, creds);
     } catch {
       /* ignore */
     }

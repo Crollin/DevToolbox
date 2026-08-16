@@ -1,3 +1,4 @@
+import type { RegistrarCredentials } from '../domainHubCredentials';
 import {
   errorOffer,
   RegistrarOffer,
@@ -17,15 +18,14 @@ interface CfDomainResult {
   };
 }
 
-function buyUrl(domain: string): string {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || '';
+function buyUrl(domain: string, accountId: string | null): string {
   if (accountId) {
     return `https://dash.cloudflare.com/${accountId}/domains/register?domain=${encodeURIComponent(domain)}`;
   }
   return `https://dash.cloudflare.com/?to=/:account/domains/register`;
 }
 
-function parseCfItem(item: CfDomainResult, domain: string): RegistrarOffer {
+function parseCfItem(item: CfDomainResult, domain: string, accountId: string | null): RegistrarOffer {
   if (!item.registrable || !item.pricing) {
     return {
       registrar: 'cloudflare',
@@ -37,7 +37,7 @@ function parseCfItem(item: CfDomainResult, domain: string): RegistrarOffer {
       renewalEur: null,
       available: false,
       message: item.reason || 'Indisponible',
-      buyUrl: buyUrl(domain),
+      buyUrl: buyUrl(domain, accountId),
     };
   }
 
@@ -54,18 +54,21 @@ function parseCfItem(item: CfDomainResult, domain: string): RegistrarOffer {
     registrationEur: toEur(registration, currency),
     renewalEur: toEur(renewal, currency),
     available: true,
-    buyUrl: buyUrl(domain),
+    buyUrl: buyUrl(domain, accountId),
   };
 }
 
 /** Batch domain-check (max 20 domains per Cloudflare API call). */
-export async function checkCloudflareOffers(domains: string[]): Promise<Map<string, RegistrarOffer>> {
+export async function checkCloudflareOffers(
+  domains: string[],
+  creds: RegistrarCredentials
+): Promise<Map<string, RegistrarOffer>> {
   const map = new Map<string, RegistrarOffer>();
-  const token = process.env.CLOUDFLARE_API_TOKEN;
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const token = creds.cloudflareApiToken;
+  const accountId = creds.cloudflareAccountId;
 
   if (!token || !accountId) {
-    const skipped = skippedOffer('cloudflare', 'CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID non configurés');
+    const skipped = skippedOffer('cloudflare', 'Clés Cloudflare non configurées — ajoutez-les dans Mon compte');
     for (const d of domains) map.set(d, { ...skipped });
     return map;
   }
@@ -111,7 +114,7 @@ export async function checkCloudflareOffers(domains: string[]): Promise<Map<stri
 
     for (const domain of domains) {
       const item = byName.get(domain.toLowerCase());
-      map.set(domain, item ? parseCfItem(item, domain) : errorOffer('cloudflare', 'Domaine absent de la réponse'));
+      map.set(domain, item ? parseCfItem(item, domain, accountId) : errorOffer('cloudflare', 'Domaine absent de la réponse'));
     }
   } catch (err) {
     const offer = errorOffer('cloudflare', err instanceof Error ? err.message : 'Erreur réseau');
@@ -121,7 +124,10 @@ export async function checkCloudflareOffers(domains: string[]): Promise<Map<stri
   return map;
 }
 
-export async function checkCloudflareOffer(domain: string): Promise<RegistrarOffer> {
-  const map = await checkCloudflareOffers([domain]);
+export async function checkCloudflareOffer(
+  domain: string,
+  creds: RegistrarCredentials
+): Promise<RegistrarOffer> {
+  const map = await checkCloudflareOffers([domain], creds);
   return map.get(domain) ?? errorOffer('cloudflare', 'Réponse vide');
 }
