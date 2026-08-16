@@ -45,7 +45,12 @@ const SECRET_FIELDS = new Set([
   'ovhConsumerKey',
 ]);
 
-const CAMEL_TO_SNAKE: Record<string, keyof DomainHubCredentialsRow> = {
+type NullableCredentialColumn = Exclude<
+  keyof DomainHubCredentialsRow,
+  'user_id' | 'updated_at'
+>;
+
+const CAMEL_TO_SNAKE: Record<string, NullableCredentialColumn> = {
   cloudflareApiToken: 'cloudflare_api_token',
   cloudflareAccountId: 'cloudflare_account_id',
   hostingerApiToken: 'hostinger_api_token',
@@ -138,7 +143,7 @@ function applyBodyField(
 
   if (SECRET_FIELDS.has(camelKey)) {
     if (strVal === '***') {
-      target[snakeKey] = (existing?.[snakeKey] as string | null) ?? null;
+      target[snakeKey] = existing?.[snakeKey] ?? null;
       return;
     }
     target[snakeKey] = strVal === '' ? null : strVal;
