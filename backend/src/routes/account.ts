@@ -21,6 +21,15 @@ import {
   toPublic,
   upsertCredentials,
 } from '../lib/domainHubCredentials';
+import {
+  countPushSubscriptions,
+  deleteAllPushSubscriptions,
+  deletePushSubscription,
+  getVapidPublicKey,
+  isWebPushConfigured,
+  sendWebPushToUser,
+  upsertPushSubscription,
+} from '../lib/webPush';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -299,7 +308,7 @@ router.post('/ntfy-config/test', async (req: Request, res: Response) => {
     }
 
     const prefs = loadEmailPreferencesForUser(userId);
-    const results = await testNotifications(dispatchConfig, user, prefs);
+    const results = await testNotifications(dispatchConfig, user, prefs, userId);
 
     res.json({
       message: 'Test effectué',
@@ -309,6 +318,125 @@ router.post('/ntfy-config/test', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erreur lors du test des notifications:', error);
     res.status(500).json({ error: 'Erreur lors du test des notifications' });
+  }
+});
+
+// GET /api/account/push/vapid-public-key
+router.get('/push/vapid-public-key', (_req: Request, res: Response) => {
+  const publicKey = getVapidPublicKey();
+  if (!publicKey) {
+    return res.status(503).json({ error: 'Web Push non configuré (VAPID manquant)' });
+  }
+  res.json({ publicKey });
+});
+
+// GET /api/account/push/subscriptions
+router.get('/push/subscriptions', (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const count = countPushSubscriptions(userId);
+    res.json({
+      count,
+      enabled: count > 0,
+      configured: isWebPushConfigured(),
+    });
+  } catch (error) {
+    console.error('Erreur push subscriptions GET:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des abonnements push' });
+  }
+});
+
+// POST /api/account/push/subscriptions
+router.post('/push/subscriptions', (req: Request, res: Response) => {
+  try {
+    if (!isWebPushConfigured()) {
+      return res.status(503).json({ error: 'Web Push non configuré (VAPID manquant)' });
+    }
+
+    const userId = req.user!.id;
+    const { endpoint, keys } = req.body as {
+      endpoint?: string;
+      keys?: { p256dh?: string; auth?: string };
+    };
+
+    if (!endpoint || !keys?.p256dh || !keys?.auth) {
+      return res.status(400).json({ error: 'Subscription invalide (endpoint, keys.p256dh, keys.auth requis)' });
+    }
+
+    upsertPushSubscription(
+      userId,
+      { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } },
+      req.get('user-agent')
+    );
+
+    res.status(201).json({
+      message: 'Abonnement enregistré',
+      count: countPushSubscriptions(userId),
+      enabled: true,
+    });
+  } catch (error) {
+    console.error('Erreur push subscriptions POST:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'enregistrement de l\'abonnement' });
+  }
+});
+
+// DELETE /api/account/push/subscriptions
+router.delete('/push/subscriptions', (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const endpoint = (req.body as { endpoint?: string } | undefined)?.endpoint;
+
+    if (endpoint) {
+      const deleted = deletePushSubscription(userId, endpoint);
+      return res.json({
+        message: deleted ? 'Abonnement supprimé' : 'Abonnement introuvable',
+        count: countPushSubscriptions(userId),
+        enabled: countPushSubscriptions(userId) > 0,
+      });
+    }
+
+    const removed = deleteAllPushSubscriptions(userId);
+    res.json({
+      message: `${removed} abonnement(s) supprimé(s)`,
+      count: 0,
+      enabled: false,
+    });
+  } catch (error) {
+    console.error('Erreur push subscriptions DELETE:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression de l\'abonnement' });
+  }
+});
+
+// POST /api/account/push/test — test Web Push seul
+router.post('/push/test', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    if (!isWebPushConfigured()) {
+      return res.status(503).json({ error: 'Web Push non configuré (VAPID manquant)' });
+    }
+
+    const result = await sendWebPushToUser(userId, {
+      title: 'Test DevToolbox',
+      body: 'Ceci est un test de notification navigateur (PWA). ✅',
+      url: '/account',
+    });
+
+    if (result.count === 0 && !result.sent) {
+      return res.status(400).json({
+        error: result.error || 'Aucun appareil abonné',
+        results: { webpush: false },
+      });
+    }
+
+    res.json({
+      message: 'Notification push envoyée',
+      results: { webpush: result.sent },
+      count: result.count,
+      errors: result.error ? { webpush: result.error } : undefined,
+    });
+  } catch (error) {
+    console.error('Erreur push test:', error);
+    res.status(500).json({ error: 'Erreur lors du test Web Push' });
   }
 });
 

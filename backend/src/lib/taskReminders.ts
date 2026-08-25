@@ -4,6 +4,7 @@ import { sendTelegramMessage } from './telegram';
 import { parseNotificationChannels, hasChannel } from './notificationChannels';
 import { safeJsonParse } from './json';
 import { v4 as uuidv4 } from 'uuid';
+import { sendWebPushToUser } from './webPush';
 
 /**
  * Envoie une notification Ntfy pour une tâche
@@ -89,11 +90,12 @@ async function sendTaskNotifications(
     token: string | null;
     telegram_chat_id: string | null;
   },
-  user: { email: string; name: string },
+  user: { id: string; email: string; name: string },
   task: TaskReminder,
   emailPrefs: ReturnType<typeof loadEmailPreferencesForUser>
 ): Promise<boolean> {
   let notificationSent = false;
+  const message = formatTaskMessage(task);
 
   if (hasChannel(channels, 'ntfy') && ntfyConfig.topic) {
     const ntfySent = await sendNtfyTaskNotification(
@@ -113,10 +115,18 @@ async function sendTaskNotifications(
   if (hasChannel(channels, 'telegram') && ntfyConfig.telegram_chat_id) {
     const telegramSent = await sendTelegramMessage(
       ntfyConfig.telegram_chat_id,
-      formatTaskMessage(task)
+      message
     );
     if (telegramSent) notificationSent = true;
   }
+
+  // Mode B : Web Push si appareils abonnés (indépendant des canaux)
+  const pushResult = await sendWebPushToUser(user.id, {
+    title: `Rappel : ${task.title}`,
+    body: message,
+    url: '/tasks',
+  });
+  if (pushResult.sent) notificationSent = true;
 
   return notificationSent;
 }

@@ -1,6 +1,7 @@
 import { sendLicenceExpirationEmail, sendDomainExpirationEmail, sendTestEmail, ExpiringLicence, EmailPreferences } from './email';
 import { sendTelegramMessage } from './telegram';
 import { hasChannel, NotificationChannel } from './notificationChannels';
+import { sendWebPushToUser } from './webPush';
 
 export interface NotificationDispatchConfig {
   channels: NotificationChannel[];
@@ -14,10 +15,12 @@ export interface NotificationDispatchResults {
   ntfy?: boolean;
   email?: boolean;
   telegram?: boolean;
+  webpush?: boolean;
   errors?: {
     ntfy?: string;
     email?: string;
     telegram?: string;
+    webpush?: string;
   };
 }
 
@@ -102,10 +105,41 @@ async function sendNtfyMessage(
   return response.ok;
 }
 
+/** Mode B : fan-out Web Push si l'utilisateur a des appareils abonnés. */
+async function fanOutWebPush(
+  results: NotificationDispatchResults,
+  userId: string | undefined,
+  title: string,
+  body: string,
+  url = '/'
+): Promise<void> {
+  if (!userId) {
+    return;
+  }
+
+  try {
+    const pushResult = await sendWebPushToUser(userId, { title, body, url });
+    if (pushResult.count === 0 && !pushResult.error) {
+      return;
+    }
+    results.webpush = pushResult.sent;
+    if (!pushResult.sent && pushResult.error) {
+      results.errors = results.errors || {};
+      results.errors.webpush = pushResult.error;
+    }
+  } catch (error) {
+    console.error('Erreur fan-out Web Push:', error);
+    results.webpush = false;
+    results.errors = results.errors || {};
+    results.errors.webpush = error instanceof Error ? error.message : 'Erreur Web Push';
+  }
+}
+
 export async function testNotifications(
   config: NotificationDispatchConfig,
   user: { email: string; name: string },
-  emailPrefs?: EmailPreferences | null
+  emailPrefs?: EmailPreferences | null,
+  userId?: string
 ): Promise<NotificationDispatchResults> {
   const results: NotificationDispatchResults = { errors: {} };
 
@@ -163,6 +197,14 @@ export async function testNotifications(
     }
   }
 
+  await fanOutWebPush(
+    results,
+    userId,
+    'Test de notification DevToolbox',
+    'Ceci est un message de test depuis DevToolbox. Si vous recevez cette notification, le Web Push fonctionne ! ✅',
+    '/'
+  );
+
   if (results.errors && Object.keys(results.errors).length === 0) {
     delete results.errors;
   }
@@ -174,11 +216,13 @@ export async function sendLicenceNotifications(
   config: NotificationDispatchConfig,
   user: { email: string; name: string },
   licences: ExpiringLicence[],
-  emailPrefs?: EmailPreferences | null
+  emailPrefs?: EmailPreferences | null,
+  userId?: string
 ): Promise<NotificationDispatchResults> {
   const results: NotificationDispatchResults = {};
   const message = formatLicenceMessage(licences);
   const hasExpired = licences.some((licence) => licence.isExpired);
+  const title = `Licences à renouveler (${licences.length})`;
 
   if (hasChannel(config.channels, 'ntfy')) {
     if (!config.topic) {
@@ -187,7 +231,7 @@ export async function sendLicenceNotifications(
       try {
         results.ntfy = await sendNtfyMessage(
           config,
-          `Licences à renouveler (${licences.length})`,
+          title,
           message,
           hasExpired ? 'warning,key' : 'key',
           hasExpired ? 'high' : 'default'
@@ -224,6 +268,8 @@ export async function sendLicenceNotifications(
     }
   }
 
+  await fanOutWebPush(results, userId, title, message, '/licences');
+
   return results;
 }
 
@@ -231,22 +277,23 @@ export async function sendDomainNotifications(
   config: NotificationDispatchConfig,
   user: { email: string; name: string },
   domains: ExpiringDomain[],
-  emailPrefs?: EmailPreferences | null
+  emailPrefs?: EmailPreferences | null,
+  userId?: string
 ): Promise<NotificationDispatchResults> {
   const results: NotificationDispatchResults = {};
   const message = formatDomainMessage(domains);
   const hasExpired = domains.some((domain) => domain.isExpired);
   const billableCount = domains.filter((d) => d.payer === 'client').length;
+  const title =
+    billableCount > 0
+      ? `Domaines à renouveler (${domains.length}, ${billableCount} à facturer)`
+      : `Domaines à renouveler (${domains.length})`;
 
   if (hasChannel(config.channels, 'ntfy')) {
     if (!config.topic) {
       results.ntfy = false;
     } else {
       try {
-        const title =
-          billableCount > 0
-            ? `Domaines à renouveler (${domains.length}, ${billableCount} à facturer)`
-            : `Domaines à renouveler (${domains.length})`;
         results.ntfy = await sendNtfyMessage(
           config,
           title,
@@ -291,6 +338,8 @@ export async function sendDomainNotifications(
       }
     }
   }
+
+  await fanOutWebPush(results, userId, title, message, '/domains');
 
   return results;
 }

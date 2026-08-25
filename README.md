@@ -2,7 +2,7 @@
 
 Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, licences, tâches et plus — avec API, auth JWT et déploiement Docker.
 
-![Version](https://img.shields.io/badge/version-1.5.0-blue)
+![Version](https://img.shields.io/badge/version-1.6.0-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
@@ -25,11 +25,25 @@ Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, li
 - **18 outils** : commandes Git/Docker, snippets, palettes, SVG, WP-CLI / hooks / queries / scripts, Image Resizer, CSV, Markdown, licences, Domain Hub, tâches (vue liste + Kanban), Knowledge Base, générateurs wp-config / plugin header
 - **Feature flags** : activation modulaire des fonctionnalités par instance (`/api/config`)
 - **Auth JWT** multi-comptes, reset mot de passe
-- **Backend** Express + SQLite, notifications (email, Ntfy, Telegram)
+- **Backend** Express + SQLite, notifications (email, Ntfy, Telegram, Web Push PWA)
 - **Docker Compose** prêt pour self-host (images GHCR)
 - **Intégrations API** : Personal Access Tokens (`dt_…`) via **Mon compte → Accès API** — [guide](docs/integrations/personal-access-tokens.md)
 - **Extension [Raycast](raycast/README.md)** : licences, tâches, Knowledge Base
 - **[MCP Task Reminder](mcp-task-reminder/README.md)** : Claude / Cursor en local (stdio)
+
+## Notifications navigateur (Web Push / PWA)
+
+Alertes natives OS quand l’app est installée / ouverte en HTTPS (Coolify).
+
+1. Générer les clés VAPID une fois :
+   ```sh
+   npx web-push generate-vapid-keys
+   ```
+2. Ajouter au backend (`.env` ou Coolify) : `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT=mailto:admin@votre-domaine.com`
+3. Dans **Mon compte → Notifications** : **Activer sur cet appareil**
+4. Sur iOS : ajouter DevToolbox à l’écran d’accueil avant d’activer
+
+Sans ces variables, ntfy / email / Telegram continuent de fonctionner ; le bloc PWA indique « non configuré ».
 
 ## Démarrage rapide (Docker)
 

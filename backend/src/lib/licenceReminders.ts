@@ -115,7 +115,8 @@ export async function checkAndSendReminders(): Promise<void> {
         dispatchConfig,
         { email: user.email, name: user.name },
         licencesToNotify,
-        emailPrefs
+        emailPrefs,
+        user.id
       );
 
       const notificationSent = Object.values(results).some((value) => value === true);

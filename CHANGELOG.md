@@ -6,13 +6,21 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-25
+
 ### Ajouté
 
+- **Web Push PWA** : notifications système natives (licences, domaines, tâches) via service worker ; activation par appareil dans Mon compte → Notifications (mode B, sans 4ᵉ canal)
+- Variables Coolify/Docker `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (génération : `npx web-push generate-vapid-keys`)
 - Domain Hub : clés API registrar **par utilisateur** (Mon compte → Domain Hub) quand `DOMAIN_HUB_ENABLED=true`
 
 ### Retiré
 
 - **Breaking** : plus de repli sur les variables d'environnement registrar (`CLOUDFLARE_*`, `HOSTINGER_*`, `OVH_*`) pour les appels API. Configurer les identifiants dans Mon compte.
+
+### Modifié
+
+- Labels Docker et badges version alignés sur `1.6.0`
 
 ## [1.5.0] - 2026-08-16
 

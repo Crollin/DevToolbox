@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2, Copy, KeyRound, Trash2, Globe } from "lucide-react";
+import { ArrowLeft, User, Mail, Bell, Palette, MessageCircle, CheckCircle2, Copy, KeyRound, Trash2, Globe, Smartphone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 import {
@@ -23,6 +23,14 @@ import { toast } from "@/hooks/use-toast";
 import { useDomainHubCredentials } from "@/hooks/useDomainHubCredentials";
 import api from "@/lib/api";
 import { useFeatureFlags } from "@/contexts/FeatureFlagsContext";
+import {
+  getPushStatus,
+  isPushSupported,
+  subscribeToWebPush,
+  testWebPush,
+  unsubscribeFromWebPush,
+  type PushStatus,
+} from "@/lib/webPushClient";
 
 const OVH_SUBSIDIARIES: Array<{ value: string; label: string }> = [
   { value: "FR", label: "France (FR)" },
@@ -173,7 +181,16 @@ const Account = () => {
   const [ntfyLoading, setNtfyLoading] = useState(false);
   const [ntfySaving, setNtfySaving] = useState(false);
   const [ntfyTesting, setNtfyTesting] = useState(false);
-  const [ntfyTestResult, setNtfyTestResult] = useState<{ ntfy?: boolean; email?: boolean; telegram?: boolean } | null>(null);
+  const [ntfyTestResult, setNtfyTestResult] = useState<{
+    ntfy?: boolean;
+    email?: boolean;
+    telegram?: boolean;
+    webpush?: boolean;
+  } | null>(null);
+
+  const [pushStatus, setPushStatus] = useState<PushStatus>({ count: 0, enabled: false, configured: false });
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
 
   const hasNtfy = notificationChannels.includes("ntfy");
   const hasEmail = notificationChannels.includes("email");
@@ -311,11 +328,24 @@ const Account = () => {
     }
   };
 
+  const loadPushStatus = async () => {
+    setPushLoading(true);
+    try {
+      const status = await getPushStatus();
+      setPushStatus(status);
+    } catch {
+      setPushStatus({ count: 0, enabled: false, configured: false });
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadSmtpConfig();
     loadNtfyConfig();
     loadEmailPrefs();
     loadPersonalTokens();
+    loadPushStatus();
   }, []);
 
   const handlePersonalTokenCreate = async () => {
@@ -481,7 +511,9 @@ const Account = () => {
     setNtfyTesting(true);
     setNtfyTestResult(null);
     try {
-      const res = await api.post<{ results?: { ntfy?: boolean; email?: boolean; telegram?: boolean } }>("/account/ntfy-config/test", {
+      const res = await api.post<{
+        results?: { ntfy?: boolean; email?: boolean; telegram?: boolean; webpush?: boolean };
+      }>("/account/ntfy-config/test", {
         notificationChannels,
         serverUrl: ntfyConfig.serverUrl,
         topic: ntfyConfig.topic,
@@ -496,11 +528,72 @@ const Account = () => {
       else if (res.results?.email === false) msgs.push("❌ Email échoué");
       if (res.results?.telegram === true) msgs.push("✅ Telegram réussi");
       else if (res.results?.telegram === false) msgs.push("❌ Telegram échoué");
+      if (res.results?.webpush === true) msgs.push("✅ Navigateur réussi");
+      else if (res.results?.webpush === false) msgs.push("❌ Navigateur échoué");
       if (msgs.length) toast({ title: "Test effectué", description: msgs.join(", ") });
     } catch (err) {
       toast({ title: "Erreur de test", description: err instanceof Error ? err.message : "Impossible de tester.", variant: "destructive" });
     } finally {
       setNtfyTesting(false);
+    }
+  };
+
+  const handlePushEnable = async () => {
+    setPushBusy(true);
+    try {
+      await subscribeToWebPush();
+      await loadPushStatus();
+      toast({
+        title: "Notifications navigateur activées",
+        description: "Cet appareil recevra les alertes DevToolbox.",
+      });
+    } catch (err) {
+      toast({
+        title: "Activation impossible",
+        description: err instanceof Error ? err.message : "Une erreur est survenue.",
+        variant: "destructive",
+      });
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const handlePushDisable = async () => {
+    setPushBusy(true);
+    try {
+      await unsubscribeFromWebPush();
+      await loadPushStatus();
+      toast({
+        title: "Notifications navigateur désactivées",
+        description: "Cet appareil ne recevra plus de push.",
+      });
+    } catch (err) {
+      toast({
+        title: "Désactivation impossible",
+        description: err instanceof Error ? err.message : "Une erreur est survenue.",
+        variant: "destructive",
+      });
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const handlePushTest = async () => {
+    setPushBusy(true);
+    try {
+      await testWebPush();
+      toast({
+        title: "Notification envoyée",
+        description: "Vérifiez le centre de notifications de votre appareil.",
+      });
+    } catch (err) {
+      toast({
+        title: "Test push échoué",
+        description: err instanceof Error ? err.message : "Une erreur est survenue.",
+        variant: "destructive",
+      });
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -807,8 +900,67 @@ const Account = () => {
                         {ntfyTestResult.ntfy !== undefined && <p>Ntfy: {ntfyTestResult.ntfy ? "✅" : "❌"}</p>}
                         {ntfyTestResult.email !== undefined && <p>Email: {ntfyTestResult.email ? "✅" : "❌"}</p>}
                         {ntfyTestResult.telegram !== undefined && <p>Telegram: {ntfyTestResult.telegram ? "✅" : "❌"}</p>}
+                        {ntfyTestResult.webpush !== undefined && <p>Navigateur: {ntfyTestResult.webpush ? "✅" : "❌"}</p>}
                       </div>
                     )}
+
+                    <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        Notifications navigateur (PWA)
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Reçoit les alertes directement dans le centre de notifications de cet appareil,
+                        sans case canal supplémentaire. Sur iOS, ajoutez d&apos;abord DevToolbox à l&apos;écran d&apos;accueil.
+                      </p>
+                      {pushLoading ? (
+                        <p className="text-sm text-muted-foreground">Chargement…</p>
+                      ) : !pushStatus.configured ? (
+                        <p className="text-sm text-amber-500">
+                          Web Push non configuré côté serveur (variables VAPID manquantes).
+                        </p>
+                      ) : !isPushSupported() ? (
+                        <p className="text-sm text-amber-500">
+                          Ce navigateur ne prend pas en charge les notifications push.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            {pushStatus.enabled ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                {pushStatus.count} appareil{pushStatus.count > 1 ? "s" : ""} abonné
+                                {pushStatus.count > 1 ? "s" : ""}
+                              </>
+                            ) : (
+                              "Aucun appareil abonné pour ce compte."
+                            )}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button type="button" onClick={handlePushEnable} disabled={pushBusy}>
+                              Activer sur cet appareil
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handlePushDisable}
+                              disabled={pushBusy || !pushStatus.enabled}
+                            >
+                              Désactiver cet appareil
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handlePushTest}
+                              disabled={pushBusy || !pushStatus.enabled}
+                            >
+                              Tester
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
                     <div className="flex gap-2">
                       <Button onClick={handleNtfySave} disabled={ntfySaving}>Sauvegarder</Button>
                       <Button variant="outline" onClick={handleNtfyTest} disabled={ntfyTesting}>Tester</Button>
