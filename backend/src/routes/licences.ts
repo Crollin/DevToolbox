@@ -387,7 +387,13 @@ router.post('/send-notifications', async (req, res) => {
       return res.json({ message: 'Aucune licence nécessitant une notification', sent: false });
     }
 
-    const results = await sendLicenceNotifications(toDispatchConfig(savedConfig), user, licencesToNotify);
+    const results = await sendLicenceNotifications(
+      toDispatchConfig(savedConfig),
+      user,
+      licencesToNotify,
+      undefined,
+      userId
+    );
 
     res.json({
       message: 'Notifications envoyées',
@@ -420,7 +426,7 @@ router.post('/test-notifications', async (req, res) => {
       return res.status(404).json({ error: 'Utilisateur non trouvé' });
     }
 
-    const results = await testNotifications(toDispatchConfig(savedConfig), user);
+    const results = await testNotifications(toDispatchConfig(savedConfig), user, undefined, userId);
 
     res.json({
       message: 'Test de notifications effectué',

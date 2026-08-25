@@ -92,7 +92,8 @@ export async function checkAndSendDomainReminders(): Promise<void> {
         config,
         { email: user.email, name: user.name },
         toNotify,
-        emailPrefs
+        emailPrefs,
+        user.id
       );
     }
   } catch (error) {
