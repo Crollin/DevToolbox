@@ -17,7 +17,8 @@ RUN npm ci --include=dev 2>/dev/null || npm install --include=dev
 
 # Copier le code source
 COPY src ./src
-COPY index.html public ./
+COPY index.html ./
+COPY public ./public
 
 # Builder l'application (inclut l'outil Image Resizer)
 RUN npm run build
@@ -27,7 +28,7 @@ FROM nginx:alpine
 
 LABEL maintainer="DevToolbox"
 LABEL description="DevToolbox Frontend - Production"
-LABEL version="1.6.0"
+LABEL version="1.6.1"
 
 # wget requis pour le healthcheck (absent de nginx:alpine récent)
 RUN apk add --no-cache wget

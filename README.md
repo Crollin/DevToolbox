@@ -2,7 +2,7 @@
 
 Boîte à outils web pour développeurs — Git, Docker, WordPress, snippets, licences, tâches et plus — avec API, auth JWT et déploiement Docker.
 
-![Version](https://img.shields.io/badge/version-1.6.0-blue)
+![Version](https://img.shields.io/badge/version-1.6.1-blue)
 ![License](https://img.shields.io/badge/License-GPL--3.0-blue)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
@@ -40,10 +40,12 @@ Alertes natives OS quand l’app est installée / ouverte en HTTPS (Coolify).
    npx web-push generate-vapid-keys
    ```
 2. Ajouter au backend (`.env` ou Coolify) : `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT=mailto:admin@votre-domaine.com`
-3. Dans **Mon compte → Notifications** : **Activer sur cet appareil**
-4. Sur iOS : ajouter DevToolbox à l’écran d’accueil avant d’activer
+3. Dans **Mon compte → Notifications** :
+   - **Installer l'application** (Android / Chrome) ou menu navigateur → Ajouter à l'écran d'accueil
+   - **Activer sur cet appareil** pour recevoir les alertes push
+4. Sur iOS : Partager → Sur l'écran d'accueil, puis activer les notifications
 
-Sans ces variables, ntfy / email / Telegram continuent de fonctionner ; le bloc PWA indique « non configuré ».
+Sans variables VAPID, ntfy / email / Telegram continuent ; le bloc push indique « non configuré ».
 
 ## Démarrage rapide (Docker)
 

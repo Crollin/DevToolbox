@@ -31,6 +31,7 @@ import {
   unsubscribeFromWebPush,
   type PushStatus,
 } from "@/lib/webPushClient";
+import { usePwaInstall } from "@/lib/pwaInstall";
 
 const OVH_SUBSIDIARIES: Array<{ value: string; label: string }> = [
   { value: "FR", label: "France (FR)" },
@@ -191,6 +192,8 @@ const Account = () => {
   const [pushStatus, setPushStatus] = useState<PushStatus>({ count: 0, enabled: false, configured: false });
   const [pushLoading, setPushLoading] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [installBusy, setInstallBusy] = useState(false);
+  const { canInstall, isInstalled, promptInstall } = usePwaInstall();
 
   const hasNtfy = notificationChannels.includes("ntfy");
   const hasEmail = notificationChannels.includes("email");
@@ -597,6 +600,27 @@ const Account = () => {
     }
   };
 
+  const handleInstallApp = async () => {
+    setInstallBusy(true);
+    try {
+      const accepted = await promptInstall();
+      if (accepted) {
+        toast({
+          title: "Application installée",
+          description: "DevToolbox est disponible sur votre écran d'accueil.",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Installation impossible",
+        description: err instanceof Error ? err.message : "Une erreur est survenue.",
+        variant: "destructive",
+      });
+    } finally {
+      setInstallBusy(false);
+    }
+  };
+
   const handleEmailPrefsSave = async () => {
     setEmailPrefsSaving(true);
     try {
@@ -907,11 +931,36 @@ const Account = () => {
                     <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
                       <h3 className="text-sm font-semibold flex items-center gap-2">
                         <Smartphone className="w-4 h-4" />
-                        Notifications navigateur (PWA)
+                        Application (PWA)
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        Reçoit les alertes directement dans le centre de notifications de cet appareil,
-                        sans case canal supplémentaire. Sur iOS, ajoutez d&apos;abord DevToolbox à l&apos;écran d&apos;accueil.
+                        Installez DevToolbox sur votre appareil pour un accès rapide et des notifications natives.
+                        Sur iOS, utilisez Partager → Sur l&apos;écran d&apos;accueil.
+                      </p>
+                      {isInstalled ? (
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          Application déjà installée sur cet appareil
+                        </p>
+                      ) : canInstall ? (
+                        <Button type="button" onClick={handleInstallApp} disabled={installBusy}>
+                          Installer l&apos;application
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Sur Android ou Chrome : menu du navigateur (⋮) → Installer l&apos;application ou Ajouter à l&apos;écran d&apos;accueil.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <Bell className="w-4 h-4" />
+                        Notifications navigateur
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Reçoit les alertes dans le centre de notifications de cet appareil,
+                        en parallèle des canaux Ntfy, email et Telegram.
                       </p>
                       {pushLoading ? (
                         <p className="text-sm text-muted-foreground">Chargement…</p>
@@ -930,7 +979,6 @@ const Account = () => {
                               <>
                                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                 {pushStatus.count} appareil{pushStatus.count > 1 ? "s" : ""} abonné
-                                {pushStatus.count > 1 ? "s" : ""}
                               </>
                             ) : (
                               "Aucun appareil abonné pour ce compte."

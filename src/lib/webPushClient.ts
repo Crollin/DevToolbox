@@ -102,11 +102,3 @@ export async function unsubscribeFromWebPush(): Promise<void> {
 export async function testWebPush(): Promise<{ results: { webpush?: boolean }; count?: number }> {
   return api.post('/account/push/test');
 }
-
-export async function getLocalPushSubscription(): Promise<PushSubscription | null> {
-  if (!isPushSupported()) {
-    return null;
-  }
-  const registration = await getRegistration();
-  return registration.pushManager.getSubscription();
-}

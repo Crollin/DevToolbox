@@ -15,33 +15,30 @@ interface PushPayload {
   url?: string;
 }
 
-self.addEventListener('push', (event) => {
-  let payload: PushPayload = {
+function parsePushPayload(event: PushEvent): PushPayload {
+  const defaults: PushPayload = {
     title: 'DevToolbox',
     body: 'Nouvelle notification',
     url: '/',
   };
-
-  try {
-    if (event.data) {
-      payload = { ...payload, ...event.data.json() };
-    }
-  } catch {
-    try {
-      const text = event.data?.text();
-      if (text) {
-        payload.body = text;
-      }
-    } catch {
-      // keep defaults
-    }
+  if (!event.data) {
+    return defaults;
   }
+  try {
+    return { ...defaults, ...event.data.json() };
+  } catch {
+    const text = event.data.text();
+    return text ? { ...defaults, body: text } : defaults;
+  }
+}
 
+self.addEventListener('push', (event) => {
+  const payload = parsePushPayload(event);
   event.waitUntil(
     self.registration.showNotification(payload.title || 'DevToolbox', {
       body: payload.body || '',
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: '/pwa-192.png',
+      badge: '/pwa-192.png',
       data: { url: payload.url || '/' },
     })
   );

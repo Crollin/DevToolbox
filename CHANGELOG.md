@@ -6,6 +6,20 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-08-26
+
+### Corrigé
+
+- **Install PWA Android** : copie Docker `public/` corrigée — les icônes `/pwa-192.png` et `/pwa-512.png` sont bien servies en production
+- Cache nginx : `sw.js` et `manifest.webmanifest` sans `immutable` 1 an
+- Manifest : icônes PNG maskable uniquement (retrait du SVG)
+
+### Modifié
+
+- Mon compte → Notifications : bloc **Installer l'application** (beforeinstallprompt) séparé des notifications push
+- Nettoyage : suppression de `workbox-window` et `getLocalPushSubscription` inutilisés
+- Labels Docker et badges version alignés sur `1.6.1`
+
 ## [1.6.0] - 2026-08-25
 
 ### Ajouté
