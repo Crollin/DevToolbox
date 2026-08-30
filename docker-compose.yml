@@ -45,6 +45,8 @@ services:
       DOMAIN_USD_EUR_RATE: ${DOMAIN_USD_EUR_RATE:-}
     volumes:
       - devtoolbox_data:/app/data
+    mem_limit: 512m
+    mem_reservation: 256m
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:1400/health"]
