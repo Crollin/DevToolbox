@@ -767,6 +767,41 @@ export function initializeDatabase() {
     )
   `);
 
+  // Domain Hub — VPS / comptes hébergement
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS hosting_resources (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      label TEXT NOT NULL,
+      provider TEXT NOT NULL DEFAULT 'hostinger',
+      external_id TEXT,
+      plan TEXT,
+      hostname TEXT,
+      ipv4 TEXT,
+      state TEXT,
+      client_name TEXT,
+      client_email TEXT,
+      payer TEXT NOT NULL DEFAULT 'agency',
+      cost_yearly REAL,
+      sell_yearly REAL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      expires_at TEXT,
+      notes TEXT,
+      notifications_enabled INTEGER NOT NULL DEFAULT 1,
+      billing_status TEXT NOT NULL DEFAULT 'n/a',
+      last_billed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_hosting_resources_user_id ON hosting_resources(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_hosting_resources_kind ON hosting_resources(user_id, kind)`);
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_hosting_resources_user_provider_external
+    ON hosting_resources(user_id, provider, kind, external_id)
+    WHERE external_id IS NOT NULL`);
+
   // Migration : billing_status / last_billed_at sur domains
   try {
     const domainsTableInfo = db.prepare('PRAGMA table_info(domains)').all() as Array<{ name: string }>;
