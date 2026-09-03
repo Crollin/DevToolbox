@@ -151,8 +151,50 @@ export async function fetchHostingerJson<T>(
   return { ok: true, data: (await apiRes.json()) as T };
 }
 
-export function unwrapHostingerList<T>(payload: T[] | { data?: T[] } | null | undefined): T[] {
+type HostingerPaginatedPayload<T> = {
+  data?: T[];
+  meta?: {
+    current_page?: number;
+    per_page?: number;
+    total?: number;
+  };
+};
+
+export function unwrapHostingerList<T>(
+  payload: T[] | HostingerPaginatedPayload<T> | null | undefined
+): T[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
   return payload.data || [];
+}
+
+export async function fetchAllHostingerPages<T>(
+  token: string,
+  path: string
+): Promise<{ ok: true; data: T[] } | { ok: false; status: number; detail: string }> {
+  const items: T[] = [];
+  let page = 1;
+
+  while (true) {
+    const separator = path.includes('?') ? '&' : '?';
+    const result = await fetchHostingerJson<T[] | HostingerPaginatedPayload<T>>(
+      token,
+      `${path}${separator}page=${page}`
+    );
+    if (!result.ok) return result;
+
+    const pageItems = unwrapHostingerList(result.data);
+    items.push(...pageItems);
+
+    if (Array.isArray(result.data) || !result.data.meta) {
+      return { ok: true, data: items };
+    }
+
+    const total = result.data.meta.total;
+    if (total === undefined || items.length >= total || pageItems.length === 0) {
+      return { ok: true, data: items };
+    }
+
+    page += 1;
+  }
 }

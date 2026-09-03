@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
 
@@ -15,6 +15,10 @@ describe('Domains API', () => {
         name: 'Domains Test User',
       });
     authToken = res.body.token;
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('sync Hostinger uses user credentials not env', async () => {
@@ -130,5 +134,49 @@ describe('Domains API', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.resources.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('sync Hostinger importe toutes les pages des comptes hébergement', async () => {
+    await request(app)
+      .put('/api/account/domain-hub-credentials')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ hostingerApiToken: 'test-token' });
+
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      id: index + 1,
+      plan: { name: `Plan ${index + 1}` },
+      status: 'active',
+    }));
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/api/domains/v1/portfolio')) {
+        return Response.json([]);
+      }
+      if (url.includes('/api/vps/v1/virtual-machines')) {
+        return Response.json([]);
+      }
+      if (url.includes('page=2')) {
+        return Response.json({
+          data: [{ id: 101, plan: { name: 'Plan 101' }, status: 'active' }],
+          meta: { current_page: 2, per_page: 100, total: 101 },
+        });
+      }
+      return Response.json({
+        data: firstPage,
+        meta: { current_page: 1, per_page: 100, total: 101 },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const syncRes = await request(app)
+      .post('/api/domains/sync/hostinger')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(syncRes.status).toBe(200);
+    expect(syncRes.body.hosting.synced).toBe(101);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/hosting/v1/orders?per_page=100&page=2'),
+      expect.any(Object)
+    );
   });
 });

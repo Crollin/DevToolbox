@@ -16,6 +16,7 @@ import { compareDomains } from '../lib/registrars/compare';
 import { getCredentialsRow, toRegistrarCredentials } from '../lib/domainHubCredentials';
 import { buildBillingCsv, filterBillingRows, type BillingExportRow } from '../lib/domainBillingExport';
 import {
+  fetchAllHostingerPages,
   fetchHostingerJson,
   listHostingResources,
   serializeHostingResource,
@@ -577,10 +578,11 @@ router.post('/sync/hostinger', async (req, res) => {
     }
 
     // Hosting orders (1 row per account)
-    const ordersRes = await fetchHostingerJson<
-      | Array<{ id?: number; plan?: { name?: string }; status?: string }>
-      | { data?: Array<{ id?: number; plan?: { name?: string }; status?: string }> }
-    >(token, '/api/hosting/v1/orders?per_page=100');
+    const ordersRes = await fetchAllHostingerPages<{
+      id?: number;
+      plan?: { name?: string };
+      status?: string;
+    }>(token, '/api/hosting/v1/orders?per_page=100');
 
     if (!ordersRes.ok) {
       report.hosting.error = `HTTP ${ordersRes.status}`;
