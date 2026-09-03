@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Task } from "@/types/task";
 import KanbanTaskCard from "./KanbanTaskCard";
 import { cn } from "@/lib/utils";
-import { Circle, PlayCircle, CheckCircle2 } from "lucide-react";
+import { Circle, PlayCircle, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+
+/** Nombre de tuiles visibles par défaut dans la colonne Terminées */
+const COMPLETED_PREVIEW_LIMIT = 5;
 
 export interface KanbanColumnConfig {
   id: Task["status"];
@@ -36,8 +40,17 @@ const KanbanColumn = ({
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver: isDroppableOver } = useDroppable({ id: column.id });
   const Icon = column.icon;
-  const taskIds = tasks.map((t) => t.id);
   const highlighted = isOver || isDroppableOver;
+
+  const [showAllCompleted, setShowAllCompleted] = useState(false);
+  const isCompletedColumn = column.id === "completed";
+  const shouldCollapse =
+    isCompletedColumn && !showAllCompleted && tasks.length > COMPLETED_PREVIEW_LIMIT;
+  const visibleTasks = shouldCollapse
+    ? tasks.slice(0, COMPLETED_PREVIEW_LIMIT)
+    : tasks;
+  const hiddenCount = tasks.length - visibleTasks.length;
+  const taskIds = visibleTasks.map((t) => t.id);
 
   return (
     <div
@@ -77,18 +90,39 @@ const KanbanColumn = ({
         )}
       >
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-          {tasks.length > 0 ? (
-            tasks.map((task) => (
-              <KanbanTaskCard
-                key={task.id}
-                task={task}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onView={onView}
-                onStatusChange={onStatusChange}
-                clientColors={clientColors}
-              />
-            ))
+          {visibleTasks.length > 0 ? (
+            <>
+              {visibleTasks.map((task) => (
+                <KanbanTaskCard
+                  key={task.id}
+                  task={task}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onView={onView}
+                  onStatusChange={onStatusChange}
+                  clientColors={clientColors}
+                />
+              ))}
+              {isCompletedColumn && tasks.length > COMPLETED_PREVIEW_LIMIT && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllCompleted((prev) => !prev)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/60 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:bg-muted/40 hover:text-foreground"
+                >
+                  {showAllCompleted ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5" />
+                      Réduire
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      Voir les {hiddenCount} autres
+                    </>
+                  )}
+                </button>
+              )}
+            </>
           ) : (
             <div
               className={cn(

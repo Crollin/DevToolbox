@@ -21,7 +21,6 @@ export interface NtfyConfig {
   topic: string;
   token?: string;
   notificationChannels?: NotificationChannel[];
-  notificationType?: 'ntfy' | 'email' | 'both' | 'telegram';
   telegramChatId?: string;
   autoRemindersEnabled?: boolean;
   taskAutoRemindersEnabled?: boolean;
@@ -31,22 +30,13 @@ export interface NtfyConfig {
   telegramConfigured?: boolean;
 }
 
-export function getNotificationChannelsFromConfig(config: Pick<NtfyConfig, 'notificationChannels' | 'notificationType'>): NotificationChannel[] {
+export function getNotificationChannelsFromConfig(
+  config: Pick<NtfyConfig, 'notificationChannels'>
+): NotificationChannel[] {
   if (config.notificationChannels && config.notificationChannels.length > 0) {
     return config.notificationChannels;
   }
-
-  switch (config.notificationType) {
-    case 'both':
-      return ['ntfy', 'email'];
-    case 'email':
-      return ['email'];
-    case 'telegram':
-      return ['telegram'];
-    case 'ntfy':
-    default:
-      return ['ntfy'];
-  }
+  return ['ntfy'];
 }
 
 export const licenceTypeLabels: Record<LicenceType, string> = {

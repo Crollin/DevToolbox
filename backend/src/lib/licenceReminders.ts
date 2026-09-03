@@ -103,7 +103,7 @@ export async function checkAndSendReminders(): Promise<void> {
       }
 
       const dispatchConfig: NotificationDispatchConfig = {
-        channels: parseNotificationChannels(user.notification_type, user.notification_channels),
+        channels: parseNotificationChannels(user.notification_channels, user.notification_type),
         serverUrl: user.server_url || 'https://ntfy.sh',
         topic: user.topic || '',
         token: user.token,

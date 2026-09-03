@@ -4,13 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { authenticateTokenOrPersonalAccessToken } from '../middleware/auth';
 import { ExpiringLicence } from '../lib/email';
 import { checkAndSendReminders } from '../lib/licenceReminders';
-import {
-  formatNtfyConfigResponse,
-  normalizeNotificationChannels,
-  channelsToLegacyType,
-  serializeNotificationChannels,
-  parseNotificationChannels,
-} from '../lib/notificationChannels';
+import { parseNotificationChannels } from '../lib/notificationChannels';
+import { getOrCreateNtfyConfig, upsertNtfyConfig } from '../lib/ntfyConfig';
 import { sendLicenceNotifications, testNotifications, NotificationDispatchConfig } from '../lib/notificationDispatch';
 
 const router = express.Router();
@@ -46,10 +41,10 @@ function resolveNotificationConfig(
     body.token !== undefined ||
     body.telegramChatId !== undefined
   ) {
-    const channels = normalizeNotificationChannels(body.notificationChannels, body.notificationType);
+    const channels = parseNotificationChannels(body.notificationChannels, body.notificationType);
     return {
-      notification_type: channelsToLegacyType(channels),
-      notification_channels: serializeNotificationChannels(channels),
+      notification_type: channels[0] || 'ntfy',
+      notification_channels: JSON.stringify(channels),
       server_url: body.serverUrl || 'https://ntfy.sh',
       topic: body.topic || '',
       token: body.token || null,
@@ -63,7 +58,7 @@ function resolveNotificationConfig(
 
 function toDispatchConfig(config: SavedNotificationConfig): NotificationDispatchConfig {
   return {
-    channels: parseNotificationChannels(config.notification_type, config.notification_channels),
+    channels: parseNotificationChannels(config.notification_channels, config.notification_type),
     serverUrl: config.server_url || 'https://ntfy.sh',
     topic: config.topic || '',
     token: config.token,
@@ -206,126 +201,19 @@ router.post('/', (req, res) => {
   }
 });
 
-// GET /api/licences/ntfy-config - Récupérer la configuration de notifications de l'utilisateur
+// GET/PUT /api/licences/ntfy-config — alias vers la config compte (même table)
 router.get('/ntfy-config', (req, res) => {
   try {
-    const userId = req.user!.id;
-    const config = db.prepare('SELECT * FROM ntfy_configs WHERE user_id = ?').get(userId) as {
-      enabled: number;
-      server_url: string;
-      topic: string;
-      token: string | null;
-      notification_type: string | null;
-      auto_reminders_enabled: number | null;
-      reminder_frequency: string | null;
-      last_reminder_sent_at: string | null;
-    } | undefined;
-
-    if (!config) {
-      // Créer une configuration par défaut si elle n'existe pas
-      const id = uuidv4();
-      const now = new Date().toISOString();
-      db.prepare(`
-        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, notification_type, notification_channels, telegram_chat_id, auto_reminders_enabled, reminder_frequency, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, userId, 0, 'https://ntfy.sh', '', null, 'ntfy', '["ntfy"]', null, 0, 'daily', now, now);
-
-      return res.json(formatNtfyConfigResponse({
-        enabled: 0,
-        server_url: 'https://ntfy.sh',
-        topic: '',
-        token: null,
-        notification_type: 'ntfy',
-        notification_channels: '["ntfy"]',
-        telegram_chat_id: null,
-        auto_reminders_enabled: 0,
-        reminder_frequency: 'daily',
-        last_reminder_sent_at: null,
-      }));
-    }
-
-    res.json(formatNtfyConfigResponse(config));
+    res.json(getOrCreateNtfyConfig(req.user!.id));
   } catch (error) {
     console.error('Erreur lors de la récupération de la config de notifications:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération de la configuration de notifications' });
   }
 });
 
-// PUT /api/licences/ntfy-config - Mettre à jour la configuration de notifications
 router.put('/ntfy-config', (req, res) => {
   try {
-    const userId = req.user!.id;
-    const {
-      enabled,
-      serverUrl,
-      topic,
-      token,
-      notificationType,
-      notificationChannels,
-      telegramChatId,
-      autoRemindersEnabled,
-      reminderFrequency,
-    } = req.body;
-
-    const channels = normalizeNotificationChannels(notificationChannels, notificationType);
-    const channelsJson = serializeNotificationChannels(channels);
-    const legacyType = channelsToLegacyType(channels);
-
-    const existing = db.prepare('SELECT id FROM ntfy_configs WHERE user_id = ?').get(userId) as { id: string } | undefined;
-    const now = new Date().toISOString();
-
-    if (existing) {
-      db.prepare(`
-        UPDATE ntfy_configs
-        SET enabled = ?, server_url = ?, topic = ?, token = ?, notification_type = ?, notification_channels = ?, telegram_chat_id = ?, auto_reminders_enabled = ?, reminder_frequency = ?, updated_at = ?
-        WHERE user_id = ?
-      `).run(
-        enabled ? 1 : 0,
-        serverUrl || 'https://ntfy.sh',
-        topic || '',
-        token || null,
-        legacyType,
-        channelsJson,
-        telegramChatId || null,
-        autoRemindersEnabled ? 1 : 0,
-        reminderFrequency || 'daily',
-        now,
-        userId
-      );
-    } else {
-      const id = uuidv4();
-      db.prepare(`
-        INSERT INTO ntfy_configs (id, user_id, enabled, server_url, topic, token, notification_type, notification_channels, telegram_chat_id, auto_reminders_enabled, reminder_frequency, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id,
-        userId,
-        enabled ? 1 : 0,
-        serverUrl || 'https://ntfy.sh',
-        topic || '',
-        token || null,
-        legacyType,
-        channelsJson,
-        telegramChatId || null,
-        autoRemindersEnabled ? 1 : 0,
-        reminderFrequency || 'daily',
-        now,
-        now
-      );
-    }
-
-    res.json(formatNtfyConfigResponse({
-      enabled: enabled ? 1 : 0,
-      server_url: serverUrl || 'https://ntfy.sh',
-      topic: topic || '',
-      token: token || null,
-      notification_type: legacyType,
-      notification_channels: channelsJson,
-      telegram_chat_id: telegramChatId || null,
-      auto_reminders_enabled: autoRemindersEnabled ? 1 : 0,
-      reminder_frequency: reminderFrequency || 'daily',
-      last_reminder_sent_at: null,
-    }));
+    res.json(upsertNtfyConfig(req.user!.id, req.body));
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la config de notifications:', error);
     res.status(500).json({ error: 'Erreur lors de la mise à jour de la configuration de notifications' });

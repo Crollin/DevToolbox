@@ -75,8 +75,8 @@ export async function checkAndSendDomainReminders(): Promise<void> {
       if (toNotify.length === 0) continue;
 
       const channels = parseNotificationChannels(
-        user.notification_type || 'ntfy',
-        user.notification_channels
+        user.notification_channels,
+        user.notification_type || 'ntfy'
       );
 
       const config: NotificationDispatchConfig = {

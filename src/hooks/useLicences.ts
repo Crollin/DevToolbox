@@ -13,7 +13,6 @@ const defaultNtfyConfig: NtfyConfig = {
   topic: "",
   token: "",
   notificationChannels: ["ntfy"],
-  notificationType: "ntfy",
   autoRemindersEnabled: false,
   reminderFrequency: "daily",
 };
@@ -47,7 +46,7 @@ export function useLicences() {
     }
 
     try {
-      const data = await api.get<NtfyConfig>('/licences/ntfy-config');
+      const data = await api.get<NtfyConfig>('/account/ntfy-config');
       setNtfyConfig({ ...defaultNtfyConfig, ...data });
     } catch (error) {
       console.error("Erreur lors du chargement de la config de notifications:", error);
@@ -98,7 +97,7 @@ export function useLicences() {
       if (storedNtfy) {
         try {
           const parsedNtfy: NtfyConfig = JSON.parse(storedNtfy);
-          await api.put('/licences/ntfy-config', parsedNtfy);
+          await api.put('/account/ntfy-config', parsedNtfy);
         } catch (error) {
           console.error("Erreur lors de l'import de la config Ntfy:", error);
         }
@@ -177,7 +176,7 @@ export function useLicences() {
     try {
       // Fusionner avec la config actuelle pour s'assurer que tous les champs sont présents
       const updatedConfig = { ...defaultNtfyConfig, ...ntfyConfig, ...config };
-      const response = await api.put<NtfyConfig>('/licences/ntfy-config', updatedConfig);
+      const response = await api.put<NtfyConfig>('/account/ntfy-config', updatedConfig);
       // Recharger depuis l'API pour avoir la version à jour
       await loadNtfyConfig();
     } catch (error) {

@@ -1,6 +1,14 @@
-import { sendLicenceExpirationEmail, sendDomainExpirationEmail, sendTestEmail, ExpiringLicence, EmailPreferences } from './email';
+import {
+  sendLicenceExpirationEmail,
+  sendDomainExpirationEmail,
+  sendTestEmail,
+  sendTaskReminderEmail,
+  ExpiringLicence,
+  EmailPreferences,
+  TaskReminder,
+} from './email';
 import { sendTelegramMessage } from './telegram';
-import { hasChannel, NotificationChannel } from './notificationChannels';
+import { NotificationChannel } from './notificationChannels';
 import { sendWebPushToUser } from './webPush';
 
 export interface NotificationDispatchConfig {
@@ -24,17 +32,6 @@ export interface NotificationDispatchResults {
   };
 }
 
-function formatLicenceMessage(licences: ExpiringLicence[]): string {
-  return licences
-    .map((licence) => {
-      if (licence.isExpired) {
-        return `❌ ${licence.name} - Expirée depuis ${Math.abs(licence.daysUntilExpiry)} jours`;
-      }
-      return `⚠️ ${licence.name} - ${licence.daysUntilExpiry} jours restants`;
-    })
-    .join('\n');
-}
-
 export interface ExpiringDomain {
   name: string;
   clientName: string | null;
@@ -44,6 +41,54 @@ export interface ExpiringDomain {
   currency: string;
   daysUntilExpiry: number;
   isExpired: boolean;
+}
+
+type ChannelSenders = {
+  ntfy?: () => Promise<boolean>;
+  email?: () => Promise<boolean>;
+  telegram?: () => Promise<boolean>;
+};
+
+async function dispatchChannels(
+  channels: NotificationChannel[],
+  senders: ChannelSenders,
+  withErrors = false
+): Promise<NotificationDispatchResults> {
+  const results: NotificationDispatchResults = withErrors ? { errors: {} } : {};
+
+  const run = async (channel: NotificationChannel, send?: () => Promise<boolean>) => {
+    if (!channels.includes(channel) || !send) return;
+    try {
+      results[channel] = await send();
+      if (withErrors && !results[channel]) {
+        results.errors![channel] = `Erreur lors de l'envoi ${channel}`;
+      }
+    } catch (error) {
+      console.error(`Erreur canal ${channel}:`, error);
+      results[channel] = false;
+      if (withErrors) {
+        results.errors![channel] =
+          error instanceof Error ? error.message : `Erreur ${channel}`;
+      }
+    }
+  };
+
+  await run('ntfy', senders.ntfy);
+  await run('email', senders.email);
+  await run('telegram', senders.telegram);
+
+  return results;
+}
+
+function formatLicenceMessage(licences: ExpiringLicence[]): string {
+  return licences
+    .map((licence) => {
+      if (licence.isExpired) {
+        return `❌ ${licence.name} - Expirée depuis ${Math.abs(licence.daysUntilExpiry)} jours`;
+      }
+      return `⚠️ ${licence.name} - ${licence.daysUntilExpiry} jours restants`;
+    })
+    .join('\n');
 }
 
 export function formatDomainMessage(domains: ExpiringDomain[]): string {
@@ -74,6 +119,26 @@ export function formatDomainMessage(domains: ExpiringDomain[]): string {
     .join('\n\n');
 }
 
+export function formatTaskMessage(task: TaskReminder): string {
+  return [
+    `📋 ${task.title}`,
+    task.daysUntilDue !== undefined && task.daysUntilDue < 0
+      ? `⚠️ En retard depuis ${Math.abs(task.daysUntilDue)} jour(s)`
+      : task.daysUntilDue === 0
+        ? "🔴 Échéance aujourd'hui !"
+        : task.daysUntilDue === 1
+          ? '⚠️ Échéance demain'
+          : task.daysUntilDue !== undefined
+            ? `📅 Échéance dans ${task.daysUntilDue} jour(s)`
+            : '',
+    task.dueDate ? `📅 ${new Date(task.dueDate).toLocaleDateString('fr-FR')}` : '',
+    task.client ? `👤 ${task.client}` : '',
+    task.link || '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 async function sendNtfyMessage(
   config: NotificationDispatchConfig,
   title: string,
@@ -81,9 +146,7 @@ async function sendNtfyMessage(
   tags: string,
   priority: 'default' | 'high' = 'default'
 ): Promise<boolean> {
-  if (!config.topic) {
-    return false;
-  }
+  if (!config.topic) return false;
 
   const headers: Record<string, string> = {
     'Content-Type': 'text/plain; charset=utf-8',
@@ -113,15 +176,11 @@ async function fanOutWebPush(
   body: string,
   url = '/'
 ): Promise<void> {
-  if (!userId) {
-    return;
-  }
+  if (!userId) return;
 
   try {
     const pushResult = await sendWebPushToUser(userId, { title, body, url });
-    if (pushResult.count === 0 && !pushResult.error) {
-      return;
-    }
+    if (pushResult.count === 0 && !pushResult.error) return;
     results.webpush = pushResult.sent;
     if (!pushResult.sent && pushResult.error) {
       results.errors = results.errors || {};
@@ -135,66 +194,64 @@ async function fanOutWebPush(
   }
 }
 
+function channelSendersFor(
+  config: NotificationDispatchConfig,
+  opts: {
+    ntfyTitle: string;
+    ntfyBody: string;
+    ntfyTags: string;
+    ntfyPriority?: 'default' | 'high';
+    email: () => Promise<boolean>;
+    telegramText: string;
+  }
+): ChannelSenders {
+  return {
+    ntfy: config.topic
+      ? () =>
+          sendNtfyMessage(
+            config,
+            opts.ntfyTitle,
+            opts.ntfyBody,
+            opts.ntfyTags,
+            opts.ntfyPriority
+          )
+      : async () => false,
+    email: opts.email,
+    telegram: config.telegramChatId
+      ? () => sendTelegramMessage(config.telegramChatId!, opts.telegramText)
+      : async () => false,
+  };
+}
+
 export async function testNotifications(
   config: NotificationDispatchConfig,
   user: { email: string; name: string },
   emailPrefs?: EmailPreferences | null,
   userId?: string
 ): Promise<NotificationDispatchResults> {
-  const results: NotificationDispatchResults = { errors: {} };
+  const results = await dispatchChannels(
+    config.channels,
+    channelSendersFor(config, {
+      ntfyTitle: 'Test de notification DevToolbox',
+      ntfyBody:
+        'Ceci est un message de test depuis DevToolbox. Si vous recevez ce message, votre configuration Ntfy fonctionne correctement ! ✅',
+      ntfyTags: 'test,devtoolbox',
+      email: () => sendTestEmail(user.email, user.name, emailPrefs),
+      telegramText:
+        '✅ Test de notification DevToolbox\n\nSi vous recevez ce message, votre configuration Telegram fonctionne correctement.',
+    }),
+    true
+  );
 
-  if (hasChannel(config.channels, 'ntfy')) {
-    if (!config.topic) {
-      results.ntfy = false;
-      results.errors!.ntfy = 'Topic non configuré';
-    } else {
-      try {
-        results.ntfy = await sendNtfyMessage(
-          config,
-          'Test de notification DevToolbox',
-          'Ceci est un message de test depuis DevToolbox. Si vous recevez ce message, votre configuration Ntfy fonctionne correctement ! ✅',
-          'test,devtoolbox'
-        );
-        if (!results.ntfy) {
-          results.errors!.ntfy = 'Erreur HTTP lors de l\'envoi Ntfy';
-        }
-      } catch (error) {
-        results.ntfy = false;
-        results.errors!.ntfy = error instanceof Error ? error.message : 'Erreur de connexion';
-      }
-    }
+  if (!config.topic && config.channels.includes('ntfy')) {
+    results.ntfy = false;
+    results.errors = results.errors || {};
+    results.errors.ntfy = 'Topic non configuré';
   }
-
-  if (hasChannel(config.channels, 'email')) {
-    try {
-      results.email = await sendTestEmail(user.email, user.name, emailPrefs);
-      if (!results.email) {
-        results.errors!.email = 'Service email non configuré ou erreur d\'envoi';
-      }
-    } catch (error) {
-      results.email = false;
-      results.errors!.email = error instanceof Error ? error.message : 'Erreur d\'envoi';
-    }
-  }
-
-  if (hasChannel(config.channels, 'telegram')) {
-    if (!config.telegramChatId) {
-      results.telegram = false;
-      results.errors!.telegram = 'Chat ID Telegram non configuré';
-    } else {
-      try {
-        results.telegram = await sendTelegramMessage(
-          config.telegramChatId,
-          '✅ Test de notification DevToolbox\n\nSi vous recevez ce message, votre configuration Telegram fonctionne correctement.'
-        );
-        if (!results.telegram) {
-          results.errors!.telegram = 'Erreur lors de l\'envoi Telegram';
-        }
-      } catch (error) {
-        results.telegram = false;
-        results.errors!.telegram = error instanceof Error ? error.message : 'Erreur Telegram';
-      }
-    }
+  if (!config.telegramChatId && config.channels.includes('telegram')) {
+    results.telegram = false;
+    results.errors = results.errors || {};
+    results.errors.telegram = 'Chat ID Telegram non configuré';
   }
 
   await fanOutWebPush(
@@ -219,57 +276,23 @@ export async function sendLicenceNotifications(
   emailPrefs?: EmailPreferences | null,
   userId?: string
 ): Promise<NotificationDispatchResults> {
-  const results: NotificationDispatchResults = {};
   const message = formatLicenceMessage(licences);
   const hasExpired = licences.some((licence) => licence.isExpired);
   const title = `Licences à renouveler (${licences.length})`;
 
-  if (hasChannel(config.channels, 'ntfy')) {
-    if (!config.topic) {
-      results.ntfy = false;
-    } else {
-      try {
-        results.ntfy = await sendNtfyMessage(
-          config,
-          title,
-          message,
-          hasExpired ? 'warning,key' : 'key',
-          hasExpired ? 'high' : 'default'
-        );
-      } catch (error) {
-        console.error('Erreur lors de l\'envoi Ntfy:', error);
-        results.ntfy = false;
-      }
-    }
-  }
-
-  if (hasChannel(config.channels, 'email')) {
-    try {
-      results.email = await sendLicenceExpirationEmail(user.email, user.name, licences, emailPrefs);
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi email:', error);
-      results.email = false;
-    }
-  }
-
-  if (hasChannel(config.channels, 'telegram')) {
-    if (!config.telegramChatId) {
-      results.telegram = false;
-    } else {
-      try {
-        results.telegram = await sendTelegramMessage(
-          config.telegramChatId,
-          `🔑 Licences à renouveler (${licences.length})\n\n${message}`
-        );
-      } catch (error) {
-        console.error('Erreur lors de l\'envoi Telegram:', error);
-        results.telegram = false;
-      }
-    }
-  }
+  const results = await dispatchChannels(
+    config.channels,
+    channelSendersFor(config, {
+      ntfyTitle: title,
+      ntfyBody: message,
+      ntfyTags: hasExpired ? 'warning,key' : 'key',
+      ntfyPriority: hasExpired ? 'high' : 'default',
+      email: () => sendLicenceExpirationEmail(user.email, user.name, licences, emailPrefs),
+      telegramText: `🔑 Licences à renouveler (${licences.length})\n\n${message}`,
+    })
+  );
 
   await fanOutWebPush(results, userId, title, message, '/licences');
-
   return results;
 }
 
@@ -280,7 +303,6 @@ export async function sendDomainNotifications(
   emailPrefs?: EmailPreferences | null,
   userId?: string
 ): Promise<NotificationDispatchResults> {
-  const results: NotificationDispatchResults = {};
   const message = formatDomainMessage(domains);
   const hasExpired = domains.some((domain) => domain.isExpired);
   const billableCount = domains.filter((d) => d.payer === 'client').length;
@@ -288,81 +310,55 @@ export async function sendDomainNotifications(
     billableCount > 0
       ? `Domaines à renouveler (${domains.length}, ${billableCount} à facturer)`
       : `Domaines à renouveler (${domains.length})`;
+  const telegramHeader =
+    billableCount > 0
+      ? `🌐 Domaines à renouveler (${domains.length}, ${billableCount} à facturer)\n\n`
+      : `🌐 Domaines à renouveler (${domains.length})\n\n`;
 
-  if (hasChannel(config.channels, 'ntfy')) {
-    if (!config.topic) {
-      results.ntfy = false;
-    } else {
-      try {
-        results.ntfy = await sendNtfyMessage(
-          config,
-          title,
-          message,
-          hasExpired ? 'warning,globe' : 'globe',
-          hasExpired ? 'high' : 'default'
-        );
-      } catch (error) {
-        console.error('Erreur lors de l\'envoi Ntfy (domaines):', error);
-        results.ntfy = false;
-      }
-    }
-  }
-
-  if (hasChannel(config.channels, 'email')) {
-    try {
-      results.email = await sendDomainExpirationEmail(
-        user.email,
-        user.name,
-        domains,
-        emailPrefs
-      );
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi email (domaines):', error);
-      results.email = false;
-    }
-  }
-
-  if (hasChannel(config.channels, 'telegram')) {
-    if (!config.telegramChatId) {
-      results.telegram = false;
-    } else {
-      try {
-        const header =
-          billableCount > 0
-            ? `🌐 Domaines à renouveler (${domains.length}, ${billableCount} à facturer)\n\n`
-            : `🌐 Domaines à renouveler (${domains.length})\n\n`;
-        results.telegram = await sendTelegramMessage(config.telegramChatId, header + message);
-      } catch (error) {
-        console.error('Erreur lors de l\'envoi Telegram (domaines):', error);
-        results.telegram = false;
-      }
-    }
-  }
+  const results = await dispatchChannels(
+    config.channels,
+    channelSendersFor(config, {
+      ntfyTitle: title,
+      ntfyBody: message,
+      ntfyTags: hasExpired ? 'warning,globe' : 'globe',
+      ntfyPriority: hasExpired ? 'high' : 'default',
+      email: () => sendDomainExpirationEmail(user.email, user.name, domains, emailPrefs),
+      telegramText: telegramHeader + message,
+    })
+  );
 
   await fanOutWebPush(results, userId, title, message, '/domains');
-
   return results;
 }
 
-export async function sendNtfyTaskNotification(
+export async function sendTaskNotifications(
   config: NotificationDispatchConfig,
-  title: string,
-  body: string
+  user: { id: string; email: string; name: string },
+  task: TaskReminder,
+  emailPrefs?: EmailPreferences | null
 ): Promise<boolean> {
-  if (!hasChannel(config.channels, 'ntfy') || !config.topic) {
-    return false;
+  const message = formatTaskMessage(task);
+  let urgencyTag = 'calendar';
+  if (task.daysUntilDue !== undefined) {
+    if (task.daysUntilDue < 0) urgencyTag = 'warning';
+    else if (task.daysUntilDue <= 1) urgencyTag = 'alarm';
   }
+  const priority =
+    task.daysUntilDue !== undefined && task.daysUntilDue <= 1 ? 'high' : 'default';
 
-  return sendNtfyMessage(config, title, body, 'clipboard');
-}
+  const results = await dispatchChannels(
+    config.channels,
+    channelSendersFor(config, {
+      ntfyTitle: `📋 Rappel : ${task.title}`,
+      ntfyBody: message,
+      ntfyTags: urgencyTag,
+      ntfyPriority: priority,
+      email: () => sendTaskReminderEmail(user.email, user.name, task, emailPrefs),
+      telegramText: message,
+    })
+  );
 
-export async function sendTelegramTaskNotification(
-  config: NotificationDispatchConfig,
-  text: string
-): Promise<boolean> {
-  if (!hasChannel(config.channels, 'telegram') || !config.telegramChatId) {
-    return false;
-  }
+  await fanOutWebPush(results, user.id, `Rappel : ${task.title}`, message, '/tasks');
 
-  return sendTelegramMessage(config.telegramChatId, text);
+  return Object.values(results).some((value) => value === true);
 }

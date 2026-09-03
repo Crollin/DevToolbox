@@ -4,29 +4,16 @@ import { safeJsonParse } from './json';
 
 export type NotificationChannel = 'ntfy' | 'email' | 'telegram';
 
-export const NOTIFICATION_CHANNELS: NotificationChannel[] = ['ntfy', 'email', 'telegram'];
-
-export function parseNotificationChannels(
-  notificationType: string | null | undefined,
-  notificationChannelsJson: string | null | undefined
-): NotificationChannel[] {
-  if (notificationChannelsJson) {
-    const parsed = safeJsonParse<unknown>(notificationChannelsJson, null);
-    if (Array.isArray(parsed)) {
-      const valid = parsed.filter(
-        (channel): channel is NotificationChannel =>
-          channel === 'ntfy' || channel === 'email' || channel === 'telegram'
-      );
-      if (valid.length > 0) {
-        return [...new Set(valid)];
-      }
-    }
-  }
-
-  return legacyTypeToChannels(notificationType);
+function isChannel(value: unknown): value is NotificationChannel {
+  return value === 'ntfy' || value === 'email' || value === 'telegram';
 }
 
-export function legacyTypeToChannels(type: string | null | undefined): NotificationChannel[] {
+function filterChannels(values: unknown[]): NotificationChannel[] {
+  return [...new Set(values.filter(isChannel))];
+}
+
+/** Fallback for rows that still only have the old notification_type column. */
+function legacyTypeToChannels(type: string | null | undefined): NotificationChannel[] {
   switch (type) {
     case 'both':
       return ['ntfy', 'email'];
@@ -40,45 +27,32 @@ export function legacyTypeToChannels(type: string | null | undefined): Notificat
   }
 }
 
-export function channelsToLegacyType(channels: NotificationChannel[]): string {
-  const normalized = [...new Set(channels)];
-  if (normalized.length === 0) {
-    return 'ntfy';
+/** Resolve channels from JSON (preferred) or legacy notification_type. */
+export function parseNotificationChannels(
+  notificationChannels: unknown,
+  legacyType?: string | null
+): NotificationChannel[] {
+  if (typeof notificationChannels === 'string') {
+    const parsed = safeJsonParse<unknown>(notificationChannels, null);
+    if (Array.isArray(parsed)) {
+      const valid = filterChannels(parsed);
+      if (valid.length > 0) return valid;
+    }
+  } else if (Array.isArray(notificationChannels)) {
+    const valid = filterChannels(notificationChannels);
+    if (valid.length > 0) return valid;
   }
-  if (normalized.length === 1) {
-    return normalized[0];
-  }
-  const hasNtfy = normalized.includes('ntfy');
-  const hasEmail = normalized.includes('email');
-  if (hasNtfy && hasEmail && normalized.length === 2) {
-    return 'both';
-  }
-  return normalized[0];
+
+  return legacyTypeToChannels(legacyType);
 }
 
 export function serializeNotificationChannels(channels: NotificationChannel[]): string {
   return JSON.stringify([...new Set(channels)]);
 }
 
-export function hasChannel(channels: NotificationChannel[], channel: NotificationChannel): boolean {
-  return channels.includes(channel);
-}
-
-export function normalizeNotificationChannels(
-  notificationChannels: unknown,
-  notificationType?: string | null
-): NotificationChannel[] {
-  if (Array.isArray(notificationChannels)) {
-    const valid = notificationChannels.filter(
-      (channel): channel is NotificationChannel =>
-        channel === 'ntfy' || channel === 'email' || channel === 'telegram'
-    );
-    if (valid.length > 0) {
-      return [...new Set(valid)];
-    }
-  }
-
-  return legacyTypeToChannels(notificationType);
+/** Minimal value for the NOT NULL notification_type column (no longer used for routing). */
+export function primaryChannelType(channels: NotificationChannel[]): string {
+  return channels[0] || 'ntfy';
 }
 
 interface NtfyConfigRow {
@@ -97,8 +71,8 @@ interface NtfyConfigRow {
 
 export function formatNtfyConfigResponse(config: NtfyConfigRow) {
   const notificationChannels = parseNotificationChannels(
-    config.notification_type,
-    config.notification_channels ?? null
+    config.notification_channels ?? null,
+    config.notification_type
   );
 
   return {
@@ -106,7 +80,6 @@ export function formatNtfyConfigResponse(config: NtfyConfigRow) {
     serverUrl: config.server_url,
     topic: config.topic,
     token: config.token || undefined,
-    notificationType: channelsToLegacyType(notificationChannels),
     notificationChannels,
     telegramChatId: config.telegram_chat_id || undefined,
     autoRemindersEnabled: config.auto_reminders_enabled === 1,
