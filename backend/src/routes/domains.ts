@@ -638,10 +638,15 @@ router.get('/export/billing.csv', (req, res) => {
     }
 
     const rows = db.prepare(`
-      SELECT name, registrar, client_name, client_email, payer,
+      SELECT 'domain' AS item_type, name, registrar, client_name, client_email, payer,
              sell_yearly, cost_yearly, currency, expires_at, billing_status
       FROM domains WHERE user_id = ?
-    `).all(req.user!.id) as BillingExportRow[];
+      UNION ALL
+      SELECT kind AS item_type, label AS name, provider AS registrar,
+             client_name, client_email, payer, sell_yearly, cost_yearly,
+             currency, expires_at, billing_status
+      FROM hosting_resources WHERE user_id = ?
+    `).all(req.user!.id, req.user!.id) as BillingExportRow[];
 
     const filtered = filterBillingRows(rows, parsed.data);
     const csv = buildBillingCsv(filtered);

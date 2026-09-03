@@ -1,4 +1,5 @@
 export interface BillingExportRow {
+  item_type?: 'domain' | 'vps' | 'hosting';
   name: string;
   registrar: string;
   client_name: string | null;
@@ -54,7 +55,13 @@ export function formatBillingRow(row: BillingExportRow): string[] | null {
   const unitPrice = getUnitPrice(row);
   if (unitPrice == null) return null;
 
-  const description = `Renouvellement nom de domaine ${row.name}${
+  const itemLabel =
+    row.item_type === 'vps'
+      ? 'VPS'
+      : row.item_type === 'hosting'
+        ? 'hébergement'
+        : 'nom de domaine';
+  const description = `Renouvellement ${itemLabel} ${row.name}${
     row.client_name ? ` — ${row.client_name}` : ''
   }`;
 
@@ -115,7 +122,11 @@ export function filterBillingRows(
 
     if (days > 0) {
       const daysUntil = getDaysUntilExpiry(row.expires_at);
-      if (daysUntil === null || daysUntil > days || daysUntil < 0) return false;
+      if (daysUntil === null) {
+        if (!row.item_type || row.item_type === 'domain') return false;
+      } else if (daysUntil > days || daysUntil < 0) {
+        return false;
+      }
     }
 
     return true;

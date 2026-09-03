@@ -257,4 +257,26 @@ describe('Domains API', () => {
     );
     expect(refreshed.label).toBe('Client ACME — Prod');
   });
+
+  it('inclut les ressources facturables dans export CSV', async () => {
+    await request(app)
+      .post('/api/domains/resources')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        kind: 'hosting',
+        label: 'Hébergement Business ACME',
+        payer: 'client',
+        clientName: 'ACME',
+        sellYearly: 120,
+        billingStatus: 'pending',
+      });
+
+    const exportRes = await request(app)
+      .get('/api/domains/export/billing.csv?payer=client&days=60&billingStatus=pending')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(exportRes.status).toBe(200);
+    expect(exportRes.text).toContain('Hébergement Business ACME');
+    expect(exportRes.text).toContain('Renouvellement hébergement');
+  });
 });
