@@ -6,7 +6,6 @@ import ToolLayout from '@/components/ToolLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useDomainCompare } from '@/hooks/useDomainCompare';
 import { useDomainPortfolio } from '@/hooks/useDomainPortfolio';
 import { CompareResults } from '@/components/domain/CompareResults';
@@ -385,82 +384,153 @@ const DomainHub = () => {
           <TabsTrigger value="portfolio">Portefeuille</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="compare" className="space-y-4 mt-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1 space-y-1.5">
-              <label className="text-sm text-muted-foreground" htmlFor="compare-name">
-                Nom (sans TLD) ou FQDN
+        <TabsContent value="compare" className="space-y-5 mt-4">
+          <section className="rounded-xl border border-border/80 bg-card/70 p-4 sm:p-5 space-y-5 shadow-[var(--shadow-card)]">
+            <div className="space-y-2">
+              <label
+                className="block text-sm font-medium text-foreground"
+                htmlFor="compare-name"
+              >
+                Domaine à comparer
               </label>
-              <Input
-                id="compare-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="acme ou acme.com"
-                onKeyDown={(e) => e.key === 'Enter' && handleCompare()}
-              />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+                <div className="relative flex-1 min-w-0">
+                  <Globe
+                    className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <input
+                    id="compare-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="ex. acme ou acme.com"
+                    autoComplete="off"
+                    spellCheck={false}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCompare()}
+                    className="search-input h-12 text-base md:text-base"
+                  />
+                </div>
+                <Button
+                  size="lg"
+                  className="h-12 shrink-0 px-6 text-base sm:min-w-[9.5rem]"
+                  onClick={handleCompare}
+                  disabled={comparing || !name.trim()}
+                >
+                  {comparing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  {comparing ? 'Comparaison…' : 'Comparer'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Saisissez un nom sans extension pour croiser plusieurs TLD, ou un FQDN complet.
+              </p>
             </div>
-            <Button onClick={handleCompare} disabled={comparing}>
-              <Search className="w-4 h-4 mr-2" />
-              {comparing ? 'Comparaison…' : 'Comparer'}
-            </Button>
-          </div>
 
-          <div className="rounded-lg border border-border p-4 space-y-3">
-            <p className="text-sm font-medium text-foreground">Registrars à interroger</p>
-            <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox
-                  checked={compareSettings.cloudflare}
-                  onCheckedChange={() => toggleRegistrar('cloudflare')}
-                />
-                Cloudflare
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox
-                  checked={compareSettings.hostinger}
-                  onCheckedChange={() => toggleRegistrar('hostinger')}
-                />
-                Hostinger
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox
-                  checked={compareSettings.ovh}
-                  onCheckedChange={() => toggleRegistrar('ovh')}
-                />
-                OVH <span className="text-xs text-muted-foreground">(plus lent)</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox
-                  checked={compareSettings.o2switch}
-                  onCheckedChange={() => toggleRegistrar('o2switch')}
-                />
-                o2switch <span className="text-xs text-muted-foreground">(lien manuel)</span>
-              </label>
+            <div className="space-y-2.5 border-t border-border/60 pt-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">Extensions</p>
+                {name.includes('.') && (
+                  <p className="text-xs text-muted-foreground">
+                    FQDN détecté : les TLD sont ignorés
+                  </p>
+                )}
+              </div>
+              <div
+                className={cn(
+                  'flex flex-wrap gap-2',
+                  name.includes('.') && 'opacity-50'
+                )}
+                role="group"
+                aria-label="Extensions à comparer"
+              >
+                {DEFAULT_COMPARE_TLDS.map((tld) => {
+                  const active = tlds.includes(tld);
+                  const disabled = name.includes('.');
+                  return (
+                    <button
+                      key={tld}
+                      type="button"
+                      disabled={disabled}
+                      aria-pressed={active}
+                      onClick={() => toggleTld(tld)}
+                      className={cn(
+                        'rounded-lg border px-3 py-2 font-mono text-sm transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                        'disabled:cursor-not-allowed',
+                        active
+                          ? 'border-primary/50 bg-primary/15 text-foreground'
+                          : 'border-border bg-background/60 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
+                      )}
+                    >
+                      .{tld}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Préférences enregistrées dans ce navigateur. Désactivez OVH si vous ne l’utilisez pas — cela accélère fortement la recherche.
-            </p>
-          </div>
 
-          <div className="flex flex-wrap gap-3">
-            {DEFAULT_COMPARE_TLDS.map((tld) => (
-              <label key={tld} className="flex items-center gap-2 text-sm font-mono">
-                <Checkbox
-                  checked={tlds.includes(tld)}
-                  onCheckedChange={() => toggleTld(tld)}
-                  disabled={name.includes('.')}
-                />
-                .{tld}
-              </label>
-            ))}
-          </div>
+            <div className="space-y-2.5 border-t border-border/60 pt-4">
+              <p className="text-sm font-medium text-foreground">Registrars</p>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Registrars à interroger"
+              >
+                {(
+                  [
+                    { key: 'cloudflare' as const, label: 'Cloudflare' },
+                    { key: 'hostinger' as const, label: 'Hostinger' },
+                    { key: 'ovh' as const, label: 'OVH', hint: 'plus lent' },
+                    { key: 'o2switch' as const, label: 'o2switch', hint: 'lien manuel' },
+                  ] as const
+                ).map(({ key, label, hint }) => {
+                  const active = compareSettings[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggleRegistrar(key)}
+                      className={cn(
+                        'inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                        active
+                          ? 'border-primary/50 bg-primary/15 text-foreground'
+                          : 'border-border bg-background/60 text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'h-2 w-2 shrink-0 rounded-full',
+                          active ? 'bg-primary' : 'bg-muted-foreground/40'
+                        )}
+                        aria-hidden
+                      />
+                      {label}
+                      {hint ? (
+                        <span className="text-xs text-muted-foreground">({hint})</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Préférences enregistrées dans ce navigateur. Désactivez OVH si vous ne
+                l&apos;utilisez pas : la recherche sera nettement plus rapide.
+              </p>
+            </div>
+          </section>
 
           {compareError && (
             <p className="text-sm text-destructive">{compareError}</p>
           )}
 
           {comparing && pendingLabel && (
-            <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-6">
+            <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-muted/20 p-5">
               <Loader2 className="w-5 h-5 animate-spin text-primary shrink-0" />
               <p className="font-medium text-foreground">{pendingLabel}</p>
             </div>
