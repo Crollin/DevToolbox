@@ -96,7 +96,6 @@ export function upsertHostingResourceFromSync(
   if (existing) {
     db.prepare(`
       UPDATE hosting_resources SET
-        label = ?,
         plan = COALESCE(?, plan),
         hostname = COALESCE(?, hostname),
         ipv4 = COALESCE(?, ipv4),
@@ -104,7 +103,6 @@ export function upsertHostingResourceFromSync(
         updated_at = ?
       WHERE id = ?
     `).run(
-      item.label,
       item.plan ?? null,
       item.hostname ?? null,
       item.ipv4 ?? null,

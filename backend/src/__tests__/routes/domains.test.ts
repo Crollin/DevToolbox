@@ -200,4 +200,61 @@ describe('Domains API', () => {
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.resource.billingStatus).toBe('paid');
   });
+
+  it('préserve le libellé personnalisé lors des synchronisations suivantes', async () => {
+    await request(app)
+      .put('/api/account/domain-hub-credentials')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ hostingerApiToken: 'test-token' });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const url = String(input);
+        if (url.includes('/api/domains/v1/portfolio')) {
+          return Response.json([]);
+        }
+        if (url.includes('/api/vps/v1/virtual-machines')) {
+          return Response.json([
+            {
+              id: 7,
+              hostname: 'srv7.hstgr.cloud',
+              plan: 'KVM 4',
+              state: 'running',
+            },
+          ]);
+        }
+        return Response.json({
+          data: [],
+          meta: { current_page: 1, per_page: 100, total: 0 },
+        });
+      })
+    );
+
+    await request(app)
+      .post('/api/domains/sync/hostinger')
+      .set('Authorization', `Bearer ${authToken}`);
+    const listRes = await request(app)
+      .get('/api/domains/resources')
+      .set('Authorization', `Bearer ${authToken}`);
+    const resource = listRes.body.resources.find(
+      (item: { externalId: string | null }) => item.externalId === '7'
+    );
+
+    await request(app)
+      .put(`/api/domains/resources/${resource.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ label: 'Client ACME — Prod' });
+    await request(app)
+      .post('/api/domains/sync/hostinger')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    const refreshedRes = await request(app)
+      .get('/api/domains/resources')
+      .set('Authorization', `Bearer ${authToken}`);
+    const refreshed = refreshedRes.body.resources.find(
+      (item: { id: string }) => item.id === resource.id
+    );
+    expect(refreshed.label).toBe('Client ACME — Prod');
+  });
 });
