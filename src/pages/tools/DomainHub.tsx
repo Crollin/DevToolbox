@@ -36,6 +36,17 @@ function daysUntil(date: string | null): number | null {
   return Math.ceil((exp.getTime() - today.getTime()) / 86400000);
 }
 
+function formatExpiryDate(date: string | null): string | null {
+  if (!date) return null;
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
 const DomainHub = () => {
   const navigate = useNavigate();
   const { domainHubEnabled } = useFeatureFlags();
@@ -62,8 +73,18 @@ const DomainHub = () => {
   const [compareSettings, setCompareSettings] = useState<CompareSettings>(() => loadCompareSettings());
   const [search, setSearch] = useState('');
   const [payerFilter, setPayerFilter] = useState<'all' | 'agency' | 'client'>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PortfolioDomain | null>(null);
+
+  const clientOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const d of domains) {
+      const name = d.clientName?.trim();
+      if (name) names.add(name);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'fr'));
+  }, [domains]);
 
   const filtered = useMemo(() => {
     return domains.filter((d) => {
@@ -74,9 +95,14 @@ const DomainHub = () => {
         (d.clientName || '').toLowerCase().includes(q) ||
         (d.notes || '').toLowerCase().includes(q);
       const matchesPayer = payerFilter === 'all' || d.payer === payerFilter;
-      return matchesSearch && matchesPayer;
+      const matchesClient =
+        clientFilter === 'all' ||
+        (clientFilter === '__none__'
+          ? !d.clientName?.trim()
+          : d.clientName === clientFilter);
+      return matchesSearch && matchesPayer && matchesClient;
     });
-  }, [domains, search, payerFilter]);
+  }, [domains, search, payerFilter, clientFilter]);
 
   const expiringSoon = domains.filter((d) => {
     const days = daysUntil(d.expiresAt);
@@ -359,6 +385,19 @@ const DomainHub = () => {
                 <option value="agency">Agence</option>
                 <option value="client">Client</option>
               </select>
+              <select
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+              >
+                <option value="all">Tous les clients</option>
+                <option value="__none__">Sans client</option>
+                {clientOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleExportBilling}>
@@ -407,8 +446,12 @@ const DomainHub = () => {
                 <tbody>
                   {filtered.map((d) => {
                     const days = daysUntil(d.expiresAt);
+                    const expiryLabel = formatExpiryDate(d.expiresAt);
                     return (
-                      <tr key={d.id} className="border-b border-border/50 last:border-0">
+                      <tr
+                        key={d.id}
+                        className="border-b border-border/40 last:border-0 odd:bg-muted/25 even:bg-transparent hover:bg-muted/40 transition-colors"
+                      >
                         <td className="px-3 py-2 font-mono">{d.name}</td>
                         <td className="px-3 py-2">{REGISTRAR_LABELS[d.registrar]}</td>
                         <td className="px-3 py-2">{d.clientName || '—'}</td>
@@ -422,8 +465,8 @@ const DomainHub = () => {
                             days !== null && days < 0 && 'text-destructive'
                           )}
                         >
-                          {d.expiresAt
-                            ? `${d.expiresAt.slice(0, 10)}${days !== null ? ` (${days}j)` : ''}`
+                          {expiryLabel
+                            ? `${expiryLabel}${days !== null ? ` (${days}j)` : ''}`
                             : '—'}
                         </td>
                         <td className="px-3 py-2 font-mono">
