@@ -296,7 +296,7 @@ router.put('/resources/:id', validateBody(hostingResourceUpdateSchema), (req, re
     const payer = body.payer ?? existing.payer;
     const billingStatus =
       body.billingStatus ??
-      (body.payer !== undefined
+      (body.payer !== undefined && body.payer !== existing.payer
         ? payer === 'agency'
           ? 'n/a'
           : 'pending'

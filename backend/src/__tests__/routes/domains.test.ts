@@ -179,4 +179,25 @@ describe('Domains API', () => {
       expect.any(Object)
     );
   });
+
+  it('préserve le statut de facturation quand le payeur ne change pas', async () => {
+    const createRes = await request(app)
+      .post('/api/domains/resources')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        kind: 'vps',
+        label: 'VPS client',
+        payer: 'client',
+        sellYearly: 240,
+        billingStatus: 'paid',
+      });
+
+    const updateRes = await request(app)
+      .put(`/api/domains/resources/${createRes.body.resource.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ label: 'VPS client renommé', payer: 'client' });
+
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.resource.billingStatus).toBe('paid');
+  });
 });
