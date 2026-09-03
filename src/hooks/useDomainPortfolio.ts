@@ -2,13 +2,29 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { getAuthToken } from '@/lib/auth';
 import { useAuth } from '@/contexts/AuthContext';
-import { DomainBillingStatus, PortfolioDomain, PortfolioDomainInput } from '@/types/domain';
+import {
+  DomainBillingStatus,
+  HostingResource,
+  HostingResourceInput,
+  PortfolioDomain,
+  PortfolioDomainInput,
+} from '@/types/domain';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
+export type HostingerSyncReport = {
+  synced: number;
+  updated: number;
+  created: number;
+  domains: { synced: number; updated: number; created: number; error: string | null };
+  vps: { synced: number; updated: number; created: number; error: string | null };
+  hosting: { synced: number; updated: number; created: number; error: string | null };
+};
 
 export function useDomainPortfolio() {
   const { isAuthenticated } = useAuth();
   const [domains, setDomains] = useState<PortfolioDomain[]>([]);
+  const [resources, setResources] = useState<HostingResource[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const load = useCallback(async () => {
@@ -17,11 +33,16 @@ export function useDomainPortfolio() {
       return;
     }
     try {
-      const data = await api.get<{ domains: PortfolioDomain[] }>('/domains');
-      setDomains(data.domains || []);
+      const [domainsData, resourcesData] = await Promise.all([
+        api.get<{ domains: PortfolioDomain[] }>('/domains'),
+        api.get<{ resources: HostingResource[] }>('/domains/resources'),
+      ]);
+      setDomains(domainsData.domains || []);
+      setResources(resourcesData.resources || []);
     } catch (error) {
-      console.error('Erreur chargement domaines:', error);
+      console.error('Erreur chargement portefeuille:', error);
       setDomains([]);
+      setResources([]);
     } finally {
       setIsLoaded(true);
     }
@@ -48,10 +69,22 @@ export function useDomainPortfolio() {
     setDomains((prev) => prev.filter((d) => d.id !== id));
   }, []);
 
+  const updateResource = useCallback(
+    async (id: string, input: Partial<HostingResourceInput>) => {
+      const data = await api.put<{ resource: HostingResource }>(`/domains/resources/${id}`, input);
+      setResources((prev) => prev.map((r) => (r.id === id ? data.resource : r)));
+      return data.resource;
+    },
+    []
+  );
+
+  const deleteResource = useCallback(async (id: string) => {
+    await api.delete(`/domains/resources/${id}`);
+    setResources((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
   const syncHostinger = useCallback(async () => {
-    const result = await api.post<{ synced: number; updated: number; created: number }>(
-      '/domains/sync/hostinger'
-    );
+    const result = await api.post<HostingerSyncReport>('/domains/sync/hostinger');
     await load();
     return result;
   }, [load]);
@@ -63,6 +96,18 @@ export function useDomainPortfolio() {
       });
       setDomains((prev) => prev.map((d) => (d.id === id ? data.domain : d)));
       return data.domain;
+    },
+    []
+  );
+
+  const updateResourceBillingStatus = useCallback(
+    async (id: string, billingStatus: DomainBillingStatus) => {
+      const data = await api.patch<{ resource: HostingResource }>(
+        `/domains/resources/${id}/billing`,
+        { billingStatus }
+      );
+      setResources((prev) => prev.map((r) => (r.id === id ? data.resource : r)));
+      return data.resource;
     },
     []
   );
@@ -101,13 +146,17 @@ export function useDomainPortfolio() {
 
   return {
     domains,
+    resources,
     isLoaded,
     load,
     addDomain,
     updateDomain,
     deleteDomain,
+    updateResource,
+    deleteResource,
     syncHostinger,
     updateBillingStatus,
+    updateResourceBillingStatus,
     exportBillingCsv,
   };
 }

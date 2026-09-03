@@ -98,4 +98,37 @@ describe('Domains API', () => {
     expect(res.body.domain.billingStatus).toBe('invoiced');
     expect(res.body.domain.lastBilledAt).toBeTruthy();
   });
+
+  it('POST /api/domains/resources crée une ressource VPS', async () => {
+    const res = await request(app)
+      .post('/api/domains/resources')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        kind: 'vps',
+        label: 'srv-test',
+        plan: 'KVM 4',
+        hostname: 'srv-test.example',
+        ipv4: '1.2.3.4',
+        payer: 'agency',
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.resource.kind).toBe('vps');
+    expect(res.body.resource.label).toBe('srv-test');
+    expect(res.body.resource.billingStatus).toBe('n/a');
+  });
+
+  it('GET /api/domains/resources liste les ressources', async () => {
+    await request(app)
+      .post('/api/domains/resources')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ kind: 'hosting', label: 'Business', externalId: '123' });
+
+    const res = await request(app)
+      .get('/api/domains/resources')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.resources.length).toBeGreaterThanOrEqual(1);
+  });
 });

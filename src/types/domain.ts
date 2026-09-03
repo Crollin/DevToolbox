@@ -50,6 +50,55 @@ export interface PortfolioDomain {
   updatedAt: string;
 }
 
+export type HostingResourceKind = 'vps' | 'hosting';
+export type HostingResourceProvider = 'hostinger' | 'other';
+
+export interface HostingResource {
+  id: string;
+  kind: HostingResourceKind;
+  label: string;
+  provider: HostingResourceProvider;
+  externalId: string | null;
+  plan: string | null;
+  hostname: string | null;
+  ipv4: string | null;
+  state: string | null;
+  clientName: string | null;
+  clientEmail: string | null;
+  payer: DomainPayer;
+  costYearly: number | null;
+  sellYearly: number | null;
+  currency: string;
+  expiresAt: string | null;
+  notes: string | null;
+  notificationsEnabled: boolean;
+  billingStatus: DomainBillingStatus;
+  lastBilledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type HostingResourceInput = {
+  kind: HostingResourceKind;
+  label: string;
+  provider?: HostingResourceProvider;
+  externalId?: string | null;
+  plan?: string | null;
+  hostname?: string | null;
+  ipv4?: string | null;
+  state?: string | null;
+  clientName?: string | null;
+  clientEmail?: string | null;
+  payer?: DomainPayer;
+  costYearly?: number | null;
+  sellYearly?: number | null;
+  currency?: string;
+  expiresAt?: string | null;
+  notes?: string | null;
+  notificationsEnabled?: boolean;
+  billingStatus?: DomainBillingStatus;
+};
+
 export type PortfolioDomainInput = {
   name: string;
   registrar: PortfolioRegistrar;
@@ -72,6 +121,11 @@ export const BILLING_STATUS_LABELS: Record<DomainBillingStatus, string> = {
   invoiced: 'Facturé',
   paid: 'Payé',
   'n/a': 'N/A',
+};
+
+export const HOSTING_KIND_LABELS: Record<HostingResourceKind, string> = {
+  vps: 'VPS',
+  hosting: 'Hébergement',
 };
 
 export const DEFAULT_COMPARE_TLDS = ['com', 'fr', 'net', 'org', 'io', 'dev', 'app', 'eu'];

@@ -17,6 +17,8 @@ import {
   loadCompareSettings,
   PortfolioDomain,
   PortfolioDomainInput,
+  HostingResource,
+  HOSTING_KIND_LABELS,
   REGISTRAR_LABELS,
   BILLING_STATUS_LABELS,
   DomainBillingStatus,
@@ -59,50 +61,88 @@ const DomainHub = () => {
   const { compare, loading: comparing, error: compareError, data, pendingLabel } = useDomainCompare();
   const {
     domains,
+    resources,
     isLoaded,
     addDomain,
     updateDomain,
     deleteDomain,
+    updateResource,
+    deleteResource,
     syncHostinger,
     exportBillingCsv,
     updateBillingStatus,
+    updateResourceBillingStatus,
   } = useDomainPortfolio();
 
   const [name, setName] = useState('');
   const [tlds, setTlds] = useState<string[]>([...DEFAULT_COMPARE_TLDS]);
   const [compareSettings, setCompareSettings] = useState<CompareSettings>(() => loadCompareSettings());
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'domain' | 'vps' | 'hosting'>('all');
   const [payerFilter, setPayerFilter] = useState<'all' | 'agency' | 'client'>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PortfolioDomain | null>(null);
+  const [editingResource, setEditingResource] = useState<HostingResource | null>(null);
 
   const clientOptions = useMemo(() => {
     const names = new Set<string>();
     for (const d of domains) {
-      const name = d.clientName?.trim();
-      if (name) names.add(name);
+      const n = d.clientName?.trim();
+      if (n) names.add(n);
+    }
+    for (const r of resources) {
+      const n = r.clientName?.trim();
+      if (n) names.add(n);
     }
     return Array.from(names).sort((a, b) => a.localeCompare(b, 'fr'));
-  }, [domains]);
+  }, [domains, resources]);
+
+  type PortfolioRow =
+    | { rowType: 'domain'; item: PortfolioDomain }
+    | { rowType: 'resource'; item: HostingResource };
 
   const filtered = useMemo(() => {
-    return domains.filter((d) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        !q ||
-        d.name.includes(q) ||
-        (d.clientName || '').toLowerCase().includes(q) ||
-        (d.notes || '').toLowerCase().includes(q);
-      const matchesPayer = payerFilter === 'all' || d.payer === payerFilter;
-      const matchesClient =
-        clientFilter === 'all' ||
-        (clientFilter === '__none__'
-          ? !d.clientName?.trim()
-          : d.clientName === clientFilter);
-      return matchesSearch && matchesPayer && matchesClient;
-    });
-  }, [domains, search, payerFilter, clientFilter]);
+    const q = search.toLowerCase();
+    const rows: PortfolioRow[] = [];
+
+    if (typeFilter === 'all' || typeFilter === 'domain') {
+      for (const d of domains) {
+        const matchesSearch =
+          !q ||
+          d.name.includes(q) ||
+          (d.clientName || '').toLowerCase().includes(q) ||
+          (d.notes || '').toLowerCase().includes(q);
+        const matchesPayer = payerFilter === 'all' || d.payer === payerFilter;
+        const matchesClient =
+          clientFilter === 'all' ||
+          (clientFilter === '__none__' ? !d.clientName?.trim() : d.clientName === clientFilter);
+        if (matchesSearch && matchesPayer && matchesClient) {
+          rows.push({ rowType: 'domain', item: d });
+        }
+      }
+    }
+
+    if (typeFilter === 'all' || typeFilter === 'vps' || typeFilter === 'hosting') {
+      for (const r of resources) {
+        if (typeFilter !== 'all' && r.kind !== typeFilter) continue;
+        const hay = [r.label, r.plan, r.hostname, r.ipv4, r.clientName, r.notes]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        const matchesSearch = !q || hay.includes(q);
+        const matchesPayer = payerFilter === 'all' || r.payer === payerFilter;
+        const matchesClient =
+          clientFilter === 'all' ||
+          (clientFilter === '__none__' ? !r.clientName?.trim() : r.clientName === clientFilter);
+        if (matchesSearch && matchesPayer && matchesClient) {
+          rows.push({ rowType: 'resource', item: r });
+        }
+      }
+    }
+
+    return rows;
+  }, [domains, resources, search, typeFilter, payerFilter, clientFilter]);
 
   const expiringSoon = domains.filter((d) => {
     const days = daysUntil(d.expiresAt);
@@ -184,12 +224,35 @@ const DomainHub = () => {
     }
   };
 
+  const handleDeleteResource = async (resource: HostingResource) => {
+    if (!confirm(`Supprimer ${resource.label} ?`)) return;
+    try {
+      await deleteResource(resource.id);
+      toast({ title: 'Ressource supprimée' });
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Échec',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleSync = async () => {
     try {
       const result = await syncHostinger();
+      const parts = [
+        `Domaines: ${result.domains.created}+ / ${result.domains.updated}↑`,
+        `VPS: ${result.vps.created}+ / ${result.vps.updated}↑`,
+        `Hébergement: ${result.hosting.created}+ / ${result.hosting.updated}↑`,
+      ];
+      const errors = [result.domains.error, result.vps.error, result.hosting.error]
+        .filter(Boolean)
+        .join(' · ');
       toast({
         title: 'Sync Hostinger',
-        description: `${result.created} créés, ${result.updated} mis à jour`,
+        description: errors ? `${parts.join(' · ')} (${errors})` : parts.join(' · '),
+        variant: errors ? 'destructive' : 'default',
       });
     } catch (err) {
       toast({
@@ -236,6 +299,47 @@ const DomainHub = () => {
     }
   };
 
+  const handleResourceBillingChange = async (
+    resource: HostingResource,
+    status: DomainBillingStatus
+  ) => {
+    try {
+      await updateResourceBillingStatus(resource.id, status);
+      toast({ title: 'Statut facturation mis à jour' });
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Échec',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSaveResource = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingResource) return;
+    const form = new FormData(e.currentTarget);
+    try {
+      await updateResource(editingResource.id, {
+        label: String(form.get('label') || editingResource.label),
+        clientName: String(form.get('clientName') || '') || null,
+        payer: (form.get('payer') as 'agency' | 'client') || editingResource.payer,
+        sellYearly: form.get('sellYearly')
+          ? Number(form.get('sellYearly'))
+          : null,
+        notes: String(form.get('notes') || '') || null,
+      });
+      toast({ title: 'Ressource mise à jour' });
+      setEditingResource(null);
+    } catch (err) {
+      toast({
+        title: 'Erreur',
+        description: err instanceof Error ? err.message : 'Échec',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <ToolLayout tool={tool}>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -245,7 +349,7 @@ const DomainHub = () => {
         <div className="flex gap-3 text-sm">
           <div className="rounded-md border border-border px-3 py-2">
             <span className="text-muted-foreground">Portefeuille</span>
-            <div className="font-mono text-lg">{domains.length}</div>
+            <div className="font-mono text-lg">{domains.length + resources.length}</div>
           </div>
           <div className="rounded-md border border-border px-3 py-2">
             <span className="text-muted-foreground">≤ 60 j</span>
@@ -378,6 +482,16 @@ const DomainHub = () => {
               />
               <select
                 className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+              >
+                <option value="all">Tous les types</option>
+                <option value="domain">Domaines</option>
+                <option value="vps">VPS</option>
+                <option value="hosting">Hébergement</option>
+              </select>
+              <select
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 value={payerFilter}
                 onChange={(e) => setPayerFilter(e.target.value as typeof payerFilter)}
               >
@@ -392,9 +506,9 @@ const DomainHub = () => {
               >
                 <option value="all">Tous les clients</option>
                 <option value="__none__">Sans client</option>
-                {clientOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
+                {clientOptions.map((clientName) => (
+                  <option key={clientName} value={clientName}>
+                    {clientName}
                   </option>
                 ))}
               </select>
@@ -416,7 +530,7 @@ const DomainHub = () => {
                 }}
               >
                 <Plus className="w-4 h-4 mr-1" />
-                Ajouter
+                Ajouter domaine
               </Button>
             </div>
           </div>
@@ -426,15 +540,16 @@ const DomainHub = () => {
           ) : filtered.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
               <Globe className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              Aucun domaine dans le portefeuille.
+              Aucun élément dans le portefeuille. Lancez Sync Hostinger pour importer domaines, VPS et hébergements.
             </div>
           ) : (
             <div className="overflow-x-auto border border-border rounded-lg">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-muted-foreground border-b border-border bg-muted/30">
-                    <th className="px-3 py-2">Domaine</th>
-                    <th className="px-3 py-2">Registrar</th>
+                    <th className="px-3 py-2">Type</th>
+                    <th className="px-3 py-2">Nom</th>
+                    <th className="px-3 py-2">Détail</th>
                     <th className="px-3 py-2">Client</th>
                     <th className="px-3 py-2">Payeur</th>
                     <th className="px-3 py-2">Expiration</th>
@@ -444,42 +559,115 @@ const DomainHub = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((d) => {
-                    const days = daysUntil(d.expiresAt);
-                    const expiryLabel = formatExpiryDate(d.expiresAt);
+                  {filtered.map((row) => {
+                    if (row.rowType === 'domain') {
+                      const d = row.item;
+                      const days = daysUntil(d.expiresAt);
+                      const expiryLabel = formatExpiryDate(d.expiresAt);
+                      return (
+                        <tr
+                          key={`domain-${d.id}`}
+                          className="border-b border-border/40 last:border-0 odd:bg-muted/25 even:bg-transparent hover:bg-muted/40 transition-colors"
+                        >
+                          <td className="px-3 py-2 text-xs text-muted-foreground">Domaine</td>
+                          <td className="px-3 py-2 font-mono">{d.name}</td>
+                          <td className="px-3 py-2">{REGISTRAR_LABELS[d.registrar]}</td>
+                          <td className="px-3 py-2">{d.clientName || '—'}</td>
+                          <td className="px-3 py-2">
+                            {d.payer === 'agency' ? 'Agence' : 'Client'}
+                          </td>
+                          <td
+                            className={cn(
+                              'px-3 py-2 font-mono',
+                              days !== null && days <= 30 && 'text-amber-400',
+                              days !== null && days < 0 && 'text-destructive'
+                            )}
+                          >
+                            {expiryLabel
+                              ? `${expiryLabel}${days !== null ? ` (${days}j)` : ''}`
+                              : '—'}
+                          </td>
+                          <td className="px-3 py-2 font-mono">
+                            {d.sellYearly != null ? `${d.sellYearly} ${d.currency}` : '—'}
+                          </td>
+                          <td className="px-3 py-2">
+                            <select
+                              className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                              value={d.billingStatus}
+                              onChange={(e) =>
+                                handleBillingStatusChange(
+                                  d,
+                                  e.target.value as DomainBillingStatus
+                                )
+                              }
+                            >
+                              {(Object.keys(BILLING_STATUS_LABELS) as DomainBillingStatus[]).map(
+                                (status) => (
+                                  <option key={status} value={status}>
+                                    {BILLING_STATUS_LABELS[status]}
+                                  </option>
+                                )
+                              )}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditing(d);
+                                  setModalOpen(true);
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(d)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    const r = row.item;
+                    const detail = [r.plan, r.hostname, r.ipv4, r.state]
+                      .filter(Boolean)
+                      .join(' · ');
                     return (
                       <tr
-                        key={d.id}
+                        key={`resource-${r.id}`}
                         className="border-b border-border/40 last:border-0 odd:bg-muted/25 even:bg-transparent hover:bg-muted/40 transition-colors"
                       >
-                        <td className="px-3 py-2 font-mono">{d.name}</td>
-                        <td className="px-3 py-2">{REGISTRAR_LABELS[d.registrar]}</td>
-                        <td className="px-3 py-2">{d.clientName || '—'}</td>
-                        <td className="px-3 py-2">
-                          {d.payer === 'agency' ? 'Agence' : 'Client'}
+                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                          {HOSTING_KIND_LABELS[r.kind]}
                         </td>
-                        <td
-                          className={cn(
-                            'px-3 py-2 font-mono',
-                            days !== null && days <= 30 && 'text-amber-400',
-                            days !== null && days < 0 && 'text-destructive'
-                          )}
-                        >
-                          {expiryLabel
-                            ? `${expiryLabel}${days !== null ? ` (${days}j)` : ''}`
-                            : '—'}
+                        <td className="px-3 py-2 font-medium">{r.label}</td>
+                        <td className="px-3 py-2 text-muted-foreground text-xs">{detail || '—'}</td>
+                        <td className="px-3 py-2">{r.clientName || '—'}</td>
+                        <td className="px-3 py-2">
+                          {r.payer === 'agency' ? 'Agence' : 'Client'}
                         </td>
                         <td className="px-3 py-2 font-mono">
-                          {d.sellYearly != null
-                            ? `${d.sellYearly} ${d.currency}`
-                            : '—'}
+                          {formatExpiryDate(r.expiresAt) || '—'}
+                        </td>
+                        <td className="px-3 py-2 font-mono">
+                          {r.sellYearly != null ? `${r.sellYearly} ${r.currency}` : '—'}
                         </td>
                         <td className="px-3 py-2">
                           <select
                             className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                            value={d.billingStatus}
+                            value={r.billingStatus}
                             onChange={(e) =>
-                              handleBillingStatusChange(d, e.target.value as DomainBillingStatus)
+                              handleResourceBillingChange(
+                                r,
+                                e.target.value as DomainBillingStatus
+                              )
                             }
                           >
                             {(Object.keys(BILLING_STATUS_LABELS) as DomainBillingStatus[]).map(
@@ -496,17 +684,14 @@ const DomainHub = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                setEditing(d);
-                                setModalOpen(true);
-                              }}
+                              onClick={() => setEditingResource(r)}
                             >
                               <Pencil className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(d)}
+                              onClick={() => handleDeleteResource(r)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -532,6 +717,55 @@ const DomainHub = () => {
           }}
           onSave={handleSave}
         />
+      )}
+
+      {editingResource && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
+          <form
+            onSubmit={handleSaveResource}
+            className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4 shadow-xl"
+          >
+            <h3 className="font-semibold">Éditer {HOSTING_KIND_LABELS[editingResource.kind]}</h3>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Libellé</label>
+              <Input name="label" defaultValue={editingResource.label} required />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Client</label>
+              <Input name="clientName" defaultValue={editingResource.clientName || ''} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Payeur</label>
+              <select
+                name="payer"
+                defaultValue={editingResource.payer}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="agency">Agence</option>
+                <option value="client">Client</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Revente annuelle</label>
+              <Input
+                name="sellYearly"
+                type="number"
+                step="0.01"
+                defaultValue={editingResource.sellYearly ?? ''}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Notes</label>
+              <Input name="notes" defaultValue={editingResource.notes || ''} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditingResource(null)}>
+                Annuler
+              </Button>
+              <Button type="submit">Enregistrer</Button>
+            </div>
+          </form>
+        </div>
       )}
     </ToolLayout>
   );

@@ -140,6 +140,31 @@ export const domainBillingExportQuerySchema = z.object({
   billingStatus: z.enum(['pending', 'all']).optional().default('pending'),
 });
 
+export const hostingResourceCreateSchema = z.object({
+  kind: z.enum(['vps', 'hosting']),
+  label: z.string().min(1).max(MAX_NAME),
+  provider: z.enum(['hostinger', 'other']).optional().default('hostinger'),
+  externalId: z.string().max(255).optional().nullable(),
+  plan: z.string().max(255).optional().nullable(),
+  hostname: z.string().max(255).optional().nullable(),
+  ipv4: z.string().max(64).optional().nullable(),
+  state: z.string().max(64).optional().nullable(),
+  clientName: z.string().max(MAX_NAME).optional().nullable(),
+  clientEmail: z
+    .union([z.string().email().max(255), z.literal(''), z.null()])
+    .optional(),
+  payer: z.enum(['agency', 'client']).optional().default('agency'),
+  costYearly: z.number().nonnegative().optional().nullable(),
+  sellYearly: z.number().nonnegative().optional().nullable(),
+  currency: z.string().min(1).max(10).optional().default('EUR'),
+  expiresAt: z.string().max(50).optional().nullable(),
+  notes: z.string().max(MAX_DESCRIPTION).optional().nullable(),
+  notificationsEnabled: z.boolean().optional().default(true),
+  billingStatus: z.enum(['pending', 'invoiced', 'paid', 'n/a']).optional().default('n/a'),
+});
+
+export const hostingResourceUpdateSchema = hostingResourceCreateSchema.partial().omit({ kind: true });
+
 export function validateBody<T>(schema: ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
