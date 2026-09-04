@@ -16,6 +16,7 @@ import { compareDomains } from '../lib/registrars/compare';
 import { getCredentialsRow, toRegistrarCredentials } from '../lib/domainHubCredentials';
 import { buildBillingCsv, filterBillingRows, type BillingExportRow } from '../lib/domainBillingExport';
 import {
+  fetchAllHostingerPages,
   fetchHostingerJson,
   listHostingResources,
   serializeHostingResource,
@@ -295,7 +296,7 @@ router.put('/resources/:id', validateBody(hostingResourceUpdateSchema), (req, re
     const payer = body.payer ?? existing.payer;
     const billingStatus =
       body.billingStatus ??
-      (body.payer !== undefined
+      (body.payer !== undefined && body.payer !== existing.payer
         ? payer === 'agency'
           ? 'n/a'
           : 'pending'
@@ -577,10 +578,11 @@ router.post('/sync/hostinger', async (req, res) => {
     }
 
     // Hosting orders (1 row per account)
-    const ordersRes = await fetchHostingerJson<
-      | Array<{ id?: number; plan?: { name?: string }; status?: string }>
-      | { data?: Array<{ id?: number; plan?: { name?: string }; status?: string }> }
-    >(token, '/api/hosting/v1/orders?per_page=100');
+    const ordersRes = await fetchAllHostingerPages<{
+      id?: number;
+      plan?: { name?: string };
+      status?: string;
+    }>(token, '/api/hosting/v1/orders?per_page=100');
 
     if (!ordersRes.ok) {
       report.hosting.error = `HTTP ${ordersRes.status}`;
@@ -636,10 +638,15 @@ router.get('/export/billing.csv', (req, res) => {
     }
 
     const rows = db.prepare(`
-      SELECT name, registrar, client_name, client_email, payer,
+      SELECT 'domain' AS item_type, name, registrar, client_name, client_email, payer,
              sell_yearly, cost_yearly, currency, expires_at, billing_status
       FROM domains WHERE user_id = ?
-    `).all(req.user!.id) as BillingExportRow[];
+      UNION ALL
+      SELECT kind AS item_type, label AS name, provider AS registrar,
+             client_name, client_email, payer, sell_yearly, cost_yearly,
+             currency, expires_at, billing_status
+      FROM hosting_resources WHERE user_id = ?
+    `).all(req.user!.id, req.user!.id) as BillingExportRow[];
 
     const filtered = filterBillingRows(rows, parsed.data);
     const csv = buildBillingCsv(filtered);
