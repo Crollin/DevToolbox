@@ -225,7 +225,7 @@ export async function listCloudflareRegistrarDomains(
 
     const info = json.result_info;
     const total = info?.total_count;
-    if (total != null && page * (info.per_page ?? perPage) >= total) break;
+    if (total != null && page * (info?.per_page ?? perPage) >= total) break;
     if (json.result.length < perPage) break;
     page += 1;
     if (page > 100) break;
