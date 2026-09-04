@@ -131,3 +131,105 @@ export async function checkCloudflareOffer(
   const map = await checkCloudflareOffers([domain], creds);
   return map.get(domain) ?? errorOffer('cloudflare', 'Réponse vide');
 }
+
+export type CloudflareRegistrarDomain = {
+  name: string;
+  expiresAt: string | null;
+  externalId: string | null;
+};
+
+interface CfRegistrarDomainItem {
+  id?: string;
+  name?: string;
+  expires_at?: string | null;
+  current_registrar?: string | null;
+}
+
+function resolveRegistrarDomainName(item: CfRegistrarDomainItem): string | null {
+  const fromName = (item.name || '').trim().toLowerCase();
+  if (fromName.includes('.')) return fromName;
+  const fromId = (item.id || '').trim().toLowerCase();
+  if (fromId.includes('.')) return fromId;
+  return null;
+}
+
+function isCloudflareRegistrar(value: string | null | undefined): boolean {
+  return (value || '').toLowerCase().includes('cloudflare');
+}
+
+/**
+ * Liste les domaines du portefeuille Cloudflare Registrar (pagination).
+ * Filtre current_registrar contenant "cloudflare".
+ */
+export async function listCloudflareRegistrarDomains(
+  creds: RegistrarCredentials
+): Promise<CloudflareRegistrarDomain[]> {
+  const token = creds.cloudflareApiToken;
+  const accountId = creds.cloudflareAccountId;
+
+  if (!token || !accountId) {
+    throw new Error('Clés Cloudflare non configurées — ajoutez-les dans Mon compte → Domain Hub');
+  }
+
+  const domains: CloudflareRegistrarDomain[] = [];
+  let page = 1;
+  const perPage = 50;
+
+  for (;;) {
+    const url = new URL(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/registrar/domains`
+    );
+    url.searchParams.set('page', String(page));
+    url.searchParams.set('per_page', String(perPage));
+
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status}${text ? `: ${text.slice(0, 200)}` : ''}`);
+    }
+
+    const json = (await res.json()) as {
+      success?: boolean;
+      result?: CfRegistrarDomainItem[];
+      errors?: Array<{ message?: string }>;
+      result_info?: {
+        page?: number;
+        per_page?: number;
+        total_count?: number;
+        count?: number;
+      };
+    };
+
+    if (!json.success || !Array.isArray(json.result)) {
+      const msg = json.errors?.[0]?.message || 'Réponse Cloudflare invalide';
+      throw new Error(msg);
+    }
+
+    for (const item of json.result) {
+      if (!isCloudflareRegistrar(item.current_registrar)) continue;
+      const name = resolveRegistrarDomainName(item);
+      if (!name) continue;
+      domains.push({
+        name,
+        expiresAt: item.expires_at || null,
+        externalId: item.id != null ? String(item.id) : null,
+      });
+    }
+
+    const info = json.result_info;
+    const total = info?.total_count;
+    if (total != null && page * (info.per_page ?? perPage) >= total) break;
+    if (json.result.length < perPage) break;
+    page += 1;
+    if (page > 100) break;
+  }
+
+  return domains;
+}

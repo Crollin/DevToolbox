@@ -68,6 +68,7 @@ const DomainHub = () => {
     updateResource,
     deleteResource,
     syncHostinger,
+    syncCloudflare,
     exportBillingCsv,
     updateBillingStatus,
     updateResourceBillingStatus,
@@ -237,7 +238,7 @@ const DomainHub = () => {
     }
   };
 
-  const handleSync = async () => {
+  const handleSyncHostinger = async () => {
     try {
       const result = await syncHostinger();
       const parts = [
@@ -260,6 +261,25 @@ const DomainHub = () => {
           err instanceof Error
             ? err.message
             : 'Configurez votre token Hostinger dans Mon compte → Domain Hub.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSyncCloudflare = async () => {
+    try {
+      const result = await syncCloudflare();
+      toast({
+        title: 'Sync Cloudflare',
+        description: `${result.created} créés / ${result.updated} mis à jour (${result.synced} domaines)`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Sync impossible',
+        description:
+          err instanceof Error
+            ? err.message
+            : 'Configurez vos clés Cloudflare dans Mon compte → Domain Hub.',
         variant: 'destructive',
       });
     }
@@ -361,7 +381,8 @@ const DomainHub = () => {
         <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm mb-4">
           <p>
             Impossible de vérifier les identifiants registrar. Vous pouvez quand même utiliser le
-            portefeuille ; la comparaison et la sync Hostinger nécessitent des clés dans Mon compte.
+            portefeuille ; la comparaison et les syncs Hostinger / Cloudflare nécessitent des clés dans
+            Mon compte.
           </p>
         </div>
       )}
@@ -588,7 +609,11 @@ const DomainHub = () => {
                 <Download className="w-4 h-4 mr-1" />
                 Export CSV facturation
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSync}>
+              <Button variant="outline" size="sm" onClick={handleSyncCloudflare}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Sync Cloudflare
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSyncHostinger}>
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Sync Hostinger
               </Button>
@@ -610,7 +635,8 @@ const DomainHub = () => {
           ) : filtered.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
               <Globe className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              Aucun élément dans le portefeuille. Lancez Sync Hostinger pour importer domaines, VPS et hébergements.
+              Aucun élément dans le portefeuille. Lancez Sync Cloudflare (domaines Registrar) ou Sync
+              Hostinger (domaines, VPS et hébergements) pour importer.
             </div>
           ) : (
             <div className="overflow-x-auto border border-border rounded-lg">

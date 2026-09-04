@@ -1126,7 +1126,8 @@ const Account = () => {
                         )}
                       </CardTitle>
                       <CardDescription>
-                        Jeton API et identifiant de compte pour comparer et commander des domaines via Cloudflare Registrar.
+                        Jeton API et identifiant de compte pour comparer, synchroniser le portefeuille
+                        Registrar et commander des domaines via Cloudflare.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -1143,7 +1144,8 @@ const Account = () => {
                           placeholder="••••••••"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Créez un jeton dans le tableau de bord Cloudflare (API Tokens). Laissez « *** » pour conserver le jeton actuel.
+                          Créez un jeton avec permissions Registrar dans le tableau de bord Cloudflare
+                          (API Tokens). Laissez « *** » pour conserver le jeton actuel.
                         </p>
                       </div>
                       <div className="space-y-2">

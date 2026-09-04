@@ -21,6 +21,12 @@ export type HostingerSyncReport = {
   hosting: { synced: number; updated: number; created: number; error: string | null };
 };
 
+export type CloudflareSyncReport = {
+  synced: number;
+  updated: number;
+  created: number;
+};
+
 export function useDomainPortfolio() {
   const { isAuthenticated } = useAuth();
   const [domains, setDomains] = useState<PortfolioDomain[]>([]);
@@ -85,6 +91,12 @@ export function useDomainPortfolio() {
 
   const syncHostinger = useCallback(async () => {
     const result = await api.post<HostingerSyncReport>('/domains/sync/hostinger');
+    await load();
+    return result;
+  }, [load]);
+
+  const syncCloudflare = useCallback(async () => {
+    const result = await api.post<CloudflareSyncReport>('/domains/sync/cloudflare');
     await load();
     return result;
   }, [load]);
@@ -155,6 +167,7 @@ export function useDomainPortfolio() {
     updateResource,
     deleteResource,
     syncHostinger,
+    syncCloudflare,
     updateBillingStatus,
     updateResourceBillingStatus,
     exportBillingCsv,

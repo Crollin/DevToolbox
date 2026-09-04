@@ -13,6 +13,7 @@ import {
   hostingResourceUpdateSchema,
 } from '../lib/validate';
 import { compareDomains } from '../lib/registrars/compare';
+import { listCloudflareRegistrarDomains } from '../lib/registrars/cloudflare';
 import { getCredentialsRow, toRegistrarCredentials } from '../lib/domainHubCredentials';
 import { buildBillingCsv, filterBillingRows, type BillingExportRow } from '../lib/domainBillingExport';
 import {
@@ -624,6 +625,66 @@ router.post('/sync/hostinger', async (req, res) => {
   } catch (error) {
     console.error('Erreur sync hostinger:', error);
     res.status(500).json({ error: 'Erreur lors de la synchronisation Hostinger' });
+  }
+});
+
+router.post('/sync/cloudflare', async (req, res) => {
+  try {
+    const creds = toRegistrarCredentials(getCredentialsRow(req.user!.id));
+    if (!creds.cloudflareApiToken || !creds.cloudflareAccountId) {
+      return res.status(400).json({
+        error:
+          'Clés Cloudflare non configurées — ajoutez jeton et Account ID dans Mon compte → Domain Hub',
+      });
+    }
+
+    const userId = req.user!.id;
+    const now = new Date().toISOString();
+    let synced = 0;
+    let updated = 0;
+    let created = 0;
+
+    let items;
+    try {
+      items = await listCloudflareRegistrarDomains(creds);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur Cloudflare';
+      return res.status(502).json({ error: `Sync Cloudflare échouée: ${message}` });
+    }
+
+    synced = items.length;
+    for (const item of items) {
+      const name = item.name;
+      const expiresAt = item.expiresAt;
+      const externalId = item.externalId;
+      const existing = db
+        .prepare('SELECT id FROM domains WHERE user_id = ? AND name = ?')
+        .get(userId, name) as { id: string } | undefined;
+
+      if (existing) {
+        db.prepare(`
+          UPDATE domains SET expires_at = COALESCE(?, expires_at), external_id = COALESCE(?, external_id),
+            registrar = 'cloudflare', updated_at = ?
+          WHERE id = ?
+        `).run(expiresAt, externalId, now, existing.id);
+        updated += 1;
+      } else {
+        db.prepare(`
+          INSERT INTO domains (
+            id, user_id, name, registrar, client_name, client_email, payer,
+            cost_yearly, sell_yearly, currency, expires_at, auto_renew, notes,
+            external_id, notifications_enabled, billing_status, last_billed_at,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, 'cloudflare', NULL, NULL, 'agency', NULL, NULL, 'EUR', ?, 0, NULL, ?, 1, 'n/a', NULL, ?, ?)
+        `).run(uuidv4(), userId, name, expiresAt, externalId, now, now);
+        created += 1;
+      }
+    }
+
+    res.json({ synced, updated, created });
+  } catch (error) {
+    console.error('Erreur sync cloudflare:', error);
+    res.status(500).json({ error: 'Erreur lors de la synchronisation Cloudflare' });
   }
 });
 
