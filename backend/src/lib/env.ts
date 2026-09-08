@@ -27,6 +27,9 @@ const envSchema = z.object({
   OVH_CONSUMER_KEY: z.string().optional(),
   OVH_SUBSIDIARY: z.string().optional(),
   DOMAIN_USD_EUR_RATE: z.string().optional(),
+  /** File Converter — instance Transmute (optionnel). */
+  TRANSMUTE_BASE_URL: z.string().optional(),
+  TRANSMUTE_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

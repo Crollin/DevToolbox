@@ -7,3 +7,10 @@ function parseEnvBool(value: string | undefined): boolean {
 export function isDomainHubEnabled(): boolean {
   return parseEnvBool(process.env.DOMAIN_HUB_ENABLED);
 }
+
+/** Active File Converter quand l’URL et la clé API Transmute sont définies. */
+export function isTransmuteEnabled(): boolean {
+  const baseUrl = process.env.TRANSMUTE_BASE_URL?.trim();
+  const apiKey = process.env.TRANSMUTE_API_KEY?.trim();
+  return Boolean(baseUrl && apiKey);
+}

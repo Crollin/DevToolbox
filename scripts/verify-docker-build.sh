@@ -30,6 +30,8 @@ REQUIRED_FILES=(
     "vite.config.ts"
     "src/pages/tools/ImageResizer.tsx"
     "src/hooks/useImageResizer.ts"
+    "src/pages/tools/FileConverter.tsx"
+    "src/hooks/useFileConverter.ts"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do

@@ -20,10 +20,11 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
 
     const loadFlags = async () => {
       try {
-        const data = await api.get<{ domainHubEnabled: boolean }>('/config');
+        const data = await api.get<{ domainHubEnabled: boolean; transmuteEnabled?: boolean }>('/config');
         if (!cancelled) {
           setFlags({
             domainHubEnabled: Boolean(data.domainHubEnabled),
+            transmuteEnabled: Boolean(data.transmuteEnabled),
           });
         }
       } catch {

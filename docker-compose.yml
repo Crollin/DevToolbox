@@ -43,6 +43,9 @@ services:
       OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
       OVH_SUBSIDIARY: ${OVH_SUBSIDIARY:-FR}
       DOMAIN_USD_EUR_RATE: ${DOMAIN_USD_EUR_RATE:-}
+      # File Converter — Transmute (optionnel ; activer via docker-compose.transmute.yml en local)
+      TRANSMUTE_BASE_URL: ${TRANSMUTE_BASE_URL:-}
+      TRANSMUTE_API_KEY: ${TRANSMUTE_API_KEY:-}
     volumes:
       - devtoolbox_data:/app/data
     mem_limit: 512m

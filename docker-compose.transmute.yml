@@ -1,0 +1,39 @@
+# Overlay optionnel — instance Transmute locale pour File Converter.
+# Usage :
+#   docker compose -f docker-compose.yml -f docker-compose.transmute.yml up -d
+# Puis dans le backend :
+#   TRANSMUTE_BASE_URL=http://transmute:3313
+#   TRANSMUTE_API_KEY=<clé générée dans l’UI Transmute après bootstrap>
+#
+# Accès UI Transmute (local) : http://localhost:3313
+
+services:
+  transmute:
+    image: ghcr.io/transmute-app/transmute:main
+    container_name: transmute
+    restart: unless-stopped
+    ports:
+      - "${TRANSMUTE_HOST_PORT:-3313}:3313"
+    volumes:
+      - transmute_data:/app/data
+    environment:
+      AUTH_SECRET_KEY: ${TRANSMUTE_AUTH_SECRET_KEY:-change-me-to-a-long-random-string}
+      AUTH_ACCESS_TOKEN_EXPIRE_MINUTES: ${TRANSMUTE_AUTH_EXPIRE_MINUTES:-120}
+      PORT: 3313
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3313/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  backend:
+    environment:
+      TRANSMUTE_BASE_URL: ${TRANSMUTE_BASE_URL:-http://transmute:3313}
+      TRANSMUTE_API_KEY: ${TRANSMUTE_API_KEY:-}
+    depends_on:
+      transmute:
+        condition: service_started
+
+volumes:
+  transmute_data:

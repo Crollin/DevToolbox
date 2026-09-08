@@ -6,7 +6,7 @@ import db from './db/database';
 import { initializeDatabase } from './db/database';
 import { initializeDefaultSnippets } from './db/initSnippets';
 import { validateEnv } from './lib/env';
-import { isDomainHubEnabled } from './lib/features';
+import { isDomainHubEnabled, isTransmuteEnabled } from './lib/features';
 import configRoutes from './routes/config';
 import snippetsRoutes from './routes/snippets';
 import hooksRoutes from './routes/hooks';
@@ -24,6 +24,7 @@ import tasksRoutes from './routes/tasks';
 import toolsRoutes from './routes/tools';
 import domainsRoutes from './routes/domains';
 import kbRoutes from './routes/kb';
+import transmuteRoutes from './routes/transmute';
 
 validateEnv();
 
@@ -72,6 +73,9 @@ app.use('/api/tools', toolsRoutes);
 app.use('/api/kb', kbRoutes);
 if (isDomainHubEnabled()) {
   app.use('/api/domains', domainsRoutes);
+}
+if (isTransmuteEnabled()) {
+  app.use('/api/transmute', transmuteRoutes);
 }
 
 // Route de santé (vérifie la connexion à la base de données)

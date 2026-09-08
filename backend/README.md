@@ -192,12 +192,21 @@ Les clés API registrar (Cloudflare, Hostinger, OVH) sont **par utilisateur** : 
 - `GET /api/domains/export/billing.csv` — Export CSV facturation (filtres : `payer`, `days`, `billingStatus`)
 - `PATCH /api/domains/:id/billing` — Met à jour le statut facturation (`pending` | `invoiced` | `paid` | `n/a`)
 
+### Transmute (File Converter) — authentification JWT
+
+**Module désactivé tant que** `TRANSMUTE_BASE_URL` **et** `TRANSMUTE_API_KEY` ne sont pas définis. Le frontend lit `transmuteEnabled` via `GET /api/config`. Voir [docs/integrations/transmute.md](../docs/integrations/transmute.md).
+
+- `GET /api/transmute/status` — Santé (reachability Transmute)
+- `POST /api/transmute/files` — Upload multipart (`file`, max 100 Mo)
+- `POST /api/transmute/conversions` — Body `{ fileId, outputFormat }`
+- `GET /api/transmute/files/:id/download` — Téléchargement du fichier converti
+
 ### Health Check
 - `GET /health` - Vérifie l'état du serveur
 
 ### Configuration (public)
 - `GET /api/config` - Feature flags instance (sans authentification)
-  - Retourne : `{ domainHubEnabled: boolean }`
+  - Retourne : `{ domainHubEnabled: boolean, transmuteEnabled: boolean }`
 
 ## Variables d'environnement
 
@@ -214,6 +223,8 @@ Les clés API registrar (Cloudflare, Hostinger, OVH) sont **par utilisateur** : 
 - `DB_PATH` - Chemin vers le fichier SQLite (défaut: ./data/devtoolbox.db)
 - `DOMAIN_HUB_ENABLED` - Active le module Domain Hub (défaut : désactivé). Les clés registrar se configurent par utilisateur dans Mon compte → Domain Hub, pas via l'environnement.
 - `DOMAIN_USD_EUR_RATE` - Taux de conversion USD→EUR pour le comparateur Domain Hub (défaut : `0.92`)
+- `TRANSMUTE_BASE_URL` - URL de l’instance Transmute (ex. `http://localhost:3313`)
+- `TRANSMUTE_API_KEY` - Clé API Transmute (Bearer) ; active File Converter avec `TRANSMUTE_BASE_URL`
 
 ### Configuration Email (Optionnelle)
 

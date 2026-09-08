@@ -29,6 +29,7 @@ const MarkdownEditor = lazy(() => import("./pages/tools/MarkdownEditor"));
 const WPHookReference = lazy(() => import("./pages/tools/WPHookReference"));
 const WPQueryBuilder = lazy(() => import("./pages/tools/WPQueryBuilder"));
 const ImageResizer = lazy(() => import("./pages/tools/ImageResizer"));
+const FileConverter = lazy(() => import("./pages/tools/FileConverter"));
 const TaskReminder = lazy(() => import("./pages/tools/TaskReminder"));
 const KnowledgeBase = lazy(() => import("./pages/tools/KnowledgeBase"));
 const DomainHub = lazy(() => import("./pages/tools/DomainHub"));
@@ -57,6 +58,13 @@ function DomainHubRoute() {
   if (isLoading) return <RouteFallback />;
   if (!domainHubEnabled) return <Navigate to="/" replace />;
   return <DomainHub />;
+}
+
+function FileConverterRoute() {
+  const { transmuteEnabled, isLoading } = useFeatureFlags();
+  if (isLoading) return <RouteFallback />;
+  if (!transmuteEnabled) return <Navigate to="/" replace />;
+  return <FileConverter />;
 }
 
 const App = () => (
@@ -89,6 +97,7 @@ const App = () => (
                 <Route path="/tools/wp-query-builder" element={<ProtectedRoute><WPQueryBuilder /></ProtectedRoute>} />
                 <Route path="/tools/markdown-editor" element={<ProtectedRoute><MarkdownEditor /></ProtectedRoute>} />
                 <Route path="/tools/image-resizer" element={<ProtectedRoute><ImageResizer /></ProtectedRoute>} />
+                <Route path="/tools/file-converter" element={<ProtectedRoute><FileConverterRoute /></ProtectedRoute>} />
                 <Route path="/tools/task-reminder" element={<ProtectedRoute><TaskReminder /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
                 <Route path="/tools/knowledge-base/new" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />

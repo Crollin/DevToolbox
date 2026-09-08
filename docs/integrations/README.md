@@ -6,6 +6,7 @@ DevToolbox expose une API REST authentifiée (JWT ou Personal Access Token `dt_.
 
 - **[Personal Access Tokens (Accès API)](personal-access-tokens.md)** — création des tokens, scopes, révocation, exemples `curl`
 - **[Notifications Telegram](telegram.md)** — configurer le bot, obtenir son Chat ID, activer les rappels via Telegram
+- **[File Converter / Transmute](transmute.md)** — conversion multi-formats via instance Transmute self-hosted
 
 ## Clients documentés
 

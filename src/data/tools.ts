@@ -184,6 +184,16 @@ export const tools: Tool[] = [
     color: "amber",
   },
   {
+    id: "file-converter",
+    name: "File Converter",
+    description: "Conversion multi-formats (images, docs, audio, vidéo) via Transmute self-hosted.",
+    category: "utilitaires",
+    icon: "RefreshCw",
+    url: "#",
+    tags: ["conversion", "transmute", "fichiers", "webp", "pdf", "vidéo"],
+    color: "amber",
+  },
+  {
     id: "wp-config-generator",
     name: "WP Config Generator",
     description: "Génère des extraits wp-config.php (debug, Redis, multisite, préfixe tables).",

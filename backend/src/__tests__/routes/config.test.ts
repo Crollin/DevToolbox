@@ -1,14 +1,17 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import request from 'supertest';
 import app from '../../app';
-import { isDomainHubEnabled } from '../../lib/features';
+import { isDomainHubEnabled, isTransmuteEnabled } from '../../lib/features';
 
 describe('Config API', () => {
-  it('GET /api/config retourne domainHubEnabled sans authentification', async () => {
+  it('GET /api/config retourne les feature flags sans authentification', async () => {
     const res = await request(app).get('/api/config');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ domainHubEnabled: true });
+    expect(res.body).toEqual({
+      domainHubEnabled: true,
+      transmuteEnabled: true,
+    });
   });
 });
 
@@ -42,6 +45,38 @@ describe('isDomainHubEnabled', () => {
 
     process.env.DOMAIN_HUB_ENABLED = '0';
     expect(isDomainHubEnabled()).toBe(false);
+  });
+});
+
+describe('isTransmuteEnabled', () => {
+  const originalUrl = process.env.TRANSMUTE_BASE_URL;
+  const originalKey = process.env.TRANSMUTE_API_KEY;
+
+  afterEach(() => {
+    if (originalUrl === undefined) delete process.env.TRANSMUTE_BASE_URL;
+    else process.env.TRANSMUTE_BASE_URL = originalUrl;
+    if (originalKey === undefined) delete process.env.TRANSMUTE_API_KEY;
+    else process.env.TRANSMUTE_API_KEY = originalKey;
+  });
+
+  it('retourne false si URL ou clé manquante', () => {
+    delete process.env.TRANSMUTE_BASE_URL;
+    delete process.env.TRANSMUTE_API_KEY;
+    expect(isTransmuteEnabled()).toBe(false);
+
+    process.env.TRANSMUTE_BASE_URL = 'http://localhost:3313';
+    delete process.env.TRANSMUTE_API_KEY;
+    expect(isTransmuteEnabled()).toBe(false);
+
+    delete process.env.TRANSMUTE_BASE_URL;
+    process.env.TRANSMUTE_API_KEY = 'tm_x';
+    expect(isTransmuteEnabled()).toBe(false);
+  });
+
+  it('retourne true quand URL et clé sont définies', () => {
+    process.env.TRANSMUTE_BASE_URL = 'http://localhost:3313';
+    process.env.TRANSMUTE_API_KEY = 'tm_x';
+    expect(isTransmuteEnabled()).toBe(true);
   });
 });
 
