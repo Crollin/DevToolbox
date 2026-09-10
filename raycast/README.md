@@ -52,6 +52,8 @@ npm run dev
 
 Dans Raycast : **Manage Extensions → + → Import Extension** → dossier `raycast`.
 
+Après mise à jour du code, relancez `npm run dev` (ou réimportez l’extension) pour recharger Create Task — l’ancien formulaire minimal ne doit plus apparaître.
+
 ## 3. Configurer
 
 Préférences de l’extension :

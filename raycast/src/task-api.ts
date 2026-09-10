@@ -2,6 +2,8 @@ import { request } from "./api";
 
 export type TaskStatus = "pending" | "in_progress" | "completed";
 
+export type NotificationChannel = "ntfy" | "email" | "telegram";
+
 export interface Task {
   id: string;
   title: string;
@@ -11,7 +13,7 @@ export interface Task {
   link?: string;
   tags?: string[];
   priority?: "low" | "normal" | "high" | "urgent";
-  notificationChannels?: Array<"ntfy" | "email" | "telegram">;
+  notificationChannels?: NotificationChannel[];
   status: TaskStatus;
   reminderDatetime?: string;
 }
@@ -24,7 +26,7 @@ export interface TaskInput {
   link?: string;
   tags?: string[];
   priority?: "low" | "normal" | "high" | "urgent";
-  notificationChannels?: Array<"ntfy" | "email" | "telegram">;
+  notificationChannels?: NotificationChannel[];
   reminderDays?: number[];
   reminderDatetime?: string;
 }
@@ -66,4 +68,15 @@ export function updateTaskStatus(id: string, status: TaskStatus) {
     method: "PATCH",
     body: JSON.stringify({ status }),
   }).then((data) => data.task);
+}
+
+export function getNotificationDefaults() {
+  return request<{ notificationChannels: NotificationChannel[] }>(
+    "/tasks/notification-defaults",
+  ).then((data) =>
+    (data.notificationChannels ?? []).filter(
+      (channel): channel is NotificationChannel =>
+        channel === "ntfy" || channel === "email" || channel === "telegram",
+    ),
+  );
 }
