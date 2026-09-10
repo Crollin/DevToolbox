@@ -10,26 +10,47 @@ import {
 import {
   createTask,
   createTaskClient,
+  getNotificationDefaults,
   listTaskClients,
+  NotificationChannel,
   TaskClient,
 } from "./task-api";
 
-type Channel = "ntfy" | "email" | "telegram";
-
-const channelFields: Array<{ id: Channel; label: string }> = [
+const channelFields: Array<{ id: NotificationChannel; label: string }> = [
   { id: "email", label: "Email" },
   { id: "telegram", label: "Telegram" },
   { id: "ntfy", label: "Ntfy" },
 ];
 
+const reminderDayOptions = [
+  { id: 7, label: "7 jours avant" },
+  { id: 3, label: "3 jours avant" },
+  { id: 1, label: "1 jour avant" },
+  { id: 0, label: "Le jour même" },
+] as const;
+
 export default function CreateTask() {
   const [clients, setClients] = useState<TaskClient[]>([]);
+  const [defaultChannels, setDefaultChannels] = useState<NotificationChannel[]>(
+    [],
+  );
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    listTaskClients()
-      .then(setClients)
-      .catch(() => undefined);
+    let cancelled = false;
+    Promise.all([
+      listTaskClients().catch(() => [] as TaskClient[]),
+      getNotificationDefaults().catch(() => [] as NotificationChannel[]),
+    ]).then(([nextClients, nextChannels]) => {
+      if (cancelled) return;
+      setClients(nextClients);
+      setDefaultChannels(nextChannels);
+      setIsBootstrapping(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function formatDateOnly(date: Date) {
@@ -69,16 +90,19 @@ export default function CreateTask() {
         ]);
       }
 
-      const reminderDays = [7, 3, 1].filter(
-        (days) => values[`reminder${days}`] === true,
-      );
+      const reminderDays = reminderDayOptions
+        .map((option) => option.id)
+        .filter((days) => values[`reminder${days}`] === true);
+
       const tags = String(values.tags ?? "")
         .split(",")
         .map((tag) => tag.trim().replace(/^#/, ""))
         .filter(Boolean);
+
       const notificationChannels = channelFields
         .filter(({ id }) => values[`channel-${id}`] === true)
         .map(({ id }) => id);
+
       const reminderDatetime = values.reminderDatetime;
 
       await createTask({
@@ -110,6 +134,10 @@ export default function CreateTask() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (isBootstrapping) {
+    return <Form isLoading />;
   }
 
   return (
@@ -170,19 +198,24 @@ export default function CreateTask() {
       <Form.TextField id="link" title="Lien" placeholder="https://..." />
 
       <Form.Separator />
-      <Form.Description text="Canaux de notification — laissez tout décoché pour utiliser la configuration du compte." />
+      <Form.Description text="Canaux de notification — préremplis avec la config du compte. Décochez tout pour laisser le backend appliquer les défauts." />
       {channelFields.map((channel) => (
         <Form.Checkbox
           key={channel.id}
           id={`channel-${channel.id}`}
           label={channel.label}
+          defaultValue={defaultChannels.includes(channel.id)}
         />
       ))}
 
       <Form.Separator />
-      <Form.Checkbox id="reminder7" label="7 jours avant" />
-      <Form.Checkbox id="reminder3" label="3 jours avant" />
-      <Form.Checkbox id="reminder1" label="1 jour avant" />
+      {reminderDayOptions.map((option) => (
+        <Form.Checkbox
+          key={option.id}
+          id={`reminder${option.id}`}
+          label={option.label}
+        />
+      ))}
       <Form.DatePicker
         id="reminderDatetime"
         title="Rappel à une date/heure précise"
