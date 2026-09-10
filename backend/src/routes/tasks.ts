@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { authenticateTokenOrPersonalAccessToken } from '../middleware/auth';
 import { safeJsonParse } from '../lib/json';
 import { removeTaskUploadDir } from '../lib/taskAttachments';
+import { getOrCreateNtfyConfig } from '../lib/ntfyConfig';
 import taskAttachmentsRouter from './taskAttachments';
 
 const router = express.Router();
@@ -119,6 +120,17 @@ router.put('/clients/:id', (req, res) => {
   if (result.changes === 0) return res.status(404).json({ error: 'Client non trouvé' });
   const client = db.prepare('SELECT id, name, color FROM task_clients WHERE id = ?').get(req.params.id);
   res.json({ client });
+});
+
+// GET /api/tasks/notification-defaults — canaux compte (compatible PAT scope tasks)
+router.get('/notification-defaults', (req, res) => {
+  try {
+    const config = getOrCreateNtfyConfig(req.user!.id);
+    res.json({ notificationChannels: config.notificationChannels ?? [] });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des canaux de notification:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des canaux de notification' });
+  }
 });
 
 router.use('/:taskId/attachments', taskAttachmentsRouter);

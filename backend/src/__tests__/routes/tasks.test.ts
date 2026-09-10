@@ -50,6 +50,23 @@ describe('Tasks API', () => {
     expect(res.body.tasks).toBeDefined();
   });
 
+  it('GET /api/tasks/notification-defaults requiert une authentification', async () => {
+    const res = await request(app).get('/api/tasks/notification-defaults');
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/tasks/notification-defaults retourne les canaux', async () => {
+    const res = await request(app)
+      .get('/api/tasks/notification-defaults')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.notificationChannels)).toBe(true);
+    for (const channel of res.body.notificationChannels) {
+      expect(['ntfy', 'email', 'telegram']).toContain(channel);
+    }
+  });
+
   it('POST /api/tasks crée une tâche', async () => {
     const res = await request(app)
       .post('/api/tasks')
