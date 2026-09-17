@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { WPCLICommand, DifficultyLevel } from "@/types/wpcli";
+import { Plus, Trash2 } from "lucide-react";
+import { WPCLICommand, WPCLIExample, DifficultyLevel } from "@/types/wpcli";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,19 @@ interface CommandEditorProps {
   onAddCategory: (category: string) => void;
 }
 
+const emptyForm = (categories: string[]) => ({
+  command: "",
+  description: "",
+  example: "",
+  examples: [] as WPCLIExample[],
+  options: "",
+  notes: "",
+  category: categories[0] || "",
+  difficulty: "débutant" as DifficultyLevel,
+  tags: [] as string[],
+  isFavorite: false,
+});
+
 const CommandEditor = ({
   command,
   categories,
@@ -36,49 +50,55 @@ const CommandEditor = ({
   onSave,
   onAddCategory,
 }: CommandEditorProps) => {
-  const [formData, setFormData] = useState({
-    command: "",
-    description: "",
-    example: "",
-    options: "",
-    notes: "",
-    category: categories[0] || "",
-    difficulty: "débutant" as DifficultyLevel,
-    isFavorite: false,
-  });
-
+  const [formData, setFormData] = useState(() => emptyForm(categories));
+  const [tagsInput, setTagsInput] = useState("");
   const [newCategory, setNewCategory] = useState("");
 
   useEffect(() => {
     if (command) {
+      const examples =
+        command.examples?.length > 0
+          ? command.examples
+          : command.example
+            ? [{ title: "Exemple", code: command.example }]
+            : [];
       setFormData({
         command: command.command,
         description: command.description,
         example: command.example,
+        examples,
         options: command.options,
         notes: command.notes,
         category: command.category,
         difficulty: command.difficulty,
+        tags: command.tags || [],
         isFavorite: command.isFavorite,
       });
+      setTagsInput((command.tags || []).join(", "));
     } else {
-      setFormData({
-        command: "",
-        description: "",
-        example: "",
-        options: "",
-        notes: "",
-        category: categories[0] || "",
-        difficulty: "débutant",
-        isFavorite: false,
-      });
+      setFormData(emptyForm(categories));
+      setTagsInput("");
     }
   }, [command, categories, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.command.trim() || !formData.description.trim()) return;
-    onSave(formData);
+
+    const tags = tagsInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const examples = formData.examples.filter((ex) => ex.code.trim());
+    const example = formData.example || examples[0]?.code || "";
+
+    onSave({
+      ...formData,
+      tags,
+      examples,
+      example,
+    });
     onClose();
   };
 
@@ -88,6 +108,27 @@ const CommandEditor = ({
       setFormData((prev) => ({ ...prev, category: newCategory.trim() }));
       setNewCategory("");
     }
+  };
+
+  const updateExample = (index: number, patch: Partial<WPCLIExample>) => {
+    setFormData((prev) => ({
+      ...prev,
+      examples: prev.examples.map((ex, i) => (i === index ? { ...ex, ...patch } : ex)),
+    }));
+  };
+
+  const addExample = () => {
+    setFormData((prev) => ({
+      ...prev,
+      examples: [...prev.examples, { title: `Exemple ${prev.examples.length + 1}`, code: "" }],
+    }));
+  };
+
+  const removeExample = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      examples: prev.examples.filter((_, i) => i !== index),
+    }));
   };
 
   return (
@@ -161,7 +202,6 @@ const CommandEditor = ({
             </div>
           </div>
 
-          {/* Add new category */}
           <div className="flex gap-2">
             <Input
               placeholder="Nouvelle catégorie..."
@@ -175,14 +215,55 @@ const CommandEditor = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="example">Exemple d'utilisation</Label>
-            <Textarea
-              id="example"
-              value={formData.example}
-              onChange={(e) => setFormData((prev) => ({ ...prev, example: e.target.value }))}
-              placeholder="wp plugin list --status=active"
-              className="font-mono text-sm min-h-[80px]"
+            <Label htmlFor="tags">Tags (séparés par des virgules)</Label>
+            <Input
+              id="tags"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              placeholder="dry-run, casse, migration"
             />
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Exemples</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addExample}>
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Ajouter
+              </Button>
+            </div>
+            {formData.examples.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Ajoutez un ou plusieurs exemples nommés (dry-run, casse, etc.).
+              </p>
+            )}
+            {formData.examples.map((ex, index) => (
+              <div key={index} className="space-y-2 rounded-md border border-border p-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={ex.title}
+                    onChange={(e) => updateExample(index, { title: e.target.value })}
+                    placeholder="Titre (ex. Dry-run)"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive"
+                    onClick={() => removeExample(index)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Textarea
+                  value={ex.code}
+                  onChange={(e) => updateExample(index, { code: e.target.value })}
+                  placeholder="wp search-replace 'a' 'b' --dry-run"
+                  className="font-mono text-sm min-h-[72px]"
+                />
+              </div>
+            ))}
           </div>
 
           <div className="space-y-2">

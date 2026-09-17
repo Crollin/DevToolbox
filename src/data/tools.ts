@@ -86,11 +86,11 @@ export const tools: Tool[] = [
   {
     id: "wpcli-glossary",
     name: "WP-CLI Glossary",
-    description: "Glossaire de commandes WP-CLI avec catégories, favoris et recherche rapide.",
+    description: "Glossaire WP-CLI complet : search-replace, migrations, multisite, recettes et exemples multi-cas.",
     category: "commandes",
     icon: "Terminal",
     url: "#",
-    tags: ["wordpress", "wp-cli", "commandes", "cli"],
+    tags: ["wordpress", "wp-cli", "commandes", "cli", "search-replace", "migration"],
     color: "emerald",
   },
   {

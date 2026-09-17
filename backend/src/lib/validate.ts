@@ -60,17 +60,23 @@ export const toolOrderSchema = z.object({
   toolIds: z.array(z.string().min(1).max(100)).min(1),
 });
 
+const wpcliExampleSchema = z.object({
+  title: z.string().min(1).max(200),
+  code: z.string().min(1).max(20000),
+});
+
 export const wpcliCommandSchema = z.object({
   command: z.string().min(1).max(500),
   description: z.string().max(MAX_DESCRIPTION).optional().default(''),
-  example: z.string().max(500).optional().default(''),
-  options: z.string().max(2000).optional().default(''),
+  example: z.string().max(20000).optional().default(''),
+  options: z.string().max(8000).optional().default(''),
   notes: z.string().max(MAX_DESCRIPTION).optional().default(''),
   category: z.string().min(1).max(100),
   difficulty: z.string().min(1).max(50),
   isFavorite: z.boolean().optional().default(false),
+  tags: z.array(z.string().min(1).max(100)).max(30).optional().default([]),
+  examples: z.array(wpcliExampleSchema).max(20).optional().default([]),
 });
-
 // =========================
 // Knowledge Base (KB)
 // =========================

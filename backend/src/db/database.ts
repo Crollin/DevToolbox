@@ -161,6 +161,8 @@ export function initializeDatabase() {
       category TEXT NOT NULL,
       difficulty TEXT NOT NULL,
       is_favorite INTEGER NOT NULL DEFAULT 0,
+      tags TEXT,
+      examples TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )
@@ -174,6 +176,12 @@ export function initializeDatabase() {
       created_at TEXT NOT NULL
     )
   `);
+
+  // Évolution glossaire WP-CLI : tags + exemples multiples
+  const wpcliColumns = db.prepare("PRAGMA table_info(wp_cli_commands)").all() as Array<{ name: string }>;
+  const wpcliColumnNames = wpcliColumns.map((column) => column.name);
+  if (!wpcliColumnNames.includes('tags')) db.exec(`ALTER TABLE wp_cli_commands ADD COLUMN tags TEXT`);
+  if (!wpcliColumnNames.includes('examples')) db.exec(`ALTER TABLE wp_cli_commands ADD COLUMN examples TEXT`);
 
   // Table pour les commandes Docker
   db.exec(`

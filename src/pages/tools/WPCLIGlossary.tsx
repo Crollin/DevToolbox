@@ -43,10 +43,12 @@ const WPCLIGlossary = () => {
     addCategory,
     getCommandsByCategory,
     getFavorites,
+    getAllTags,
   } = useWPCLI();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | "favorites" | "all">("all");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   const [editorOpen, setEditorOpen] = useState(false);
@@ -54,6 +56,8 @@ const WPCLIGlossary = () => {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [commandToDelete, setCommandToDelete] = useState<string | null>(null);
+
+  const allTags = useMemo(() => getAllTags(), [getAllTags]);
 
   // Filter commands
   const filteredCommands = useMemo(() => {
@@ -66,6 +70,10 @@ const WPCLIGlossary = () => {
       result = getCommandsByCategory(selectedCategory);
     }
 
+    if (selectedTag) {
+      result = result.filter((cmd) => cmd.tags?.includes(selectedTag));
+    }
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -73,12 +81,18 @@ const WPCLIGlossary = () => {
         (cmd) =>
           cmd.command.toLowerCase().includes(query) ||
           cmd.description.toLowerCase().includes(query) ||
-          cmd.notes.toLowerCase().includes(query)
+          cmd.notes.toLowerCase().includes(query) ||
+          cmd.tags?.some((t) => t.toLowerCase().includes(query)) ||
+          cmd.examples?.some(
+            (ex) =>
+              ex.title.toLowerCase().includes(query) ||
+              ex.code.toLowerCase().includes(query)
+          )
       );
     }
 
     return result;
-  }, [commands, selectedCategory, searchQuery, getFavorites, getCommandsByCategory]);
+  }, [commands, selectedCategory, selectedTag, searchQuery, getFavorites, getCommandsByCategory]);
 
   // Count per category
   const categoryCounts = useMemo(() => {
@@ -198,7 +212,10 @@ const WPCLIGlossary = () => {
         <aside className="w-56 shrink-0 hidden md:block">
           <div className="sticky top-0">
             <Button
-              onClick={() => setEditorOpen(true)}
+              onClick={() => {
+                setEditingCommand(null);
+                setEditorOpen(true);
+              }}
               className="w-full mb-4"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -239,6 +256,7 @@ const WPCLIGlossary = () => {
                 <div className="mt-4">
                   <Button
                     onClick={() => {
+                      setEditingCommand(null);
                       setEditorOpen(true);
                       setMobileFilterOpen(false);
                     }}
@@ -254,23 +272,60 @@ const WPCLIGlossary = () => {
               </SheetContent>
             </Sheet>
 
-            <Button className="md:hidden shrink-0" onClick={() => setEditorOpen(true)}>
+            <Button
+              className="md:hidden shrink-0"
+              onClick={() => {
+                setEditingCommand(null);
+                setEditorOpen(true);
+              }}
+            >
               <Plus className="w-4 h-4" />
             </Button>
           </div>
 
           {/* Results count */}
-          <div className="text-sm text-muted-foreground mb-4">
-            {filteredCommands.length} commande{filteredCommands.length !== 1 ? "s" : ""}
+          <div className="text-sm text-muted-foreground mb-3 flex flex-wrap items-center gap-2">
+            <span>
+              {filteredCommands.length} commande{filteredCommands.length !== 1 ? "s" : ""}
+            </span>
             {selectedCategory !== "all" && (
-              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                 {selectedCategory === "favorites" ? "Favoris" : selectedCategory}
               </span>
             )}
+            {selectedTag && (
+              <button
+                type="button"
+                onClick={() => setSelectedTag(null)}
+                className="text-xs bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full hover:bg-amber-500/25"
+              >
+                #{selectedTag} ×
+              </button>
+            )}
           </div>
 
+          {allTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-4 max-h-20 overflow-y-auto">
+              {allTags.slice(0, 24).map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTag((prev) => (prev === tag ? null : tag))}
+                  className={cn(
+                    "text-[10px] sm:text-xs px-2 py-0.5 rounded-full border transition-colors",
+                    selectedTag === tag
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Commands List */}
-          <ScrollArea className="h-[calc(100vh-240px)] md:h-[calc(100vh-220px)]">
+          <ScrollArea className="h-[calc(100vh-280px)] md:h-[calc(100vh-260px)]">
             {filteredCommands.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pr-4">
                 {filteredCommands.map((cmd) => (
@@ -280,6 +335,7 @@ const WPCLIGlossary = () => {
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onToggleFavorite={toggleFavorite}
+                    onTagClick={(tag) => setSelectedTag(tag)}
                   />
                 ))}
               </div>

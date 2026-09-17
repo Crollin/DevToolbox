@@ -1,0 +1,215 @@
+import { cmd } from "./helpers";
+import type { WPCLICommandInput } from "@/types/wpcli";
+
+export const pluginCommands: WPCLICommandInput[] = [
+  cmd({
+    command: "wp plugin list",
+    description: "Liste les plugins installés",
+    category: "Plugins",
+    tags: ["audit", "list"],
+    options: "--status=active|inactive|must-use|dropin\n--format=table|csv|json|count\n--fields=<fields>",
+    notes: "Parfait pour auditer un site ou exporter un inventaire.",
+    examples: [
+      { title: "Actifs seulement", code: "wp plugin list --status=active --format=table" },
+      { title: "Slugs uniquement", code: "wp plugin list --field=name" },
+      { title: "JSON pour script", code: "wp plugin list --format=json" },
+    ],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp plugin status",
+    description: "Statut détaillé d'un plugin ou de tous les plugins",
+    category: "Plugins",
+    tags: ["audit"],
+    examples: [
+      { title: "Tous", code: "wp plugin status" },
+      { title: "Un plugin", code: "wp plugin status woocommerce" },
+    ],
+  }),
+  cmd({
+    command: "wp plugin install <plugin>",
+    description: "Installe depuis wordpress.org, une URL ZIP ou un chemin local",
+    category: "Plugins",
+    tags: ["install"],
+    options: "--activate : Active après install\n--version=<version>\n--force : Réinstalle",
+    notes: "Accepte slug, URL https://…/plugin.zip ou chemin local.",
+    examples: [
+      { title: "Depuis le repo", code: "wp plugin install advanced-custom-fields --activate" },
+      { title: "Version précise", code: "wp plugin install contact-form-7 --version=5.9.0" },
+      { title: "Depuis ZIP", code: "wp plugin install https://example.com/mon-plugin.zip --activate" },
+    ],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp plugin activate <plugin>",
+    description: "Active un ou plusieurs plugins",
+    category: "Plugins",
+    tags: ["activate"],
+    options: "--all : Active tous les inactifs\n--network : Activation réseau (multisite)",
+    examples: [
+      { title: "Un plugin", code: "wp plugin activate woocommerce" },
+      { title: "Plusieurs", code: "wp plugin activate akismet hello" },
+      { title: "Tous", code: "wp plugin activate --all" },
+    ],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp plugin deactivate <plugin>",
+    description: "Désactive un ou plusieurs plugins",
+    category: "Plugins",
+    tags: ["debug", "conflit"],
+    options: "--all : Tous les actifs\n--uninstall : Désinstalle après désactivation",
+    notes: "Premier réflexe pour isoler un conflit.",
+    examples: [
+      { title: "Un plugin", code: "wp plugin deactivate hello" },
+      { title: "Tous (debug)", code: "wp plugin deactivate --all" },
+    ],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp plugin update --all",
+    description: "Met à jour tous les plugins (ou une sélection)",
+    category: "Plugins",
+    difficulty: "intermédiaire",
+    tags: ["update", "dry-run"],
+    options: "--all\n--dry-run : Simule\n--exclude=<slugs>\n--minor / --patch",
+    notes: "Toujours --dry-run d'abord en prod.",
+    examples: [
+      { title: "Simulation", code: "wp plugin update --all --dry-run" },
+      { title: "Tous sauf un", code: "wp plugin update --all --exclude=woocommerce" },
+      { title: "Un plugin", code: "wp plugin update wordfence" },
+    ],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp plugin delete <plugin>",
+    description: "Supprime les fichiers d'un plugin",
+    category: "Plugins",
+    difficulty: "intermédiaire",
+    tags: ["cleanup"],
+    options: "--deactivate : Désactive avant suppression",
+    notes: "Ne supprime pas forcément les options/tables créées par le plugin.",
+    examples: [
+      { title: "Supprimer", code: "wp plugin delete hello --deactivate" },
+    ],
+  }),
+  cmd({
+    command: "wp plugin get <plugin>",
+    description: "Affiche les métadonnées d'un plugin",
+    category: "Plugins",
+    tags: ["audit"],
+    examples: [
+      { title: "Infos", code: "wp plugin get woocommerce --format=json" },
+    ],
+  }),
+  cmd({
+    command: "wp plugin search <terme>",
+    description: "Recherche un plugin sur wordpress.org",
+    category: "Plugins",
+    tags: ["search"],
+    examples: [
+      { title: "Recherche", code: "wp plugin search cache --per-page=5" },
+    ],
+  }),
+  cmd({
+    command: "wp plugin verify-checksums <plugin>",
+    description: "Vérifie l'intégrité des fichiers d'un plugin wordpress.org",
+    category: "Plugins",
+    difficulty: "intermédiaire",
+    tags: ["sécurité", "audit"],
+    notes: "Ne fonctionne que pour les plugins issus du dépôt officiel.",
+    examples: [
+      { title: "Un plugin", code: "wp plugin verify-checksums akismet" },
+      { title: "Tous", code: "wp plugin verify-checksums --all" },
+    ],
+  }),
+  cmd({
+    command: "wp plugin auto-updates enable <plugin>",
+    description: "Active les mises à jour auto pour un plugin",
+    category: "Plugins",
+    difficulty: "intermédiaire",
+    tags: ["update", "auto"],
+    examples: [
+      { title: "Activer", code: "wp plugin auto-updates enable akismet" },
+      { title: "Tous", code: "wp plugin auto-updates enable --all" },
+      { title: "Status", code: "wp plugin auto-updates status --all" },
+    ],
+  }),
+];
+
+export const themeCommands: WPCLICommandInput[] = [
+  cmd({
+    command: "wp theme list",
+    description: "Liste les thèmes installés",
+    category: "Themes",
+    tags: ["audit", "list"],
+    options: "--status=active|inactive|parent|child\n--format=table|csv|json",
+    examples: [
+      { title: "Actif", code: "wp theme list --status=active" },
+      { title: "Table", code: "wp theme list --format=table" },
+    ],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp theme install <theme>",
+    description: "Installe un thème (slug, URL ZIP ou chemin)",
+    category: "Themes",
+    tags: ["install"],
+    options: "--activate --version=<version> --force",
+    examples: [
+      { title: "Install + activate", code: "wp theme install twentytwentyfive --activate" },
+    ],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp theme activate <theme>",
+    description: "Active un thème installé",
+    category: "Themes",
+    tags: ["activate"],
+    examples: [{ title: "Activer", code: "wp theme activate twentytwentyfive" }],
+    isFavorite: true,
+  }),
+  cmd({
+    command: "wp theme update --all",
+    description: "Met à jour les thèmes",
+    category: "Themes",
+    difficulty: "intermédiaire",
+    tags: ["update", "dry-run"],
+    options: "--all --dry-run --exclude=<themes>",
+    examples: [
+      { title: "Dry-run", code: "wp theme update --all --dry-run" },
+    ],
+  }),
+  cmd({
+    command: "wp theme delete <theme>",
+    description: "Supprime un thème inactif",
+    category: "Themes",
+    difficulty: "intermédiaire",
+    tags: ["cleanup"],
+    notes: "Impossible de supprimer le thème actif.",
+    examples: [{ title: "Supprimer", code: "wp theme delete twentytwentythree" }],
+  }),
+  cmd({
+    command: "wp theme mod list",
+    description: "Liste les theme_mods du thème actif",
+    category: "Themes",
+    difficulty: "intermédiaire",
+    tags: ["customizer"],
+    examples: [
+      { title: "Liste", code: "wp theme mod list" },
+      { title: "Get", code: "wp theme mod get custom_logo" },
+      { title: "Set", code: "wp theme mod set blogname 'Nouveau titre'" },
+    ],
+  }),
+  cmd({
+    command: "wp theme enable <theme>",
+    description: "Autorise un thème sur un site (multisite)",
+    category: "Themes",
+    difficulty: "intermédiaire",
+    tags: ["multisite"],
+    options: "--network : Pour tout le réseau\n--activate : Active aussi",
+    examples: [
+      { title: "Réseau", code: "wp theme enable twentytwentyfive --network" },
+    ],
+  }),
+];
