@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import db from '../db/database';
 
+export function isKnownTaskClient(userId: string, name: string): boolean {
+  return Boolean(db.prepare('SELECT id FROM task_clients WHERE user_id=? AND name=?').get(userId, name)
+    || db.prepare('SELECT id FROM tasks WHERE user_id=? AND client=? LIMIT 1').get(userId, name));
+}
+
 export const taskInputSchema = z.object({
   title: z.string().trim().min(1).max(500),
   description: z.string().max(30000).optional(),

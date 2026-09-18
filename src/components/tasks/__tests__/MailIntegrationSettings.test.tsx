@@ -12,7 +12,7 @@ let root: Root;
 beforeEach(async () => {
   vi.clearAllMocks();
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  vi.mocked(api.get).mockImplementation(async (path) => path === '/tasks/clients/list' ? { clients: [] } : {
+  vi.mocked(api.get).mockImplementation(async (path) => path === '/tasks/clients/list' ? { clients: [] } : path === '/tasks' ? { tasks: [] } : {
     configured: true, aiReady: false, isAdmin: false,
     connection: { email: 'test@example.fr', paused: 0, last_sync: null, last_error: null,
       mappings: [{ match: 'example.fr', client: '' }], exclusions: [] },
@@ -31,6 +31,19 @@ it('explains missing AI administrator access without exposing credential inputs'
   expect(container.textContent).toContain('MAIL_ADMIN_USER_IDS');
   expect(container.textContent).toContain('staging-user');
   expect(container.querySelector('input[type="password"]')).toBeNull();
+});
+
+it('includes existing Task Reminder clients once, even when absent from the client registry', async () => {
+  const previousGet = vi.mocked(api.get).getMockImplementation()!;
+  vi.mocked(api.get).mockImplementation(async (path) => {
+    if (path === '/tasks/clients/list') return { clients: [{ name: 'Acme' }] };
+    if (path === '/tasks') return { tasks: [{ client: 'Historique' }, { client: 'Acme' }, { client: 'Historique' }, { client: null }] };
+    return previousGet(path);
+  });
+  await act(async () => root.render(<MailIntegrationSettings key="existing-clients" />));
+  const select = container.querySelector('select')!;
+  expect(Array.from(select.options).map(option => option.value)).toEqual(['', 'Acme', 'Historique']);
+  expect(select.disabled).toBe(false);
 });
 
 it('creates a selectable client without clearing the unsaved association', async () => {

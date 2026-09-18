@@ -3,7 +3,7 @@ import { z } from 'zod';
 import db from '../db/database';
 import { aiReady, cleanMailText, extractMail, getAiConfig, MailError, needsReview, safeMailError, type Extraction, type MailContext, type MailProposal } from './mailAi';
 import { allowedFolder, addressOf, clearZohoAccess, folderSchema, getConnection, getZohoAccess, mappingSchema, matchesSender, messageSchema, zohoConfigured, zohoGet, type ZohoConnection } from './zohoMail';
-import { createTask, taskInputSchema } from './taskService';
+import { createTask, isKnownTaskClient, taskInputSchema } from './taskService';
 
 export interface MailMessage {
   id: string; user_id: string; account_id: string; message_id: string; folder_id: string; thread_id: string | null;
@@ -53,7 +53,7 @@ function clientFor(connection: ZohoConnection, sender: string) {
   const exact = mappings.filter(m => m.match.includes('@') && !m.match.startsWith('@') && matchesSender(sender, m.match));
   const matches = exact.length ? exact : mappings.filter(m => matchesSender(sender, m.match));
   const clients = [...new Set(matches.map(m => m.client))];
-  return clients.length === 1 && db.prepare('SELECT id FROM task_clients WHERE user_id=? AND name=?').get(connection.user_id, clients[0]) ? clients[0] : undefined;
+  return clients.length === 1 && isKnownTaskClient(connection.user_id, clients[0]) ? clients[0] : undefined;
 }
 function taskInput(proposal: MailProposal, connection: ZohoConnection, message: MailMessage) {
   return { title: proposal.title, description: proposal.description, dueDate: proposal.dueDate,

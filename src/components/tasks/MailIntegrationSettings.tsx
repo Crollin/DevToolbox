@@ -90,7 +90,14 @@ export default function MailIntegrationSettings() {
   async function load() {
     const data = await api.get<State>('/integrations/zoho');
     setState(data); setMappings(data.connection?.mappings || []); setExclusions((data.connection?.exclusions || []).join('\n'));
-    setClients((await api.get<{ clients: { name: string }[] }>('/tasks/clients/list')).clients.map(c => c.name));
+    const [registered, existing] = await Promise.all([
+      api.get<{ clients: { name: string }[] }>('/tasks/clients/list'),
+      api.get<{ tasks: { client?: string | null }[] }>('/tasks'),
+    ]);
+    setClients([...new Set([
+      ...registered.clients.map(c => c.name),
+      ...existing.tasks.flatMap(task => task.client ? [task.client] : []),
+    ])].sort((a, b) => a.localeCompare(b, 'fr')));
   }
   useEffect(() => { void load().catch(e => setError(errorText(e))); }, []);
   async function action(fn: () => Promise<unknown>, message = '') {
@@ -129,6 +136,7 @@ export default function MailIntegrationSettings() {
           {connection && <fieldset disabled={busy} className="space-y-4 border-t pt-4">
             <div className="space-y-2"><Label htmlFor="zoho-exclusions">Expéditeurs ou domaines à exclure</Label><textarea id="zoho-exclusions" className="min-h-24 w-full rounded-md border border-input bg-background p-3 text-sm" value={exclusions} onChange={e => setExclusions(e.target.value)} placeholder={'newsletter@exemple.fr\nexemple.org'} /><p className="text-xs text-muted-foreground">Une adresse ou un domaine par ligne.</p></div>
             <div className="space-y-3"><p className="text-sm font-medium">Associer les expéditeurs à vos clients</p>
+              <p className="text-xs text-muted-foreground">Cette liste reprend les clients de Task Reminder, y compris ceux déjà associés à vos tâches. Un client créé ici sera aussi disponible dans Task Reminder.</p>
               {clients.length === 0 && <p role="status" className="text-sm text-muted-foreground">Aucun client enregistré dans Task Reminder. Créez votre premier client ci-dessous pour pouvoir le sélectionner.</p>}
               <div className="space-y-2"><Label htmlFor="zoho-new-client">Nouveau client</Label><div className="flex flex-col gap-2 sm:flex-row"><Input id="zoho-new-client" maxLength={200} value={newClient} onChange={e => setNewClient(e.target.value)} placeholder="Nom du client" /><Button type="button" variant="outline" disabled={busy || !newClient.trim()} onClick={() => void createClient()}>Créer le client</Button></div></div>{mappings.map((mapping, index) => <div key={index} className="flex flex-col gap-2 sm:flex-row"><Input aria-label={`Adresse ou domaine ${index + 1}`} value={mapping.match} onChange={e => setMappings(mappings.map((m, i) => i === index ? { ...m, match: e.target.value } : m))} placeholder="client@exemple.fr ou exemple.fr" /><select disabled={clients.length === 0} aria-label={`Client ${index + 1}`} className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={mapping.client} onChange={e => setMappings(mappings.map((m, i) => i === index ? { ...m, client: e.target.value } : m))}><option value="">{clients.length === 0 ? 'Aucun client disponible' : 'Choisir un client'}</option>{clients.map(c => <option key={c}>{c}</option>)}</select><Button variant="ghost" onClick={() => setMappings(mappings.filter((_, i) => i !== index))}>Retirer</Button></div>)}<Button variant="outline" onClick={() => setMappings([...mappings, { match: '', client: '' }])}>Ajouter une association</Button></div>
             <Button onClick={() => void save(Boolean(connection.paused))}>Enregistrer les règles</Button>

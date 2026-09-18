@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/auth';
 import { aiReady, encryptMailSecret, getAiConfig, safeMailError, testAi, type AiConfig } from '../lib/mailAi';
 import { clearZohoAccess, finishZohoOAuth, getConnection, mappingSchema, startZohoOAuth, zohoConfigured } from '../lib/zohoMail';
 import { acceptProposal } from '../lib/mailWorker';
+import { isKnownTaskClient } from '../lib/taskService';
 
 const router = Router();
 const wrap = (fn: (req: Request, res: Response) => Promise<unknown> | unknown) => (req: Request, res: Response) => {
@@ -44,7 +45,7 @@ router.post('/zoho/connect', wrap((req, res) => res.json({ url: startZohoOAuth(r
 router.put('/zoho', wrap((req, res) => {
   const input = z.object({ paused: z.boolean(), mappings: mappingSchema, exclusions: z.array(z.string().trim().toLowerCase().min(1).max(254)).max(100) }).strict().parse(req.body);
   for (const mapping of input.mappings) {
-    if (!db.prepare('SELECT id FROM task_clients WHERE user_id=? AND name=?').get(req.user!.id, mapping.client)) return res.status(400).json({ error: `Client inconnu : ${mapping.client}` });
+    if (!isKnownTaskClient(req.user!.id, mapping.client)) return res.status(400).json({ error: `Client inconnu : ${mapping.client}` });
   }
   const result = db.prepare('UPDATE zoho_connections SET paused=?,mappings=?,exclusions=?,next_sync=0,lease_owner=NULL,lease_until=0 WHERE user_id=?')
     .run(input.paused ? 1 : 0, JSON.stringify(input.mappings), JSON.stringify(input.exclusions), req.user!.id);

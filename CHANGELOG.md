@@ -8,6 +8,7 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ### Corrigé
 
+- Associations Zoho : reprise des clients déjà présents sur les tâches de Task Reminder, même lorsqu’ils ne figurent pas dans le registre des clients, avec validation limitée aux clients de l’utilisateur connecté.
 - Réglages Zoho : état vide explicite et création de clients sur place pour permettre les associations ; aide à la configuration de l’accès administrateur IA lorsque les champs de connexion ne sont pas accessibles.
 
 ### Ajouté

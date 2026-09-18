@@ -45,4 +45,18 @@ describe('Mail integration API', () => {
     const accept = await request(app).post('/api/integrations/zoho/proposals/nonexistent/accept').set('Authorization',`Bearer ${token}`).send({});
     expect(accept.status).toBe(422);
   });
+  it('accepts clients from existing tasks but not another user’s tasks', async () => {
+    db.prepare('INSERT INTO zoho_connections(user_id,generation,account_id,email,refresh_token,activated_at) VALUES(?,?,?,?,?,?)')
+      .run(userId, randomUUID(), 'account', 'test@example.fr', 'unused', Date.now());
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${token}`).send({ title: 'Ancienne tâche', client: 'Client historique' }).expect(201);
+    const update = (client: string) => request(app).put('/api/integrations/zoho').set('Authorization', `Bearer ${token}`)
+      .send({ paused: false, mappings: [{ match: 'example.fr', client }], exclusions: [] });
+    expect((await update('Client historique')).status).toBe(200);
+    const otherId = randomUUID();
+    db.prepare('INSERT INTO users(id,email,password_hash,name,created_at,updated_at) VALUES(?,?,?,?,?,?)')
+      .run(otherId, `${otherId}@example.fr`, 'unused', 'Other', '2026', '2026');
+    const otherToken = generateToken({ userId: otherId, email: `${otherId}@example.fr` });
+    await request(app).post('/api/tasks').set('Authorization', `Bearer ${otherToken}`).send({ title: 'Autre tâche', client: 'Client privé' }).expect(201);
+    expect((await update('Client privé')).status).toBe(400);
+  });
 });
