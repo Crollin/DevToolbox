@@ -6,6 +6,10 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+### Corrigé
+
+- Réglages Zoho : état vide explicite et création de clients sur place pour permettre les associations ; aide à la configuration de l’accès administrateur IA lorsque les champs de connexion ne sont pas accessibles.
+
 ### Ajouté
 
 - **Zoho Mail Europe → Task Reminder** : connexion individuelle OAuth en lecture seule, collecte des nouveaux mails toutes les trois minutes, file persistante avec reprises et protection contre les doublons.

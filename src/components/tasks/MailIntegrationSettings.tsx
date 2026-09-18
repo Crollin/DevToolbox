@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -77,8 +78,10 @@ function AiMailSettings({ onChange }: { onChange: () => Promise<void> }) {
 }
 
 export default function MailIntegrationSettings() {
+  const { user } = useAuth();
   const [state, setState] = useState<State | null>(null);
   const [clients, setClients] = useState<string[]>([]);
+  const [newClient, setNewClient] = useState('');
   const [mappings, setMappings] = useState<Connection['mappings']>([]);
   const [exclusions, setExclusions] = useState('');
   const [error, setError] = useState('');
@@ -93,6 +96,17 @@ export default function MailIntegrationSettings() {
   async function action(fn: () => Promise<unknown>, message = '') {
     setBusy(true); setError(''); setNotice('');
     try { await fn(); await load(); setNotice(message); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
+  }
+  async function createClient() {
+    const name = newClient.trim();
+    if (!name) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const { client } = await api.post<{ client: { name: string } }>('/tasks/clients', { name });
+      setClients(previous => [...new Set([...previous, client.name])].sort((a, b) => a.localeCompare(b, 'fr')));
+      setNewClient('');
+      setNotice('Client créé. Sélectionnez-le dans une association, puis enregistrez les règles.');
+    } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
   }
   const callback = new URLSearchParams(window.location.search).get('zoho');
   const connection = state?.connection;
@@ -114,13 +128,26 @@ export default function MailIntegrationSettings() {
           </div>
           {connection && <fieldset disabled={busy} className="space-y-4 border-t pt-4">
             <div className="space-y-2"><Label htmlFor="zoho-exclusions">Expéditeurs ou domaines à exclure</Label><textarea id="zoho-exclusions" className="min-h-24 w-full rounded-md border border-input bg-background p-3 text-sm" value={exclusions} onChange={e => setExclusions(e.target.value)} placeholder={'newsletter@exemple.fr\nexemple.org'} /><p className="text-xs text-muted-foreground">Une adresse ou un domaine par ligne.</p></div>
-            <div className="space-y-3"><p className="text-sm font-medium">Associer les expéditeurs à vos clients</p>{mappings.map((mapping, index) => <div key={index} className="flex flex-col gap-2 sm:flex-row"><Input aria-label={`Adresse ou domaine ${index + 1}`} value={mapping.match} onChange={e => setMappings(mappings.map((m, i) => i === index ? { ...m, match: e.target.value } : m))} placeholder="client@exemple.fr ou exemple.fr" /><select aria-label={`Client ${index + 1}`} className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={mapping.client} onChange={e => setMappings(mappings.map((m, i) => i === index ? { ...m, client: e.target.value } : m))}><option value="">Choisir un client</option>{clients.map(c => <option key={c}>{c}</option>)}</select><Button variant="ghost" onClick={() => setMappings(mappings.filter((_, i) => i !== index))}>Retirer</Button></div>)}<Button variant="outline" onClick={() => setMappings([...mappings, { match: '', client: '' }])}>Ajouter une association</Button></div>
+            <div className="space-y-3"><p className="text-sm font-medium">Associer les expéditeurs à vos clients</p>
+              {clients.length === 0 && <p role="status" className="text-sm text-muted-foreground">Aucun client enregistré dans Task Reminder. Créez votre premier client ci-dessous pour pouvoir le sélectionner.</p>}
+              <div className="space-y-2"><Label htmlFor="zoho-new-client">Nouveau client</Label><div className="flex flex-col gap-2 sm:flex-row"><Input id="zoho-new-client" maxLength={200} value={newClient} onChange={e => setNewClient(e.target.value)} placeholder="Nom du client" /><Button type="button" variant="outline" disabled={busy || !newClient.trim()} onClick={() => void createClient()}>Créer le client</Button></div></div>{mappings.map((mapping, index) => <div key={index} className="flex flex-col gap-2 sm:flex-row"><Input aria-label={`Adresse ou domaine ${index + 1}`} value={mapping.match} onChange={e => setMappings(mappings.map((m, i) => i === index ? { ...m, match: e.target.value } : m))} placeholder="client@exemple.fr ou exemple.fr" /><select disabled={clients.length === 0} aria-label={`Client ${index + 1}`} className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={mapping.client} onChange={e => setMappings(mappings.map((m, i) => i === index ? { ...m, client: e.target.value } : m))}><option value="">{clients.length === 0 ? 'Aucun client disponible' : 'Choisir un client'}</option>{clients.map(c => <option key={c}>{c}</option>)}</select><Button variant="ghost" onClick={() => setMappings(mappings.filter((_, i) => i !== index))}>Retirer</Button></div>)}<Button variant="outline" onClick={() => setMappings([...mappings, { match: '', client: '' }])}>Ajouter une association</Button></div>
             <Button onClick={() => void save(Boolean(connection.paused))}>Enregistrer les règles</Button>
           </fieldset>}
           {notice && <p role="status" className="text-sm text-muted-foreground">{notice}</p>}
         </>}
       </CardContent>
     </Card>
-    {state?.isAdmin && <AiMailSettings onChange={async () => setState(await api.get<State>('/integrations/zoho'))} />}
+    {state && (state.isAdmin ? <AiMailSettings onChange={async () => setState(await api.get<State>('/integrations/zoho'))} /> : <Card>
+      <CardHeader><CardTitle>Analyse IA des mails</CardTitle><CardDescription>La connexion Zoho et la connexion au fournisseur IA se configurent séparément.</CardDescription></CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p>{state.aiReady ? 'Le fournisseur IA est prêt.' : 'Le fournisseur IA doit encore être configuré et testé.'} Les clés OpenRouter et DeepSeek sont gérées par un administrateur de l’instance.</p>
+        <details className="space-y-2">
+          <summary className="cursor-pointer font-medium">Vous gérez cette instance ?</summary>
+          <p>Dans les variables du backend sur Coolify, ajoutez votre identifiant à <code>MAIL_ADMIN_USER_IDS</code> (séparez plusieurs identifiants par des virgules), puis redéployez et rechargez cette page.</p>
+          {user?.id && <p>Votre identifiant : <code className="break-all select-all">{user.id}</code></p>}
+          <p>Vous pourrez alors saisir la clé API OpenRouter ou DeepSeek, choisir le modèle et utiliser « Enregistrer et tester », puis enregistrer le fournisseur actif.</p>
+        </details>
+      </CardContent>
+    </Card>)}
   </div>;
 }

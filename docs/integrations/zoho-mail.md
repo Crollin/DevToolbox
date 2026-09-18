@@ -30,8 +30,10 @@ Dans la console Zoho **Europe**, créer une application serveur avec exactement 
 3. Facultativement, enregistrer la clé DeepSeek Platform et le modèle `deepseek-chat`, puis effectuer son test. Les modèles sont modifiables pour suivre les catalogues des fournisseurs.
 4. Sélectionner le fournisseur actif et enregistrer. Un changement de clé ou de modèle invalide son test précédent ; les traitements attendent un test réussi du fournisseur actif.
 5. Chaque utilisateur connecte sa boîte via **Connecter Zoho Mail (.eu)**. La boîte Zoho principale est sélectionnée (une boîte par utilisateur). La lecture des comptes, dossiers et métadonnées est vérifiée avant activation.
-6. Configurer les exclusions d’expéditeurs/domaines et les associations aux clients déjà créés dans Task Reminder.
+6. Configurer les exclusions d’expéditeurs/domaines et les associations aux clients de Task Reminder. Le champ **Nouveau client** permet de créer un client directement dans cette page ; le sélectionner ensuite dans l’association et enregistrer les règles.
 7. Consulter **Task Reminder → Mails Zoho · À vérifier** pour accepter/corriger ou rejeter les propositions, et consulter l’historique.
+
+Si les champs de connexion IA ne sont pas disponibles, ouvrir **Analyse IA des mails → Vous gérez cette instance ?**. La page affiche votre identifiant : l’ajouter à `MAIL_ADMIN_USER_IDS` sur le backend, redéployer et recharger la page. Cette variable attend l’identifiant DevToolbox, pas l’adresse email Zoho.
 
 La localisation `.eu` concerne Zoho. OpenRouter utilise ici son endpoint standard, et DeepSeek son API directe : aucune résidence européenne de l’analyse n’est promise. L’analyse OpenRouter exige un endpoint compatible avec les sorties structurées et refusant la collecte des données (`data_collection: deny`).
 
