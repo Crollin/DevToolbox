@@ -1,3 +1,4 @@
+import MailReviewPanel from '@/components/tasks/MailReviewPanel';
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -45,7 +46,8 @@ type StatusFilter =
   | "overdue"
   | "due_soon";
 
-const getDaysUntilDue = (dueDate: string, today: Date): number => {
+const getDaysUntilDue = (dueDate: string | null, today: Date): number => {
+  if (!dueDate) return Infinity;
   const due = new Date(dueDate);
   due.setHours(0, 0, 0, 0);
   return Math.ceil((due.getTime() - today.getTime()) / 86400000);
@@ -53,7 +55,7 @@ const getDaysUntilDue = (dueDate: string, today: Date): number => {
 
 const TaskReminder = () => {
   const tool = tools.find((t) => t.id === "task-reminder")!;
-  const { tasks, isLoaded, addTask, updateTask, updateTaskStatus, deleteTask } = useTasks();
+  const { tasks, isLoaded, refreshTasks, addTask, updateTask, updateTaskStatus, deleteTask } = useTasks();
   const isMobile = useIsMobile();
 
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
@@ -384,6 +386,7 @@ const TaskReminder = () => {
           "pb-24"
         )}
       >
+        <MailReviewPanel onTasksChanged={() => void refreshTasks()} />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
             {!isMobile && (

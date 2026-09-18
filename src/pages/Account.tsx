@@ -1,3 +1,4 @@
+import MailIntegrationSettings from '@/components/tasks/MailIntegrationSettings';
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Bell, Palette, CheckCircle2, Copy, KeyRound, Trash2, Globe, Smartphone } from "lucide-react";
@@ -114,7 +115,7 @@ const Account = () => {
 
   const [tab, setTab] = useState(() => {
     const q = new URLSearchParams(window.location.search).get("tab");
-    return q === "domain-hub" ? "domain-hub" : "profil";
+    return q === "integrations" ? "integrations" : q === "domain-hub" ? "domain-hub" : "profil";
   });
 
   const {
@@ -639,7 +640,7 @@ const Account = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-3xl">
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-          <TabsList className={`grid w-full ${domainHubEnabled ? "grid-cols-6" : "grid-cols-5"}`}>
+          <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1">
             <TabsTrigger value="profil" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Profil
@@ -666,7 +667,9 @@ const Account = () => {
                 Domain Hub
               </TabsTrigger>
             )}
+            <TabsTrigger value="integrations">Intégrations</TabsTrigger>
           </TabsList>
+          <TabsContent value="integrations"><MailIntegrationSettings /></TabsContent>
 
           <TabsContent value="profil">
             <Card>

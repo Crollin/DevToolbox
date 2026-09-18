@@ -8,6 +8,7 @@ interface TaskStatusBadgeProps {
 }
 
 export function getDaysUntilDue(task: Task): number {
+  if (!task.dueDate) return Infinity;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const due = new Date(task.dueDate);
@@ -75,7 +76,7 @@ const TaskStatusBadge = ({ task, className }: TaskStatusBadgeProps) => {
         className
       )}>
         <Clock className="w-3 h-3" />
-        {daysUntilDue}j restants
+        {Number.isFinite(daysUntilDue) ? `${daysUntilDue}j restants` : "Sans échéance"}
       </span>
     );
   }
@@ -86,7 +87,7 @@ const TaskStatusBadge = ({ task, className }: TaskStatusBadgeProps) => {
       className
     )}>
       <Circle className="w-3 h-3" />
-      {daysUntilDue}j restants
+      {Number.isFinite(daysUntilDue) ? `${daysUntilDue}j restants` : "Sans échéance"}
     </span>
   );
 };

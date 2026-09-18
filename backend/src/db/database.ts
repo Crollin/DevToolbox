@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { migrateOptionalTaskDate, initializeMailIntegration } from './mailIntegration';
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/devtoolbox.db');
 const DB_DIR = path.dirname(DB_PATH);
@@ -522,7 +523,7 @@ export function initializeDatabase() {
       user_id TEXT NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
-      due_date TEXT NOT NULL,
+      due_date TEXT,
       client TEXT,
       link TEXT,
       tags TEXT, -- JSON array de tags
@@ -828,6 +829,8 @@ export function initializeDatabase() {
     console.log('Migration domains (billing) déjà effectuée ou table n\'existe pas encore');
   }
 
+  migrateOptionalTaskDate(db);
+  initializeMailIntegration(db);
   console.log('Base de données initialisée avec succès');
 }
 

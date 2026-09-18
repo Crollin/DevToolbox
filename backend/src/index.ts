@@ -1,4 +1,5 @@
 import app from './app';
+import { runMailWorker } from './lib/mailWorker';
 import { checkAndSendReminders } from './lib/licenceReminders';
 import { checkAndSendTaskReminders } from './lib/taskReminders';
 import { checkAndSendDomainReminders } from './lib/domainReminders';
@@ -8,6 +9,9 @@ const PORT = process.env.PORT || 1400;
 
 // Démarrage du serveur
 app.listen(PORT, () => {
+  const mailTick = () => { void runMailWorker().catch(() => console.error('Mail worker: traitement indisponible')); };
+  setTimeout(mailTick, 5000).unref();
+  setInterval(mailTick, 30000).unref();
   console.log(`🚀 Serveur backend démarré sur le port ${PORT}`);
   
   // Démarrer le système de rappels automatiques pour les licences

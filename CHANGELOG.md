@@ -6,6 +6,17 @@ Le format est inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Zoho Mail Europe → Task Reminder** : connexion individuelle OAuth en lecture seule, collecte des nouveaux mails toutes les trois minutes, file persistante avec reprises et protection contre les doublons.
+- **Analyse IA des mails** : Mistral via OpenRouter par défaut ou DeepSeek Platform en accès direct, clés chiffrées, modèles configurables, test synthétique et suivi de consommation, sans basculement automatique.
+- **À vérifier** : correction, acceptation et rejet des demandes ambiguës, validation des changements de tâches existantes, historique et références des mails sources.
+- Guide de [configuration et activation Zoho Mail](docs/integrations/zoho-mail.md), avec variables Docker, permissions, limites et évaluation facultative des fournisseurs.
+
+### Modifié
+
+- **Échéances facultatives** dans Task Reminder : migration SQLite, API, formulaires, rappels, MCP et Raycast compatibles avec `dueDate: null` et affichage « Sans échéance ». Mettre à jour les clients avec le backend.
+
 ## [1.6.1] - 2026-08-26
 
 ### Corrigé

@@ -122,7 +122,7 @@ export async function checkAndSendTaskReminders(): Promise<void> {
         id: string;
         title: string;
         description: string | null;
-        due_date: string;
+        due_date: string | null;
         client: string | null;
         link: string | null;
         tags: string | null;
@@ -132,7 +132,7 @@ export async function checkAndSendTaskReminders(): Promise<void> {
       }>;
 
       for (const task of tasks) {
-        const daysUntilDue = getDaysUntilDue(task.due_date);
+        const daysUntilDue = task.due_date ? getDaysUntilDue(task.due_date) : undefined;
         let reminderSent = false;
 
         const taskReminder: TaskReminder = {
@@ -151,7 +151,7 @@ export async function checkAndSendTaskReminders(): Promise<void> {
 
         const send = () => sendTaskNotifications(dispatchConfig, user, taskReminder, emailPrefs);
 
-        if (task.reminder_days) {
+        if (task.due_date && task.reminder_days && daysUntilDue !== undefined) {
           const reminderDays = safeJsonParse<number[]>(task.reminder_days, []);
 
           for (const daysBefore of reminderDays) {

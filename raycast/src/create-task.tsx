@@ -62,14 +62,6 @@ export default function CreateTask() {
 
   async function handleSubmit(values: Form.Values) {
     const dueDate = values.dueDate;
-    if (!(dueDate instanceof Date)) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Date d'échéance requise",
-      });
-      return;
-    }
-
     const title = String(values.title ?? "").trim();
     if (!title) {
       await showToast({ style: Toast.Style.Failure, title: "Titre requis" });
@@ -107,7 +99,7 @@ export default function CreateTask() {
 
       await createTask({
         title,
-        dueDate: formatDateOnly(dueDate),
+        dueDate: dueDate instanceof Date ? formatDateOnly(dueDate) : null,
         description: String(values.description ?? "").trim() || undefined,
         client: client || undefined,
         link: String(values.link ?? "").trim() || undefined,
@@ -162,9 +154,8 @@ export default function CreateTask() {
       />
       <Form.DatePicker
         id="dueDate"
-        title="Date d'échéance"
+        title="Échéance (facultative)"
         type={Form.DatePicker.Type.Date}
-        defaultValue={new Date(Date.now() + 24 * 60 * 60 * 1000)}
       />
 
       <Form.Dropdown id="priority" title="Priorité" defaultValue="normal">

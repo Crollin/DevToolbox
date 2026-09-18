@@ -1,4 +1,5 @@
 import express from 'express';
+import { createTask, taskInputSchema } from '../lib/taskService';
 import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateTokenOrPersonalAccessToken } from '../middleware/auth';
@@ -16,7 +17,7 @@ const VALID_STATUS = ['pending', 'in_progress', 'completed'] as const;
 const VALID_PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const;
 const VALID_CHANNELS = ['ntfy', 'email', 'telegram'] as const;
 interface TaskRow {
-  id: string; title: string; description: string | null; due_date: string; client: string | null; link: string | null;
+  id: string; title: string; description: string | null; due_date: string | null; client: string | null; link: string | null;
   tags?: string | null; priority?: string; notification_channels?: string | null; status: string;
   reminder_days: string | null; reminder_datetime: string | null; created_at: string; updated_at: string;
 }
@@ -34,6 +35,7 @@ function normalizeChannels(value: unknown): string[] | undefined {
 
 function formatTask(task: TaskRow) {
   return {
+    mailSources: db.prepare('SELECT m.message_id AS messageId, m.subject, m.sender, m.received_at AS receivedAt FROM task_mail_sources s JOIN mail_messages m ON m.id=s.message_id WHERE s.task_id=? ORDER BY m.received_at DESC').all(task.id),
     id: task.id, title: task.title, description: task.description || undefined,
     dueDate: task.due_date, client: task.client || undefined, link: task.link || undefined,
     tags: task.tags ? safeJsonParse<string[]>(task.tags, []) : [],
@@ -65,14 +67,14 @@ router.get('/', (req, res) => {
       params.push(clientStr);
     }
 
-    query += ' ORDER BY due_date ASC, created_at DESC';
+    query += ' ORDER BY due_date IS NULL, due_date ASC, created_at DESC';
 
     const tasks = db.prepare(query).all(...params) as Array<{
       id: string;
       user_id: string;
       title: string;
       description: string | null;
-      due_date: string;
+      due_date: string | null;
       client: string | null;
       link: string | null;
       status: string;
@@ -146,7 +148,7 @@ router.get('/:id', (req, res) => {
       user_id: string;
       title: string;
       description: string | null;
-      due_date: string;
+      due_date: string | null;
       client: string | null;
       link: string | null;
       status: string;
@@ -173,44 +175,16 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const userId = req.user!.id;
-    const { title, description, dueDate, client, link, reminderDays, reminderDatetime, tags, priority, notificationChannels } = req.body;
-
-    if (!title || !dueDate) {
-      return res.status(400).json({ error: 'Titre et date d\'accomplissement sont requis' });
-    }
-
-    const id = uuidv4();
-    const now = new Date().toISOString();
-
-    db.prepare(`
-      INSERT INTO tasks (
-        id, user_id, title, description, due_date, client, link, 
-        tags, priority, notification_channels, status, reminder_days, reminder_datetime, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      userId,
-      title,
-      description || null,
-      dueDate,
-      client || null,
-      link || null,
-      JSON.stringify(normalizeTags(tags)),
-      VALID_PRIORITIES.includes(priority) ? priority : 'normal',
-      normalizeChannels(notificationChannels) ? JSON.stringify(normalizeChannels(notificationChannels)) : null,
-      'pending',
-      reminderDays ? JSON.stringify(reminderDays) : null,
-      reminderDatetime || null,
-      now,
-      now
-    );
+    const parsed = taskInputSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Données de tâche invalides' });
+    const id = createTask(userId, parsed.data);
 
     const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as {
       id: string;
       user_id: string;
       title: string;
       description: string | null;
-      due_date: string;
+      due_date: string | null;
       client: string | null;
       link: string | null;
       status: string;
@@ -242,8 +216,8 @@ router.put('/:id', (req, res) => {
       return res.status(404).json({ error: 'Tâche non trouvée' });
     }
 
-    if (!title || !dueDate) {
-      return res.status(400).json({ error: 'Titre et date d\'accomplissement sont requis' });
+    if (!taskInputSchema.safeParse(req.body).success) {
+      return res.status(400).json({ error: 'Données de tâche invalides' });
     }
 
     const now = new Date().toISOString();
@@ -256,13 +230,13 @@ router.put('/:id', (req, res) => {
     `).run(
       title,
       description || null,
-      dueDate,
+      dueDate ?? null,
       client || null,
       link || null,
       JSON.stringify(normalizeTags(tags)),
       VALID_PRIORITIES.includes(priority) ? priority : 'normal',
       normalizeChannels(notificationChannels) ? JSON.stringify(normalizeChannels(notificationChannels)) : null,
-      reminderDays ? JSON.stringify(reminderDays) : null,
+      dueDate && reminderDays ? JSON.stringify(reminderDays) : null,
       reminderDatetime || null,
       now,
       id,
@@ -274,7 +248,7 @@ router.put('/:id', (req, res) => {
       user_id: string;
       title: string;
       description: string | null;
-      due_date: string;
+      due_date: string | null;
       client: string | null;
       link: string | null;
       status: string;
@@ -324,7 +298,7 @@ router.patch('/:id/status', (req, res) => {
       user_id: string;
       title: string;
       description: string | null;
-      due_date: string;
+      due_date: string | null;
       client: string | null;
       link: string | null;
       status: string;

@@ -1,8 +1,9 @@
 export interface Task {
   id: string;
+  mailSources?: { messageId: string; subject: string; sender: string; receivedAt: number }[];
   title: string;
   description?: string;
-  dueDate: string;
+  dueDate: string | null;
   client?: string;
   link?: string;
   tags: string[];
@@ -18,7 +19,7 @@ export interface Task {
 export interface CreateTaskInput {
   title: string;
   description?: string;
-  dueDate: string;
+  dueDate?: string | null;
   client?: string;
   link?: string;
   tags?: string[];

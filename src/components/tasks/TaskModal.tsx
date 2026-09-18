@@ -93,7 +93,7 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
     if (editTask) {
       setTitle(editTask.title);
       setDescription(editTask.description || "");
-      setDueDate(editTask.dueDate.split("T")[0]);
+      setDueDate(editTask.dueDate?.split("T")[0] || "");
       setClient(editTask.client || "");
       setLink(editTask.link || "");
       setTags(editTask.tags || []);
@@ -191,24 +191,24 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
       current.includes(channel) ? current.filter((c) => c !== channel) : [...current, channel]
     );
 
-  const canGoNext = Boolean(title.trim() && dueDate);
+  const canGoNext = Boolean(title.trim());
 
   const submit = async (event?: React.FormEvent) => {
     event?.preventDefault();
-    if (!title.trim() || !dueDate) return;
+    if (!title.trim()) return;
     setIsSaving(true);
     try {
       await onSave(
         {
           title,
           description: description || undefined,
-          dueDate: new Date(dueDate).toISOString(),
+          dueDate: dueDate || null,
           client: client || undefined,
           link: link || undefined,
           tags,
           priority,
           notificationChannels: notificationChannels.length ? notificationChannels : undefined,
-          reminderDays: reminderDays.length ? reminderDays : undefined,
+          reminderDays: dueDate && reminderDays.length ? reminderDays : undefined,
           reminderDatetime: reminderDatetime
             ? new Date(reminderDatetime).toISOString()
             : undefined,
@@ -323,13 +323,12 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label>Date d'échéance *</Label>
+          <Label>Date d'échéance (facultative)</Label>
           <input
             className={fieldClass + " mt-1.5"}
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            required
           />
         </div>
         <div>
@@ -499,11 +498,13 @@ const TaskModal = ({ isOpen, onClose, onSave, editTask }: TaskModalProps) => {
 
       <div>
         <Label>Rappels avant l'échéance</Label>
+        {!dueDate && <p className="text-xs text-muted-foreground">Ajoutez une échéance pour activer ces rappels.</p>}
         <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-2">
           {[7, 3, 1, 0].map((days) => (
             <label key={days} className="flex items-center gap-2 text-sm">
               <Checkbox
-                checked={reminderDays.includes(days)}
+                disabled={!dueDate}
+                checked={Boolean(dueDate) && reminderDays.includes(days)}
                 onCheckedChange={() =>
                   setReminderDays((current) =>
                     current.includes(days)

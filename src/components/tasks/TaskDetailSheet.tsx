@@ -54,7 +54,8 @@ const channelLabels: Record<string, string> = {
   ntfy: "Ntfy",
 };
 
-function formatDate(dateString: string) {
+function formatDate(dateString: string | null) {
+  if (!dateString) return "Sans échéance";
   return new Date(dateString).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -63,7 +64,8 @@ function formatDate(dateString: string) {
   });
 }
 
-function formatDatetime(dateString: string) {
+function formatDatetime(dateString: string | null) {
+  if (!dateString) return "Sans échéance";
   return new Date(dateString).toLocaleString("fr-FR", {
     day: "numeric",
     month: "short",
@@ -111,6 +113,7 @@ const TaskDetailSheet = ({
             Échéance
           </span>
           <p className="text-sm font-medium text-foreground">{formatDate(task.dueDate)}</p>
+          {!!task.mailSources?.length && <div className="mt-3 space-y-2 text-sm"><p className="font-medium">Mails Zoho associés</p>{task.mailSources.map(source => <div key={source.messageId}><p>{source.subject}</p><p className="text-xs text-muted-foreground">{source.sender} · Réf. {source.messageId}</p></div>)}<a href="https://mail.zoho.eu" target="_blank" rel="noopener noreferrer" className="text-primary underline">Ouvrir Zoho Mail</a></div>}
         </div>
 
         {task.client && (

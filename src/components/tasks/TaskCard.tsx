@@ -14,7 +14,8 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors }: TaskCardProps) => {
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Sans échéance";
     const date = new Date(dateString);
     return date.toLocaleDateString("fr-FR", {
       weekday: "short",
@@ -56,6 +57,7 @@ const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-2">
               <h3 className="font-semibold text-foreground">{task.title}</h3>
+              {!!task.mailSources?.length && <span className="rounded border border-border px-2 py-0.5 text-xs text-muted-foreground">Zoho</span>}
               <TaskStatusSwitcher
                 status={task.status}
                 onChange={(status) => onStatusChange(task.id, status)}

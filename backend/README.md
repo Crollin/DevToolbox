@@ -83,12 +83,16 @@ Toutes les routes d'authentification sont publiques (pas d'authentification requ
 
 Guide utilisateur : [Intégrations API](../docs/integrations/README.md) · [Personal Access Tokens](../docs/integrations/personal-access-tokens.md)
 
+### Intégration Zoho Mail et IA
+
+Voir [le guide de configuration](../docs/integrations/zoho-mail.md) pour OAuth Europe, les clés chiffrées OpenRouter/DeepSeek, les administrateurs et les API.
+
 ### Tâches (JWT ou PAT scope `tasks`)
 
 - `GET /api/tasks` — Liste les tâches (`?status=pending|in_progress|completed`, `?client=…`)
 - `GET /api/tasks/:id` — Détail d'une tâche
 - `POST /api/tasks` — Crée une tâche
-  - Body: `{ title: string, dueDate: string, description?: string, client?: string, link?: string, tags?: string[], priority?: 'low'|'normal'|'high'|'urgent', notificationChannels?: ('ntfy'|'email'|'telegram')[], reminderDays?: number[], reminderDatetime?: string }`
+  - Body: `{ title: string, dueDate?: string | null, description?: string, client?: string, link?: string, tags?: string[], priority?: 'low'|'normal'|'high'|'urgent', notificationChannels?: ('ntfy'|'email'|'telegram')[], reminderDays?: number[], reminderDatetime?: string }`
 - `PUT /api/tasks/:id` — Met à jour une tâche
 - `PATCH /api/tasks/:id/status` — Change le statut (`pending`, `in_progress`, `completed`)
 - `DELETE /api/tasks/:id` — Supprime une tâche
