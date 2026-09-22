@@ -23,7 +23,7 @@ describe('Mail integration API', () => {
   it('never returns stored API keys and invalidates tests after configuration changes', async () => {
     process.env.MAIL_ADMIN_USER_IDS = userId;
     const response = await request(app).put('/api/integrations/mail-ai').set('Authorization',`Bearer ${token}`)
-      .send({provider:'openrouter',openrouterModel:'mistralai/mistral-small-2603',deepseekModel:'deepseek-chat',openrouterKey:'super-secret'});
+      .send({provider:'openrouter',openrouterModel:'typesafe/jev-1.13',deepseekModel:'deepseek-chat',openrouterKey:'super-secret'});
     expect(response.status).toBe(200); expect(response.body.openrouter.configured).toBe(true);
     expect(JSON.stringify(response.body)).not.toContain('super-secret');
     expect(response.body.openrouter.tested).toBe(false);

@@ -25,11 +25,13 @@ export function initializeMailIntegration(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS mail_ai_config (
       id INTEGER PRIMARY KEY CHECK(id=1), provider TEXT NOT NULL DEFAULT 'openrouter',
       openrouter_key TEXT, deepseek_key TEXT,
-      openrouter_model TEXT NOT NULL DEFAULT 'mistralai/mistral-small-2603',
+      openrouter_model TEXT NOT NULL DEFAULT 'typesafe/jev-1.13',
       deepseek_model TEXT NOT NULL DEFAULT 'deepseek-chat',
       openrouter_tested INTEGER NOT NULL DEFAULT 0, deepseek_tested INTEGER NOT NULL DEFAULT 0
     );
     INSERT OR IGNORE INTO mail_ai_config(id) VALUES(1);
+    UPDATE mail_ai_config SET openrouter_model='typesafe/jev-1.13', openrouter_tested=0
+      WHERE id=1 AND openrouter_model='mistralai/mistral-small-2603';
     CREATE TABLE IF NOT EXISTS zoho_connections (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       generation TEXT NOT NULL, account_id TEXT NOT NULL, email TEXT NOT NULL,

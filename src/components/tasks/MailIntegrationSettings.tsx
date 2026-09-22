@@ -59,15 +59,16 @@ function AiMailSettings({ onChange }: { onChange: () => Promise<void> }) {
       {!config ? <Button variant="outline" onClick={() => void load()}>Charger la configuration</Button> : <>
         <div className="space-y-2"><Label htmlFor="mail-ai-provider">Fournisseur actif</Label>
           <select id="mail-ai-provider" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={config.provider} disabled={busy} onChange={e => setConfig({ ...config, provider: e.target.value as Provider })}>
-            <option value="openrouter">Mistral via OpenRouter</option><option value="deepseek">DeepSeek Platform</option>
+            <option value="openrouter">Jev (System One) via OpenRouter</option><option value="deepseek">DeepSeek Platform</option>
           </select>
         </div>
         {(['openrouter', 'deepseek'] as const).map(provider => <fieldset key={provider} disabled={busy} className="space-y-3 border-t pt-4">
-          <legend className="px-1 font-medium">{provider === 'openrouter' ? 'OpenRouter' : 'DeepSeek direct'}</legend>
+          <legend className="px-1 font-medium">{provider === 'openrouter' ? 'Jev via OpenRouter' : 'DeepSeek direct'}</legend>
           <p className="text-sm text-muted-foreground">{config[provider].tested ? 'Connexion testée' : config[provider].configured ? 'Clé enregistrée · test requis' : 'Clé à renseigner'}</p>
+          {provider === 'openrouter' && <p className="text-sm text-muted-foreground">Classification rapide Decisions API (pas de génération de texte). Modèle recommandé : typesafe/jev-1.13.</p>}
           <div className="space-y-2"><Label htmlFor={`mail-key-${provider}`}>Clé API</Label><Input id={`mail-key-${provider}`} type="password" autoComplete="new-password" value={keys[provider]} placeholder={config[provider].configured ? 'Laisser vide pour conserver la clé' : 'Votre clé API'} onChange={e => setKeys({ ...keys, [provider]: e.target.value })} /></div>
           <div className="space-y-2"><Label htmlFor={`mail-model-${provider}`}>Modèle</Label><Input id={`mail-model-${provider}`} value={config[provider].model} onChange={e => setConfig({ ...config, [provider]: { ...config[provider], model: e.target.value, tested: false } })} /></div>
-          <Button type="button" variant="outline" onClick={() => void save(provider)} disabled={!config[provider].configured && !keys[provider]}>Enregistrer et tester {provider === 'openrouter' ? 'OpenRouter' : 'DeepSeek'}</Button>
+          <Button type="button" variant="outline" onClick={() => void save(provider)} disabled={!config[provider].configured && !keys[provider]}>Enregistrer et tester {provider === 'openrouter' ? 'Jev / OpenRouter' : 'DeepSeek'}</Button>
         </fieldset>)}
         <Button disabled={busy} onClick={() => void save()}>{busy ? 'Vérification…' : 'Enregistrer le fournisseur actif'}</Button>
         {notice && <p role="status" className="text-sm text-muted-foreground">{notice}</p>}

@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
 import db, { initializeDatabase } from '../../db/database';
 import { migrateOptionalTaskDate } from '../../db/mailIntegration';
-import { cleanMailText, decryptMailSecret, encryptMailSecret, extractMail, getAiConfig, needsReview, type MailContext, type MailProposal } from '../../lib/mailAi';
+import { cleanMailText, decryptMailSecret, encryptMailSecret, extractMail, getAiConfig, needsReview, policyFromJevSignals, type MailContext, type MailProposal } from '../../lib/mailAi';
 import { applyExtraction, acceptProposal, enqueueMessage, runMailWorker, type MailMessage } from '../../lib/mailWorker';
 import { finishZohoOAuth, getConnection, startZohoOAuth, type ZohoConnection } from '../../lib/zohoMail';
 
@@ -11,6 +11,23 @@ const proposal: MailProposal = { action: 'create', title: 'Corriger le formulair
   evidence: 'Peux-tu corriger le formulaire ?', priorityEvidence: '', dueDateEvidence: '', explicitForUser: true, ambiguous: false, requiresAttachment: false, existingTaskId: null };
 const context: MailContext = { subject: 'Formulaire', sender: 'client@example.fr', recipients: 'me@example.fr', userEmail: 'me@example.fr', receivedAt: '2026-09-18T10:00:00Z',
   text: proposal.evidence, incomplete: false, hasAttachment: false, existingTasks: [] };
+
+function jevAnswers(overrides: Record<string, unknown> = {}) {
+  return {
+    has_actionable_request: { type: 'noul', noul: 0.95, confidence: 0.9 },
+    explicit_for_user: { type: 'noul', noul: 0.92, confidence: 0.9 },
+    ambiguous: { type: 'noul', noul: 0.05, confidence: 0.9 },
+    requires_attachment: { type: 'noul', noul: 0.05, confidence: 0.9 },
+    mentions_deadline: { type: 'noul', noul: 0.05, confidence: 0.9 },
+    action_kind: { type: 'choice', choice: 'create', confidence: 0.9, probabilities: { create: 0.9, none: 0.05, followup: 0.02, update: 0.02, complete: 0.01 } },
+    priority: { type: 'choice', choice: 'normal', confidence: 0.85, probabilities: { normal: 0.85, low: 0.05, high: 0.05, urgent: 0.05 } },
+    ...overrides,
+  };
+}
+function jevResponse(overrides: Record<string, unknown> = {}) {
+  return { answers: jevAnswers(overrides), usage: { input_tokens: 10, output_tokens: 5, cost: 0.0001 } };
+}
+
 let userId: string;
 let connection: ZohoConnection;
 function mail(): MailMessage {
@@ -28,7 +45,7 @@ beforeEach(() => {
   db.prepare('INSERT INTO zoho_connections(user_id,generation,account_id,email,refresh_token,activated_at) VALUES(?,?,?,?,?,?)')
     .run(userId,randomUUID(),'123','me@example.fr',encryptMailSecret('refresh'),Date.now()-10000);
   connection = getConnection(userId)!;
-  db.prepare("UPDATE mail_ai_config SET provider='openrouter',openrouter_key=?,openrouter_tested=1").run(encryptMailSecret('or-key'));
+  db.prepare("UPDATE mail_ai_config SET provider='openrouter',openrouter_key=?,openrouter_model='typesafe/jev-1.13',openrouter_tested=1").run(encryptMailSecret('or-key'));
 });
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -112,21 +129,62 @@ describe('mail integration invariants', () => {
   });
 });
 
+describe('Jev policy', () => {
+  it('maps clear actionable signals to create with subject title and null dueDate', () => {
+    const result = policyFromJevSignals(context, jevAnswers() as Parameters<typeof policyFromJevSignals>[1]);
+    expect(result.decision).toBe('create');
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0].title).toBe('Formulaire');
+    expect(result.proposals[0].dueDate).toBeNull();
+    expect(result.proposals[0].action).toBe('create');
+  });
+  it('ignores newsletters and none action_kind', () => {
+    expect(policyFromJevSignals(context, jevAnswers({
+      has_actionable_request: { type: 'noul', noul: 0.1, confidence: 0.9 },
+      action_kind: { type: 'choice', choice: 'none', confidence: 0.9, probabilities: { none: 0.9 } },
+    }) as Parameters<typeof policyFromJevSignals>[1]).decision).toBe('ignore');
+  });
+  it('forces review on ambiguity, attachment, deadline mention and update', () => {
+    expect(policyFromJevSignals(context, jevAnswers({
+      ambiguous: { type: 'noul', noul: 0.8, confidence: 0.9 },
+    }) as Parameters<typeof policyFromJevSignals>[1]).decision).toBe('review');
+    expect(policyFromJevSignals(context, jevAnswers({
+      mentions_deadline: { type: 'noul', noul: 0.9, confidence: 0.9 },
+    }) as Parameters<typeof policyFromJevSignals>[1]).decision).toBe('review');
+    expect(policyFromJevSignals(context, jevAnswers({
+      action_kind: { type: 'choice', choice: 'update', confidence: 0.9, probabilities: { update: 0.9 } },
+    }) as Parameters<typeof policyFromJevSignals>[1]).decision).toBe('review');
+  });
+});
+
 describe('provider contract', () => {
-  it.each(['openrouter','deepseek'] as const)('uses only %s and validates structured output', async provider => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices:[{finish_reason:'stop',message:{content:JSON.stringify({decision:'create',reason:'',proposals:[proposal]})}}],usage:{prompt_tokens:10,completion_tokens:20,cost:0.001} })));
-    vi.stubGlobal('fetch',fetchMock);
-    const config = {...getAiConfig(),provider,deepseek_key:encryptMailSecret('ds-key')};
-    const result = await extractMail(context,config,userId);
+  it('openrouter uses Decisions API and maps Jev answers', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(jevResponse())));
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await extractMail(context, getAiConfig(), userId);
+    expect(result.decision).toBe('create');
     expect(result.proposals[0].dueDate).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe(provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.deepseek.com/chat/completions');
+    expect(fetchMock.mock.calls[0][0]).toBe('https://openrouter.ai/api/alpha/decisions');
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.response_format.type).toBe(provider === 'openrouter' ? 'json_schema' : 'json_object');
+    expect(body.model).toBe('typesafe/jev-1.13');
+    expect(body.questions.has_actionable_request.type).toBe('noul');
+    expect(body.questions.action_kind.type).toBe('choice');
+    expect(body.state.userEmail).toBe(context.userEmail);
+  });
+  it('deepseek keeps chat completions with structured JSON', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices:[{finish_reason:'stop',message:{content:JSON.stringify({decision:'create',reason:'',proposals:[proposal]})}}],usage:{prompt_tokens:10,completion_tokens:20,cost:0.001} })));
+    vi.stubGlobal('fetch',fetchMock);
+    const config = {...getAiConfig(),provider:'deepseek' as const,deepseek_key:encryptMailSecret('ds-key')};
+    const result = await extractMail(context,config,userId);
+    expect(result.proposals[0].dueDate).toBeNull();
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.deepseek.com/chat/completions');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.response_format.type).toBe('json_object');
     expect(body.messages[0].content).toContain('données non fiables');
   });
-  it.each(['', '{', '{"decision":"create"}', JSON.stringify({decision:'ignore',reason:'',proposals:[proposal]})])('rejects empty, malformed or inconsistent output', async content => {
-    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content}}]}))));
+  it.each(['', '{', '{"answers":{}}', JSON.stringify({ answers: { has_actionable_request: { type: 'noul', noul: 1 } } })])('rejects empty, malformed or incomplete Jev output', async content => {
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(content || '{}')));
     await expect(extractMail(context,getAiConfig(),userId)).rejects.toThrow();
   });
   it('does not fall back or disclose the upstream body on quota errors', async () => {
@@ -183,7 +241,7 @@ describe('Zoho OAuth and background worker', () => {
       if (url.endsWith('/folders')) return ok([{folderId:'222',folderType:'Inbox',folderName:'Client'}, {folderId:'555',folderType:'Spam',folderName:'Spam'}]);
       if (url.includes('/messages/view')) return ok([{messageId:'111',folderId:'222',subject:'Formulaire',fromAddress:context.sender,toAddress:context.recipients,receivedTime:String(Date.now()),status:'1'}]);
       if (url.includes('/content?')) return ok({content:proposal.evidence});
-      if (url.includes('openrouter')) return new Response('{}',{status:402});
+      if (url.includes('openrouter') || url.includes('decisions')) return new Response('{}',{status:402});
       throw new Error('Unexpected request');
     }));
     await Promise.all([runMailWorker(),runMailWorker()]);
@@ -191,7 +249,7 @@ describe('Zoho OAuth and background worker', () => {
     expect(row.status).toBe('queued'); expect(row.attempts).toBe(1);
     expect(calls.some(c => c.includes('status=all'))).toBe(true);
     expect(calls.some(c => c.includes('folderId=555'))).toBe(false);
-    expect(calls.filter(c => c.includes('openrouter'))).toHaveLength(1);
+    expect(calls.filter(c => c.includes('decisions') || c.includes('openrouter'))).toHaveLength(1);
     expect(calls.every(c => !c.includes('updatemessage'))).toBe(true);
     expect(db.prepare('SELECT * FROM tasks WHERE user_id=?').all(userId)).toHaveLength(0);
   });
@@ -209,7 +267,13 @@ describe('Zoho OAuth and background worker', () => {
         return ok(Array.from({length:start === '1' ? 200 : 25}, (_,i) => ({messageId:String(1000+offset+i),folderId:'222',subject:'Merci',fromAddress:context.sender,receivedTime:String(Date.now())})));
       }
       if (url.includes('/content?')) return ok({content:'Merci !'});
-      return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify({decision:'ignore',reason:'Remerciement',proposals:[]})}}]}));
+      if (url.includes('decisions')) {
+        return new Response(JSON.stringify(jevResponse({
+          has_actionable_request: { type: 'noul', noul: 0.05, confidence: 0.9 },
+          action_kind: { type: 'choice', choice: 'none', confidence: 0.95, probabilities: { none: 0.95 } },
+        })));
+      }
+      throw new Error(`Unexpected request ${url}`);
     }));
     await runMailWorker();
     expect(pageStarts).toEqual(['1','181']);

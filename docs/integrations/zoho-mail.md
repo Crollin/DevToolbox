@@ -1,6 +1,6 @@
 # Zoho Mail Europe → Task Reminder
 
-L’intégration relève les nouveaux mails entrants de Zoho Europe toutes les trois minutes. Elle analyse leur texte avec **Mistral via OpenRouter** par défaut. **DeepSeek Platform**, appelé directement avec sa propre clé, est sélectionnable comme alternative. Il n’y a aucun basculement automatique entre services ou modèles.
+L’intégration relève les nouveaux mails entrants de Zoho Europe toutes les trois minutes. Par défaut elle **classe** les messages avec **Jev (System One) via OpenRouter** (API Decisions, pas de chat completions). **DeepSeek Platform**, appelé directement avec sa propre clé, reste disponible comme alternative d’**extraction** LLM JSON. Il n’y a aucun basculement automatique entre services ou modèles.
 
 ## Configuration serveur
 
@@ -26,8 +26,8 @@ Dans la console Zoho **Europe**, créer une application serveur avec exactement 
 ## Activation
 
 1. Se connecter avec un utilisateur déclaré administrateur et ouvrir **Mon compte → Intégrations**.
-2. Dans **Analyse IA des mails**, enregistrer la clé OpenRouter et le modèle `mistralai/mistral-small-2603`, puis **Enregistrer et tester OpenRouter**. Le test vérifie le catalogue, la prise en charge du schéma et une extraction synthétique sans échéance.
-3. Facultativement, enregistrer la clé DeepSeek Platform et le modèle `deepseek-chat`, puis effectuer son test. Les modèles sont modifiables pour suivre les catalogues des fournisseurs.
+2. Dans **Analyse IA des mails**, enregistrer la clé OpenRouter et le modèle `typesafe/jev-1.13`, puis **Enregistrer et tester Jev / OpenRouter**. Le test envoie un appel Decisions synthétique et vérifie une classification `create` sans échéance.
+3. Facultativement, enregistrer la clé DeepSeek Platform et le modèle `deepseek-chat`, puis effectuer son test (extraction JSON LLM). Les modèles sont modifiables pour suivre les catalogues des fournisseurs.
 4. Sélectionner le fournisseur actif et enregistrer. Un changement de clé ou de modèle invalide son test précédent ; les traitements attendent un test réussi du fournisseur actif.
 5. Chaque utilisateur connecte sa boîte via **Connecter Zoho Mail (.eu)**. La boîte Zoho principale est sélectionnée (une boîte par utilisateur). La lecture des comptes, dossiers et métadonnées est vérifiée avant activation.
 6. Configurer les exclusions d’expéditeurs/domaines et les associations aux clients de Task Reminder. La liste réunit les clients enregistrés et les noms déjà présents sur vos tâches, sans doublons. Le champ **Nouveau client** crée un client dans le même registre que Task Reminder ; le sélectionner ensuite dans l’association et enregistrer les règles.
@@ -35,7 +35,9 @@ Dans la console Zoho **Europe**, créer une application serveur avec exactement 
 
 Si les champs de connexion IA ne sont pas disponibles, ouvrir **Analyse IA des mails → Vous gérez cette instance ?**. La page affiche votre identifiant : l’ajouter à `MAIL_ADMIN_USER_IDS` sur le backend, redéployer et recharger la page. Cette variable attend l’identifiant DevToolbox, pas l’adresse email Zoho.
 
-La localisation `.eu` concerne Zoho. OpenRouter utilise ici son endpoint standard, et DeepSeek son API directe : aucune résidence européenne de l’analyse n’est promise. L’analyse OpenRouter exige un endpoint compatible avec les sorties structurées et refusant la collecte des données (`data_collection: deny`).
+La localisation `.eu` concerne Zoho. OpenRouter facture Jev via `POST https://openrouter.ai/api/alpha/decisions` ; DeepSeek utilise son API chat directe. Aucune résidence européenne de l’analyse n’est promise. Les appels OpenRouter refusent la collecte des données (`data_collection: deny`) lorsque le routeur le permet.
+
+Une migration soft remplace l’ancien défaut `mistralai/mistral-small-2603` par `typesafe/jev-1.13` et invalide le test OpenRouter : retester après déploiement.
 
 ## Comportement
 
@@ -44,9 +46,11 @@ La localisation `.eu` concerne Zoho. OpenRouter utilise ici son endpoint standar
 - Les pages se recouvrent et sont parcourues jusqu’à la date d’activation pour repérer les déplacements entre dossiers. Ce choix privilégie la fiabilité pour une boîte personnelle ; le nombre d’appels augmente avec son historique depuis activation. Les limites Zoho sont signalées dans l’état de synchronisation.
 - La file SQLite survit aux redémarrages. Le worker traite au plus 20 messages par boîte et par passage. Les erreurs sont réessayées avec délai croissant ; après cinq tentatives, **Réessayer** permet une reprise manuelle.
 - Les messages gardent le fournisseur/modèle choisi lors de leur première tentative. Changer le fournisseur actif ne réanalyse pas les messages terminés.
-- Une demande explicite produit une ou plusieurs tâches. Les ambiguïtés, contenu tronqué, échéances non justifiées et demandes dépendant d’une pièce jointe passent en vérification. Les dates relatives sont interprétées en `Europe/Paris` par rapport à la date du mail.
-- Les clients viennent uniquement des associations configurées, pas d’une invention du modèle. La priorité normale est utilisée par défaut et toute autre priorité nécessite un extrait justificatif.
-- Une relance reconnue peut être reliée à une tâche du même fil. Modifier une tâche ou la clôturer nécessite une acceptation humaine explicite.
+- **Jev (OpenRouter)** : un seul appel Decisions pose des questions atomiques (`noul` / `choice`) — demande actionnable, destinataire, ambiguïté, pièce jointe, échéance évoquée, type d’action, priorité. Une **politique TypeScript** mappe les probabilités vers `ignore` / `create` / `review`. Le titre vient du sujet ; la description est un extrait du corps ; **aucune date n’est extraite** (`dueDate` reste `null`). Une échéance mentionnée force la revue humaine.
+- **DeepSeek** : extraction LLM JSON (plusieurs propositions, dates relatives en `Europe/Paris`) comme auparavant.
+- Les ambiguïtés, contenu tronqué, confiance basse, update/complete et demandes dépendant d’une pièce jointe passent en vérification.
+- Les clients viennent uniquement des associations configurées, pas d’une invention du modèle. La priorité normale est utilisée par défaut.
+- Une relance reconnue peut être reliée à une tâche du même fil (une seule tâche connue). Modifier une tâche ou la clôturer nécessite une acceptation humaine explicite.
 - Les tâches sans échéance affichent **Sans échéance**. Les rappels relatifs sont désactivés ; un rappel à date/heure précise reste possible.
 - Les identifiants du mail, son sujet et son expéditeur figurent dans les sources de la tâche. L’interface ouvre Zoho Mail ; elle n’invente pas d’URL profonde non documentée.
 
@@ -84,6 +88,6 @@ Avant de généraliser, examiner les premières tâches et exceptions sur le com
 
 ### Évaluation IA facultative sur exemples annotés
 
-`backend/src/__tests__/lib/mailAiEvaluation.test.ts` contient neuf exemples synthétiques français par fournisseur (actions multiples, dates relatives, ambiguïté, pièce jointe, destinataire tiers, tentative de détournement, etc.). Ces tests sont ignorés par défaut.
+`backend/src/__tests__/lib/mailAiEvaluation.test.ts` contient des exemples synthétiques français par fournisseur. Pour OpenRouter/Jev, les attentes portent sur le triage (ignore / create / review) et non sur l’extraction de dates. Ces tests sont ignorés par défaut.
 
-Pour les exécuter depuis `backend/`, définir `MAIL_AI_LIVE_TESTS=1` et la clé du fournisseur dans l’environnement (`OPENROUTER_API_KEY` et/ou `DEEPSEEK_API_KEY`), puis lancer `npm test -- src/__tests__/lib/mailAiEvaluation.test.ts`. `OPENROUTER_MODEL` et `DEEPSEEK_MODEL` permettent de choisir les modèles. Ces appels consomment les crédits des clés fournies ; aucun message de votre boîte n’est lu. Un échec d’évaluation doit être examiné avant généralisation du modèle.
+Pour les exécuter depuis `backend/`, définir `MAIL_AI_LIVE_TESTS=1` et la clé du fournisseur dans l’environnement (`OPENROUTER_API_KEY` et/ou `DEEPSEEK_API_KEY`), puis lancer `npm test -- src/__tests__/lib/mailAiEvaluation.test.ts`. `OPENROUTER_MODEL` (défaut `typesafe/jev-1.13`) et `DEEPSEEK_MODEL` permettent de choisir les modèles. Ces appels consomment les crédits des clés fournies ; aucun message de votre boîte n’est lu. Un échec d’évaluation doit être examiné avant généralisation du modèle.
