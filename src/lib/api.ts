@@ -5,6 +5,7 @@ import { getAuthToken } from './auth';
 const SENSITIVE_PATHS = ['/auth/login', '/auth/register'];
 
 function redactSensitiveData(obj: unknown, url: string): unknown {
+  if (url.includes('/integrations/')) return '[Contenu privé]';
   if (!obj || typeof obj !== 'object') return obj;
   const isSensitive = SENSITIVE_PATHS.some((p) => url.includes(p));
   if (!isSensitive) return obj;

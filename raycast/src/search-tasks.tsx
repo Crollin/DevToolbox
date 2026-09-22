@@ -16,6 +16,7 @@ const statusLabels: Record<TaskStatus, string> = {
 };
 
 function dueLabel(task: Task) {
+  if (!task.dueDate) return "Sans échéance";
   const due = new Date(task.dueDate);
   return Number.isNaN(due.getTime()) ? task.dueDate : due.toLocaleDateString();
 }

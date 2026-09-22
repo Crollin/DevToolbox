@@ -40,6 +40,12 @@ export function useTasks() {
     }
   }, [isAuthenticated, loadTasks]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const timer = window.setInterval(() => { if (!document.hidden) void loadTasks(); }, 180000);
+    return () => window.clearInterval(timer);
+  }, [isAuthenticated, loadTasks]);
+
   const addTask = useCallback(async (task: CreateTaskInput) => {
     if (!isAuthenticated) {
       throw new Error("Vous devez être connecté pour ajouter une tâche");

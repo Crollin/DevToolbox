@@ -24,7 +24,8 @@ const priorityAccent: Record<Task["priority"], string> = {
   low: "bg-muted-foreground/40",
 };
 
-function formatShortDate(dateString: string) {
+function formatShortDate(dateString: string | null) {
+  if (!dateString) return "Sans échéance";
   return new Date(dateString).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "short",
@@ -98,6 +99,7 @@ const KanbanTaskCard = ({
             <h4 className="text-sm font-medium leading-snug text-foreground line-clamp-2">
               {task.title}
             </h4>
+            {!!task.mailSources?.length && <span className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground">Zoho</span>}
             {task.priority !== "normal" && (
               <span
                 className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", priorityAccent[task.priority])}

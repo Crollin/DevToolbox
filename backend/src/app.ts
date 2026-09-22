@@ -1,4 +1,5 @@
 import express from 'express';
+import mailIntegrationRoutes from './routes/mailIntegrations';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -69,6 +70,7 @@ app.use('/api/git', gitRoutes);
 app.use('/api/icons', iconsRoutes);
 app.use('/api/licences', licencesRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/integrations', mailIntegrationRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api/kb', kbRoutes);
 if (isDomainHubEnabled()) {

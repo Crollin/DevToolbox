@@ -21,7 +21,7 @@ const channelSchema = z.enum(['ntfy', 'email', 'telegram']);
 
 const taskFields = {
   title: z.string().min(1).describe('Titre de la tâche'),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('Échéance YYYY-MM-DD'),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('Échéance YYYY-MM-DD, null ou omise si inconnue'),
   description: z.string().optional().describe('Description / contexte'),
   client: z.string().optional().describe('Nom du client'),
   link: z.string().optional().describe('URL associée (optionnel)'),
@@ -45,7 +45,7 @@ function toTaskInput(args: z.infer<z.ZodObject<typeof taskFields>>): TaskInput {
   const link = args.link === '' ? undefined : args.link;
   return {
     title: args.title,
-    dueDate: args.dueDate,
+    dueDate: args.dueDate ?? null,
     description: args.description,
     client: args.client,
     link,
@@ -100,7 +100,7 @@ server.tool(
 
 server.tool(
   'create_task',
-  'Crée une tâche. title et dueDate (YYYY-MM-DD) sont obligatoires.',
+  'Crée une tâche. title est obligatoire ; dueDate est facultative (YYYY-MM-DD).',
   taskFields,
   async (args) => {
     try {
@@ -114,7 +114,7 @@ server.tool(
 
 server.tool(
   'update_task',
-  'Met à jour une tâche (PUT). title et dueDate restent obligatoires.',
+  'Met à jour une tâche (PUT). title reste obligatoire ; dueDate peut être null.',
   {
     id: z.string().uuid().describe('Identifiant UUID de la tâche'),
     ...taskFields,

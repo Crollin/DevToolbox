@@ -20,12 +20,12 @@ Le token est fourni via la variable d’environnement `DEVTOOLBOX_PAT` (ou équi
 
 1. **Toujours** envoyer `Authorization: Bearer dt_...` sur chaque requête.
 2. **Création** : `title` et `dueDate` sont **obligatoires**.
-3. **Format date** : `dueDate` en `YYYY-MM-DD` (ex. `2026-08-15`). Pour `reminderDatetime`, ISO 8601 (ex. `2026-08-15T09:00:00.000Z`).
+3. **Format date** : `dueDate` en `YYYY-MM-DD`, ou `null` si aucune échéance (ex. `2026-08-15`). Pour `reminderDatetime`, ISO 8601 (ex. `2026-08-15T09:00:00.000Z`).
 4. **Statuts** : `pending` | `in_progress` | `completed`.
 5. **Priorités** : `low` | `normal` | `high` | `urgent` (défaut : `normal`).
 6. **Canaux de notification** : `ntfy` | `email` | `telegram` (tableau optionnel).
 7. **Tags** : tableau de chaînes, max 20, dédupliqués côté serveur.
-8. En cas de doute sur la date d’échéance, demander confirmation à l’utilisateur avant de créer.
+8. Si aucune échéance n’est donnée, utiliser `dueDate: null`. Demander confirmation uniquement pour une date ambiguë.
 9. Après création ou modification, confirmer à l’utilisateur : titre, échéance, statut, client éventuel.
 10. Ne pas appeler les routes licences / KB / domains : le token Hermes n’a que le scope `tasks`.
 
@@ -150,7 +150,7 @@ Utiliser `GET /tasks/clients/list` avant de créer une tâche si l’utilisateur
 | HTTP | Message | Action |
 |------|---------|--------|
 | 401 | Token manquant / invalide | Vérifier `DEVTOOLBOX_PAT` |
-| 400 | Titre et date requis | Ajouter `title` + `dueDate` |
+| 400 | Données invalides | Ajouter `title` et une date valide ou `dueDate: null` |
 | 400 | Statut invalide | Utiliser pending / in_progress / completed |
 | 404 | Tâche non trouvée | Vérifier l’`id` ou relister |
 | 409 | Client déjà existant | Réutiliser le client existant |
@@ -177,7 +177,7 @@ curl -s -X PATCH "https://devtoolbox.creactiveweb.com/api/tasks/TASK_ID/status" 
 
 ## Comportement attendu de l’agent
 
-- **« Ajoute une tâche… »** → `POST /tasks` avec titre, date (demander si absente), contexte en `description`.
+- **« Ajoute une tâche… »** → `POST /tasks` avec titre, date (null si absente), contexte en `description`.
 - **« Qu’est-ce qui est en retard / à faire ? »** → `GET /tasks?status=pending` (filtrer côté agent si `dueDate` < aujourd’hui).
 - **« C’est fait »** → `PATCH /tasks/{id}/status` avec `completed` (identifier la tâche par titre ou id).
 - **« Déplace au vendredi »** → `PUT /tasks/{id}` avec nouvelle `dueDate`.

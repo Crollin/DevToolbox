@@ -668,7 +668,7 @@ export async function sendTestEmail(email: string, name: string, prefs?: EmailPr
 export interface TaskReminder {
   title: string;
   description?: string;
-  dueDate: string;
+  dueDate: string | null;
   client?: string;
   link?: string;
   daysUntilDue?: number;
@@ -713,7 +713,7 @@ export async function sendTaskReminderEmail(
       <h2 style="margin-top: 0; color: #1f2937;">${task.title}</h2>
       ${task.description ? `<p style="color: #6b7280; margin: 10px 0;">${task.description}</p>` : ''}
       <div style="margin: 15px 0;">
-        <p style="margin: 5px 0;"><strong>📅 Date d'échéance :</strong> ${new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p style="margin: 5px 0;"><strong>📅 Date d'échéance :</strong> ${task.dueDate ? new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Sans échéance'}</p>
         ${task.client ? `<p style="margin: 5px 0;"><strong>👤 Client :</strong> ${task.client}</p>` : ''}
         ${task.link ? `<p style="margin: 5px 0;"><strong>🔗 Lien :</strong> <a href="${task.link}" style="color: #0066CC;">${task.link}</a></p>` : ''}
         ${urgencyText ? `<p style="margin: 10px 0; padding: 10px; background: ${urgencyColor === '#dc2626' ? '#fee2e2' : urgencyColor === '#f59e0b' ? '#fef3c7' : '#dbeafe'}; border-radius: 4px; color: ${urgencyColor}; font-weight: bold;">${urgencyText}</p>` : ''}
@@ -725,7 +725,7 @@ export async function sendTaskReminderEmail(
 ${task.title}
 ${task.description ? `\n${task.description}` : ''}
 
-📅 Date d'échéance : ${new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+📅 Date d'échéance : ${task.dueDate ? new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Sans échéance'}
 ${task.client ? `👤 Client : ${task.client}` : ''}
 ${task.link ? `🔗 Lien : ${task.link}` : ''}
 ${urgencyText ? `\n${urgencyText}` : ''}

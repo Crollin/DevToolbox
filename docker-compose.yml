@@ -29,6 +29,12 @@ services:
       RESEND_FROM: ${RESEND_FROM:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:14001}
+      # Zoho Mail Europe / analyse IA (désactivé sans configuration)
+      MAIL_ENCRYPTION_KEY: ${MAIL_ENCRYPTION_KEY:-}
+      MAIL_ADMIN_USER_IDS: ${MAIL_ADMIN_USER_IDS:-}
+      ZOHO_CLIENT_ID: ${ZOHO_CLIENT_ID:-}
+      ZOHO_CLIENT_SECRET: ${ZOHO_CLIENT_SECRET:-}
+      ZOHO_REDIRECT_URI: ${ZOHO_REDIRECT_URI:-}
       # Web Push (PWA) — générer avec: npx web-push generate-vapid-keys
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}

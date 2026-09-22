@@ -6,7 +6,7 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
-  dueDate: string;
+  dueDate: string | null;
   client?: string;
   link?: string;
   tags: string[];
@@ -21,7 +21,7 @@ export interface Task {
 
 export interface TaskInput {
   title: string;
-  dueDate: string;
+  dueDate?: string | null;
   description?: string;
   client?: string;
   link?: string;
@@ -146,7 +146,7 @@ export function taskSummary(task: Task): string {
   const parts = [
     `• ${task.title}`,
     `  id: ${task.id}`,
-    `  échéance: ${task.dueDate}`,
+    `  échéance: ${task.dueDate || "Sans échéance"}`,
     `  statut: ${task.status}`,
     `  priorité: ${task.priority}`,
   ];

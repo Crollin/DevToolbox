@@ -35,7 +35,7 @@ Variables requises (via config MCP `env`, pas besoin de `.env` si elles y sont) 
 |------|--------|
 | `list_tasks` | Liste (filtre `status` / `client`) |
 | `get_task` | Détail par id |
-| `create_task` | Création (`title` + `dueDate` obligatoires) |
+| `create_task` | Création (`title` obligatoire, `dueDate` facultative) |
 | `update_task` | Mise à jour complète |
 | `set_task_status` | `pending` / `in_progress` / `completed` |
 | `delete_task` | Suppression |
@@ -103,7 +103,7 @@ claude mcp add-json devtoolbox-tasks '{
 
 ```text
 Utilise les tools MCP Task Reminder (list_tasks, create_task, etc.) pour gérer mes tâches DevToolbox.
-Réponds en français. Si la date d’échéance manque, demande-la avant create_task.
+Réponds en français. Si la date d’échéance manque, utilise dueDate: null sans en inventer une.
 Après chaque action, confirme titre + échéance + statut (+ client si présent).
 N’affiche jamais le token.
 ```
@@ -134,4 +134,4 @@ node -e "import('./dist/index.js')" 2>&1 | head -5
 | Serveur MCP absent dans Claude | Chemin absolu incorrect ou `npm run build` non fait |
 | `DEVTOOLBOX_PAT manquant` | `env` absent dans la config MCP |
 | `HTTP 401` | Token révoqué / mauvais scope |
-| `HTTP 400 Titre et date…` | `dueDate` manquant ou pas au format `YYYY-MM-DD` |
+| `HTTP 400 Données de tâche invalides` | Titre vide ou date fournie invalide ; `dueDate` peut être `null` |
