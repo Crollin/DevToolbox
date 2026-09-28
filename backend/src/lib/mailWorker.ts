@@ -110,7 +110,7 @@ export function acceptProposal(userId: string, id: string, edits: unknown) {
       const target = db.prepare('SELECT id FROM tasks WHERE id=? AND user_id=?').get(original.existingTaskId, userId);
       if (!target) throw new MailError('La tâche liée n’existe plus. Rejetez cette proposition.');
       taskId = original.existingTaskId;
-      if (original.action === 'update') db.prepare('UPDATE tasks SET title=?,description=?,due_date=?,client=?,priority=?,updated_at=? WHERE id=? AND user_id=?')
+      if (original.action === 'update') db.prepare('UPDATE tasks SET title=?,description=?,due_date=COALESCE(?,due_date),client=?,priority=?,updated_at=? WHERE id=? AND user_id=?')
         .run(input.title,input.description || null,input.dueDate ?? null,input.client || null,input.priority,new Date().toISOString(),taskId,userId);
       if (original.action === 'complete') db.prepare("UPDATE tasks SET status='completed',updated_at=? WHERE id=? AND user_id=?").run(new Date().toISOString(),taskId,userId);
     } else {
