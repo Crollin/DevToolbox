@@ -286,17 +286,28 @@ Coolify **ne doit pas recompiler** l'application sur le serveur (risque OOM / ti
 
 5. **Variables d'environnement — toutes en « Runtime only »**  
    Ne cocher **aucune** variable en « Available at Buildtime » (y compris `NODE_ENV`, `JWT_SECRET`, `PORT`, etc.).  
-   Variables minimales :
+   Checklist Runtime-only (secrets et config runtime) :
 
-   | Variable | Exemple | Buildtime |
-   |----------|---------|-----------|
+   | Variable | Exemple / note | Buildtime |
+   |----------|----------------|-----------|
    | `IMAGE_TAG` | `latest` | Non |
-   | `JWT_SECRET` | `openssl rand -base64 32` | Non |
-   | `CORS_ORIGIN` | `https://devtoolbox.example.com` | Non |
-   | `FRONTEND_URL` | idem | Non |
+   | `JWT_SECRET` | `openssl rand -base64 32` | **Non** |
+   | `CORS_ORIGIN` | `https://devtoolbox.example.com` (URL absolue http(s), pas `*`) | **Non** |
+   | `FRONTEND_URL` | idem | **Non** |
+   | `MAIL_ENCRYPTION_KEY` | `openssl rand -base64 32` — voir [docs/integrations/zoho-mail.md](docs/integrations/zoho-mail.md) | **Non** |
+   | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | SMTP | **Non** |
+   | `EMAIL_PROVIDER` / `RESEND_API_KEY` / `RESEND_FROM` | Resend | **Non** |
+   | `ZOHO_*` (client id/secret/redirect selon docs zoho-mail) | OAuth Zoho | **Non** |
+   | `OPENROUTER_API_KEY` (ou clé AI mail documentée) | Mail AI | **Non** |
+   | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push | **Non** |
+   | `TELEGRAM_BOT_TOKEN` | optionnel | **Non** |
+   | Tokens Domain Hub (`CLOUDFLARE_*`, `HOSTINGER_*`, `OVH_*`) | optionnel | **Non** |
+   | `NODE_ENV` | `production` | **Non** (Runtime only) |
 
-   Optionnel : `SMTP_*`, `PORT`, `DB_PATH`.  
+   Optionnel aussi : `PORT`, `DB_PATH`.  
    Ne pas définir `FRONTEND_PORT` sur Coolify (réservé au compose local).
+
+   > **Action ops (manuelle, hors CI) :** dans Coolify → Environment, vérifier qu’aucune de ces variables n’a « Available at Buildtime » coché. Ne pas basculer en production sans confirmation explicite.
 
 6. **Stockage**  
    Volume `devtoolbox_data` — la base SQLite est conservée entre déploiements. **Ne jamais** lancer `docker compose down -v` en production.
