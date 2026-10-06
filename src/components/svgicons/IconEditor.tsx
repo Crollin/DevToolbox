@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Eye } from "lucide-react";
 import { SVGIcon, defaultCategories } from "@/types/svgicon";
+import { sanitizeSvg } from "@/lib/sanitizeSvg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,7 +116,7 @@ const IconEditor = ({
     svg = svg.replace(/width="[^"]*"/, `width="${formData.size}"`);
     svg = svg.replace(/height="[^"]*"/, `height="${formData.size}"`);
     svg = svg.replace(/stroke="[^"]*"/, `stroke="${formData.color}"`);
-    return svg;
+    return sanitizeSvg(svg);
   };
 
   return (

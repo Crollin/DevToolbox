@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Copy, Heart, Pencil, Trash2, Code, Check } from "lucide-react";
 import { SVGIcon } from "@/types/svgicon";
 import { cn } from "@/lib/utils";
+import { sanitizeSvg } from "@/lib/sanitizeSvg";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -29,7 +30,7 @@ const IconCard = ({ icon, onEdit, onDelete, onToggleFavorite }: IconCardProps) =
       svg = svg.replace(/stroke="[^"]*"/, `stroke="${icon.color}"`);
       svg = svg.replace(/fill="[^"]*"/, `fill="${icon.color}"`);
     }
-    return svg;
+    return sanitizeSvg(svg);
   };
 
   const getJsxCode = () => {
