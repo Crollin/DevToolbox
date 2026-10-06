@@ -6,6 +6,7 @@ import {
   isEmailConfigured,
   loadEmailPreferencesForUser,
 } from '../lib/email';
+import { emailPreferencesSchema } from '../lib/emailPreferencesSchema';
 import { parseNotificationChannels } from '../lib/notificationChannels';
 import { getOrCreateNtfyConfig, upsertNtfyConfig } from '../lib/ntfyConfig';
 import { testNotifications, NotificationDispatchConfig } from '../lib/notificationDispatch';
@@ -374,6 +375,13 @@ router.get('/email-preferences', (req: Request, res: Response) => {
 router.put('/email-preferences', (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
+    const parsed = emailPreferencesSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Préférences email invalides',
+        details: parsed.error.issues.map((i) => i.message),
+      });
+    }
     const {
       companyName,
       signature,
@@ -383,7 +391,7 @@ router.put('/email-preferences', (req: Request, res: Response) => {
       welcomeText,
       licencesText,
       tasksText,
-    } = req.body;
+    } = parsed.data;
 
     const now = new Date().toISOString();
     const existing = db.prepare('SELECT user_id FROM user_email_preferences WHERE user_id = ?').get(userId);
