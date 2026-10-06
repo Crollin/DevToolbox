@@ -34,6 +34,16 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/** CORS_ORIGIN doit être une URL absolue http(s), sans wildcard. */
+export function isValidCorsOrigin(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && !value.includes('*');
+  } catch {
+    return false;
+  }
+}
+
 export function validateEnv(): Env {
   const result = envSchema.safeParse(process.env);
 
@@ -55,6 +65,12 @@ export function validateEnv(): Env {
       console.error('Erreur: CORS_ORIGIN doit être défini en production (URL du frontend).');
       process.exit(1);
     }
+  }
+
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (corsOrigin && !isValidCorsOrigin(corsOrigin)) {
+    console.error('Erreur: CORS_ORIGIN doit être une URL absolue http(s) (ex: https://app.example.com).');
+    process.exit(1);
   }
 
   return env;
