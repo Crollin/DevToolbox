@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import db from '../db/database';
 import { getFrontendUrl } from './frontendUrl';
+import { escapeHtml, sanitizeEmailDisplayName } from './htmlEscape';
 
 type EmailProvider = 'resend' | 'smtp';
 
@@ -32,12 +33,25 @@ export interface EmailPreferences {
   tasksText?: string;
 }
 
+function prefsParagraphs(text: string): string {
+  return text
+    .split('\n')
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join('');
+}
+
+const HEX_COLOR_RE = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+
+function safeCssColor(value: string | undefined, fallback: string): string {
+  return value && HEX_COLOR_RE.test(value) ? value : fallback;
+}
+
 function getEmailDefaults(prefs?: EmailPreferences | null) {
   return {
     companyName: prefs?.companyName || 'DevToolbox',
     signature: prefs?.signature || 'L\'équipe DevToolbox',
-    primaryColor: prefs?.primaryColor || '#0066CC',
-    secondaryColor: prefs?.secondaryColor || '#004499',
+    primaryColor: safeCssColor(prefs?.primaryColor, '#0066CC'),
+    secondaryColor: safeCssColor(prefs?.secondaryColor, '#004499'),
     logoUrl: prefs?.logoUrl || '',
   };
 }
@@ -107,7 +121,7 @@ function getEmailProvider(): EmailProvider | null {
 
 function getFromAddress(companyName?: string): string {
   const d = getEmailDefaults(null);
-  const name = companyName || d.companyName;
+  const name = sanitizeEmailDisplayName(companyName || d.companyName);
   const provider = getEmailProvider();
 
   if (provider === 'resend') {
@@ -182,9 +196,13 @@ export async function sendConfirmationEmail(email: string, name: string, prefs?:
 
   const d = getEmailDefaults(prefs);
   const fromAddr = getFromAddress(d.companyName);
+  const safeName = escapeHtml(name);
+  const safeCompany = escapeHtml(d.companyName);
+  const safeSignature = escapeHtml(d.signature);
+  const safeLogoUrl = escapeHtml(d.logoUrl);
   const welcomeBody = prefs?.welcomeText
-    ? prefs.welcomeText.split('\n').map(p => `<p>${p}</p>`).join('')
-    : `<p>Merci de vous être inscrit sur <strong>${d.companyName}</strong> ! Votre compte a été créé avec succès.</p><p>Vous pouvez maintenant accéder à tous les outils disponibles et commencer à utiliser votre boîte à outils de développement.</p>`;
+    ? prefsParagraphs(prefs.welcomeText)
+    : `<p>Merci de vous être inscrit sur <strong>${safeCompany}</strong> ! Votre compte a été créé avec succès.</p><p>Vous pouvez maintenant accéder à tous les outils disponibles et commencer à utiliser votre boîte à outils de développement.</p>`;
 
   try {
     const sent = await dispatchEmail({
@@ -238,17 +256,17 @@ export async function sendConfirmationEmail(email: string, name: string, prefs?:
         </head>
         <body>
           <div class="header">
-            ${d.logoUrl ? `<img src="${d.logoUrl}" alt="${d.companyName}" style="max-height: 60px; margin-bottom: 10px;">` : ''}
-            <h1>Bienvenue sur ${d.companyName} ! 🎉</h1>
+            ${d.logoUrl ? `<img src="${safeLogoUrl}" alt="${safeCompany}" style="max-height: 60px; margin-bottom: 10px;">` : ''}
+            <h1>Bienvenue sur ${safeCompany} ! 🎉</h1>
           </div>
           <div class="content">
-            <p>Bonjour <strong>${name}</strong>,</p>
+            <p>Bonjour <strong>${safeName}</strong>,</p>
             ${welcomeBody}
             <p style="text-align: center;">
-              <a href="${getFrontendUrl()}" class="button">Accéder à ${d.companyName}</a>
+              <a href="${getFrontendUrl()}" class="button">Accéder à ${safeCompany}</a>
             </p>
             <p>Si vous avez des questions ou besoin d'aide, n'hésitez pas à nous contacter.</p>
-            <p>Cordialement,<br>${d.signature}</p>
+            <p>Cordialement,<br>${safeSignature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -326,15 +344,19 @@ export async function sendDomainExpirationEmail(
 
   const domainsListHtml = domains
     .map((domain) => {
-      const label = domain.clientName
-        ? `${domain.name} (${domain.clientName})`
-        : domain.name;
+      const safeDomainName = escapeHtml(domain.name);
+      const safeClientName = domain.clientName ? escapeHtml(domain.clientName) : null;
+      const safeClientEmail = domain.clientEmail ? escapeHtml(domain.clientEmail) : null;
+      const safeCurrency = escapeHtml(domain.currency);
+      const label = safeClientName
+        ? `${safeDomainName} (${safeClientName})`
+        : safeDomainName;
       const status = domain.isExpired
         ? `<span style="color: #dc2626; font-weight: bold;">❌ Expiré depuis ${Math.abs(domain.daysUntilExpiry)} jours</span>`
         : `<span style="color: #f59e0b; font-weight: bold;">⚠️ ${domain.daysUntilExpiry} jours restants</span>`;
       const billing =
         domain.payer === 'client'
-          ? `<br><span style="color: #2563eb;">💶 À facturer${domain.sellYearly != null && domain.sellYearly > 0 ? ` — ${domain.sellYearly.toFixed(2)} ${domain.currency} HT/an` : ''}${domain.clientEmail ? ` — ${domain.clientEmail}` : ''}</span>`
+          ? `<br><span style="color: #2563eb;">💶 À facturer${domain.sellYearly != null && domain.sellYearly > 0 ? ` — ${domain.sellYearly.toFixed(2)} ${safeCurrency} HT/an` : ''}${safeClientEmail ? ` — ${safeClientEmail}` : ''}</span>`
           : '<br><span style="color: #64748b;">🏢 Renouvellement agence</span>';
       return `<li style="margin-bottom: 12px; padding: 12px; background: #fff; border-left: 3px solid ${domain.isExpired ? '#dc2626' : '#f59e0b'}; border-radius: 4px;">
         <strong>${label}</strong><br>
@@ -361,6 +383,7 @@ export async function sendDomainExpirationEmail(
 
   const d = getEmailDefaults(prefs);
   const fromAddr = getFromAddress(d.companyName);
+  const safeName = escapeHtml(name);
   const subjectSuffix = billableCount > 0 ? `, ${billableCount} à facturer` : '';
 
   try {
@@ -374,7 +397,7 @@ export async function sendDomainExpirationEmail(
         <head><meta charset="utf-8"></head>
         <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: ${d.primaryColor};">Domaines à renouveler</h2>
-          <p>Bonjour ${name},</p>
+          <p>Bonjour ${safeName},</p>
           <p>Vous avez <strong>${domains.length} domaine(s)</strong> nécessitant votre attention :</p>
           <ul style="list-style: none; padding: 0;">${domainsListHtml}</ul>
           <p style="color: #64748b; font-size: 14px;">Exportez le CSV facturation depuis Domain Hub pour importer dans votre banque.</p>
@@ -417,7 +440,7 @@ export async function sendLicenceExpirationEmail(
         ? `<span style="color: #dc2626; font-weight: bold;">❌ Expirée depuis ${Math.abs(licence.daysUntilExpiry)} jours</span>`
         : `<span style="color: #f59e0b; font-weight: bold;">⚠️ ${licence.daysUntilExpiry} jours restants</span>`;
       return `<li style="margin-bottom: 12px; padding: 12px; background: #fff; border-left: 3px solid ${licence.isExpired ? '#dc2626' : '#f59e0b'}; border-radius: 4px;">
-        <strong>${licence.name}</strong><br>
+        <strong>${escapeHtml(licence.name)}</strong><br>
         ${status}
       </li>`;
     })
@@ -434,8 +457,10 @@ export async function sendLicenceExpirationEmail(
 
   const d = getEmailDefaults(prefs);
   const fromAddr = getFromAddress(d.companyName);
+  const safeName = escapeHtml(name);
+  const safeSignature = escapeHtml(d.signature);
   const licencesIntro = prefs?.licencesText
-    ? prefs.licencesText.split('\n').map(p => `<p>${p}</p>`).join('')
+    ? prefsParagraphs(prefs.licencesText)
     : `<p>Vous avez <strong>${licences.length} licence(s)</strong> nécessitant votre attention :</p>`;
 
   try {
@@ -505,7 +530,7 @@ export async function sendLicenceExpirationEmail(
             <h1>🔑 Licences à renouveler</h1>
           </div>
           <div class="content">
-            <p>Bonjour <strong>${name}</strong>,</p>
+            <p>Bonjour <strong>${safeName}</strong>,</p>
             ${licencesIntro}
             <div class="summary">
               ${expiredCount > 0 ? `<strong>${expiredCount} licence(s) expirée(s)</strong>` : ''}
@@ -518,7 +543,7 @@ export async function sendLicenceExpirationEmail(
               <a href="${getFrontendUrl()}/tools/licence-key-hub" class="button">Gérer mes licences</a>
             </p>
             <p>N'oubliez pas de renouveler vos licences avant leur expiration pour éviter toute interruption de service.</p>
-            <p>Cordialement,<br>${d.signature}</p>
+            <p>Cordialement,<br>${safeSignature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -568,6 +593,8 @@ export async function sendTestEmail(email: string, name: string, prefs?: EmailPr
 
   const d = getEmailDefaults(prefs);
   const fromAddr = getFromAddress(d.companyName);
+  const safeName = escapeHtml(name);
+  const safeSignature = escapeHtml(d.signature);
 
   try {
     const sent = await dispatchEmail({
@@ -622,13 +649,13 @@ export async function sendTestEmail(email: string, name: string, prefs?: EmailPr
             <h1>🔔 Test de notification</h1>
           </div>
           <div class="content">
-            <p>Bonjour <strong>${name}</strong>,</p>
+            <p>Bonjour <strong>${safeName}</strong>,</p>
             <div class="success">
               <p><strong>✅ Succès !</strong></p>
               <p>Si vous recevez cet email, cela signifie que votre configuration SMTP fonctionne correctement.</p>
             </div>
             <p>Vous recevrez désormais des notifications par email pour les licences expirantes dans votre Licence Key Hub.</p>
-            <p>Cordialement,<br>${d.signature}</p>
+            <p>Cordialement,<br>${safeSignature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -637,7 +664,7 @@ export async function sendTestEmail(email: string, name: string, prefs?: EmailPr
         </html>
       `,
       text: `
-        Test de notification DevToolbox
+        Test de notification ${d.companyName}
         
         Bonjour ${name},
         
@@ -708,14 +735,22 @@ export async function sendTaskReminderEmail(
     }
   }
 
+  const safeTitle = escapeHtml(task.title);
+  const safeDescription = task.description ? escapeHtml(task.description) : '';
+  const safeClient = task.client ? escapeHtml(task.client) : '';
+  const safeLink = task.link && /^https?:\/\//i.test(task.link) ? escapeHtml(task.link) : '';
+  const safeDueDate = task.dueDate
+    ? escapeHtml(new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
+    : 'Sans échéance';
+
   const taskDetailsHtml = `
     <div style="background: #fff; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${urgencyColor};">
-      <h2 style="margin-top: 0; color: #1f2937;">${task.title}</h2>
-      ${task.description ? `<p style="color: #6b7280; margin: 10px 0;">${task.description}</p>` : ''}
+      <h2 style="margin-top: 0; color: #1f2937;">${safeTitle}</h2>
+      ${safeDescription ? `<p style="color: #6b7280; margin: 10px 0;">${safeDescription}</p>` : ''}
       <div style="margin: 15px 0;">
-        <p style="margin: 5px 0;"><strong>📅 Date d'échéance :</strong> ${task.dueDate ? new Date(task.dueDate).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Sans échéance'}</p>
-        ${task.client ? `<p style="margin: 5px 0;"><strong>👤 Client :</strong> ${task.client}</p>` : ''}
-        ${task.link ? `<p style="margin: 5px 0;"><strong>🔗 Lien :</strong> <a href="${task.link}" style="color: #0066CC;">${task.link}</a></p>` : ''}
+        <p style="margin: 5px 0;"><strong>📅 Date d'échéance :</strong> ${safeDueDate}</p>
+        ${safeClient ? `<p style="margin: 5px 0;"><strong>👤 Client :</strong> ${safeClient}</p>` : ''}
+        ${safeLink ? `<p style="margin: 5px 0;"><strong>🔗 Lien :</strong> <a href="${safeLink}" style="color: #0066CC;">${safeLink}</a></p>` : ''}
         ${urgencyText ? `<p style="margin: 10px 0; padding: 10px; background: ${urgencyColor === '#dc2626' ? '#fee2e2' : urgencyColor === '#f59e0b' ? '#fef3c7' : '#dbeafe'}; border-radius: 4px; color: ${urgencyColor}; font-weight: bold;">${urgencyText}</p>` : ''}
       </div>
     </div>
@@ -733,8 +768,10 @@ ${urgencyText ? `\n${urgencyText}` : ''}
 
   const d = getEmailDefaults(prefs);
   const fromAddr = getFromAddress(d.companyName);
+  const safeName = escapeHtml(name);
+  const safeSignature = escapeHtml(d.signature);
   const tasksIntro = prefs?.tasksText
-    ? prefs.tasksText.split('\n').map(p => `<p>${p}</p>`).join('')
+    ? prefsParagraphs(prefs.tasksText)
     : `<p>Vous avez une tâche qui nécessite votre attention :</p>`;
 
   try {
@@ -792,13 +829,13 @@ ${urgencyText ? `\n${urgencyText}` : ''}
             <h1>📋 Rappel de tâche</h1>
           </div>
           <div class="content">
-            <p>Bonjour <strong>${name}</strong>,</p>
+            <p>Bonjour <strong>${safeName}</strong>,</p>
             ${tasksIntro}
             ${taskDetailsHtml}
             <p style="text-align: center;">
               <a href="${getFrontendUrl()}/tools/task-reminder" class="button">Voir mes tâches</a>
             </p>
-            <p>Cordialement,<br>${d.signature}</p>
+            <p>Cordialement,<br>${safeSignature}</p>
           </div>
           <div class="footer">
             <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
@@ -852,6 +889,7 @@ export async function sendPasswordResetEmail(
   const resetUrl = `${getFrontendUrl()}/?reset=${encodeURIComponent(resetToken)}`;
   const d = getEmailDefaults();
   const from = getFromAddress(d.companyName);
+  const safeName = escapeHtml(name);
 
   if (!getEmailProvider()) {
     return false;
@@ -864,7 +902,7 @@ export async function sendPasswordResetEmail(
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Réinitialisation du mot de passe</h2>
-        <p>Bonjour <strong>${name}</strong>,</p>
+        <p>Bonjour <strong>${safeName}</strong>,</p>
         <p>Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le lien ci-dessous (valide 1 heure) :</p>
         <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:${d.primaryColor};color:white;text-decoration:none;border-radius:6px;">Réinitialiser mon mot de passe</a></p>
         <p style="color:#6b7280;font-size:14px;">Si vous n'avez pas fait cette demande, ignorez cet email.</p>
