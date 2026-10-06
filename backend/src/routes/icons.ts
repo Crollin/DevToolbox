@@ -3,8 +3,20 @@ import db from '../db/database';
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateToken } from '../middleware/auth';
 import { safeJsonParse } from '../lib/json';
+import { assertValidSvg, SvgValidationError } from '../lib/svgValidation';
 
 const router = express.Router();
+
+function assertValidName(name: unknown): string {
+  if (typeof name !== 'string' || !name.trim()) {
+    throw new SvgValidationError('Nom requis');
+  }
+  const trimmed = name.trim();
+  if (trimmed.length > 200) {
+    throw new SvgValidationError('Nom trop long (max 200 caractères)');
+  }
+  return trimmed;
+}
 
 // Toutes les routes nécessitent une authentification
 router.use(authenticateToken);
@@ -44,6 +56,8 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const { name, svg, tags, category, isFavorite } = req.body;
+    const safeName = assertValidName(name);
+    const safeSvg = assertValidSvg(svg);
     const id = uuidv4();
     const now = new Date().toISOString();
 
@@ -51,12 +65,15 @@ router.post('/', (req, res) => {
       INSERT INTO svg_icons (id, name, svg, tags, category, is_favorite, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      id, name, svg, JSON.stringify(tags || []), category || null,
+      id, safeName, safeSvg, JSON.stringify(tags || []), category || null,
       isFavorite ? 1 : 0, now, now
     );
 
     res.status(201).json({ id, createdAt: now, updatedAt: now });
   } catch (error) {
+    if (error instanceof SvgValidationError) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Erreur lors de la création de l\'icône' });
   }
 });
@@ -65,6 +82,8 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   try {
     const { name, svg, tags, category, isFavorite } = req.body;
+    const safeName = assertValidName(name);
+    const safeSvg = assertValidSvg(svg);
     const now = new Date().toISOString();
 
     const result = db.prepare(`
@@ -72,7 +91,7 @@ router.put('/:id', (req, res) => {
       SET name = ?, svg = ?, tags = ?, category = ?, is_favorite = ?, updated_at = ?
       WHERE id = ?
     `).run(
-      name, svg, JSON.stringify(tags || []), category || null,
+      safeName, safeSvg, JSON.stringify(tags || []), category || null,
       isFavorite ? 1 : 0, now, req.params.id
     ) as { changes: number };
 
@@ -82,6 +101,9 @@ router.put('/:id', (req, res) => {
 
     res.json({ updatedAt: now });
   } catch (error) {
+    if (error instanceof SvgValidationError) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'icône' });
   }
 });
@@ -100,4 +122,3 @@ router.delete('/:id', (req, res) => {
 });
 
 export default router;
-
