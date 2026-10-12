@@ -270,6 +270,26 @@ const TaskReminder = () => {
     }
   };
 
+  const handleDescriptionChange = async (id: string, description: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) throw new Error("Tâche introuvable");
+
+    const updated = await updateTask(id, {
+      title: task.title,
+      description,
+      dueDate: task.dueDate,
+      client: task.client,
+      link: task.link,
+      tags: task.tags,
+      priority: task.priority,
+      notificationChannels: task.notificationChannels,
+      reminderDays: task.reminderDays,
+      reminderDatetime: task.reminderDatetime,
+    });
+
+    setViewingTask((prev) => (prev && prev.id === id ? updated : prev));
+  };
+
   const openNewModal = () => {
     setEditingTask(null);
     setIsModalOpen(true);
@@ -646,6 +666,7 @@ const TaskReminder = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
+          onDescriptionChange={handleDescriptionChange}
           clientColors={clientColors}
         />
       </div>
