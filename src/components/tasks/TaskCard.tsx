@@ -1,6 +1,7 @@
 import { Task } from "@/types/task";
 import TaskStatusSwitcher from "./TaskStatusSwitcher";
 import { cn } from "@/lib/utils";
+import { getChecklistProgress } from "@/lib/taskChecklist";
 import { Pencil, Trash2, ExternalLink, Calendar, User, Link as LinkIcon, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +15,8 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors }: TaskCardProps) => {
+  const checklistProgress = getChecklistProgress(task.description || "");
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Sans échéance";
     const date = new Date(dateString);
@@ -96,9 +99,16 @@ const TaskCard = ({ task, onEdit, onDelete, onView, onStatusChange, clientColors
               </div>
             )}
 
-            {task.description && (
-              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{task.description}</p>
-            )}
+            {checklistProgress.total > 0 ? (
+              <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-foreground">
+                  {checklistProgress.done}/{checklistProgress.total}
+                </span>
+                <span>sous-tâches</span>
+              </div>
+            ) : task.description ? (
+              <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
+            ) : null}
 
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
