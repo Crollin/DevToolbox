@@ -3,12 +3,12 @@ import { cn } from "@/lib/utils";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
@@ -30,6 +30,14 @@ import {
   Flag,
 } from "lucide-react";
 import { TaskAttachmentsPanel } from "@/components/tasks/TaskAttachmentsPanel";
+import TaskChecklist from "./TaskChecklist";
+import {
+  extractNotesMarkdown,
+  parseChecklistItems,
+  toggleChecklistItem,
+} from "@/lib/taskChecklist";
+import { useEffect, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface TaskDetailSheetProps {
   task: Task | null;
@@ -38,6 +46,7 @@ interface TaskDetailSheetProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onStatusChange?: (id: string, status: Task["status"]) => void;
+  onDescriptionChange?: (taskId: string, description: string) => void | Promise<void>;
   clientColors?: Record<string, string>;
 }
 
@@ -86,9 +95,37 @@ const TaskDetailSheet = ({
   onEdit,
   onDelete,
   onStatusChange,
+  onDescriptionChange,
   clientColors,
 }: TaskDetailSheetProps) => {
   const isMobile = useIsMobile();
+
+  const [localDescription, setLocalDescription] = useState(task?.description || "");
+  const [isSavingChecklist, setIsSavingChecklist] = useState(false);
+
+  useEffect(() => {
+    setLocalDescription(task?.description || "");
+  }, [task?.id, task?.description]);
+
+  const handleToggle = async (index: number, checked: boolean) => {
+    if (!onDescriptionChange || !task) return;
+    const previous = localDescription;
+    const next = toggleChecklistItem(previous, index, checked);
+    setLocalDescription(next);
+    setIsSavingChecklist(true);
+    try {
+      await onDescriptionChange(task.id, next);
+    } catch {
+      setLocalDescription(previous);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la checklist.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingChecklist(false);
+    }
+  };
 
   if (!task) return null;
 
@@ -96,13 +133,28 @@ const TaskDetailSheet = ({
 
   const body = (
     <div className="space-y-5">
-      {task.description && (
-        <div className="space-y-1.5">
-          <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</h4>
-          <div
-            className="prose prose-sm prose-invert max-w-none rounded-lg bg-muted/40 p-3 text-sm leading-relaxed text-foreground [&_a]:text-primary [&_a]:underline [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(task.description) }}
-          />
+      {(parseChecklistItems(localDescription).length > 0 || extractNotesMarkdown(localDescription)) && (
+        <div className="space-y-5">
+          {parseChecklistItems(localDescription).length > 0 && (
+            <TaskChecklist
+              description={localDescription}
+              onToggle={handleToggle}
+              disabled={isSavingChecklist || !onDescriptionChange}
+            />
+          )}
+          {extractNotesMarkdown(localDescription) && (
+            <div className="space-y-1.5">
+              <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Notes
+              </h4>
+              <div
+                className="prose prose-sm prose-invert max-w-none rounded-lg bg-muted/40 p-3 text-sm leading-relaxed text-foreground [&_a]:text-primary [&_a]:underline"
+                dangerouslySetInnerHTML={{
+                  __html: renderMarkdown(extractNotesMarkdown(localDescription)),
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -261,16 +313,18 @@ const TaskDetailSheet = ({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader className="pr-8">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex h-[90vh] max-h-[90vh] w-[90vw] max-w-[1100px] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 space-y-3 border-b border-border px-6 py-4 text-left">
           {headerBadges}
-          <SheetTitle className="text-left text-lg leading-snug">{task.title}</SheetTitle>
-          <SheetDescription className="sr-only">Détail de la tâche</SheetDescription>
-        </SheetHeader>
-        <div className="mt-6">{body}</div>
-      </SheetContent>
-    </Sheet>
+          <DialogTitle className="pr-8 text-left text-xl leading-snug">
+            {task.title}
+          </DialogTitle>
+          <DialogDescription className="sr-only">Détail de la tâche</DialogDescription>
+        </DialogHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{body}</div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
