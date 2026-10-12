@@ -130,27 +130,31 @@ const TaskDetailSheet = ({
   if (!task) return null;
 
   const priority = priorityConfig[task.priority];
+  const checklistItems = parseChecklistItems(localDescription);
+  const notesMarkdown = extractNotesMarkdown(localDescription);
+  const hasChecklist = checklistItems.length > 0;
+  const hasNotes = Boolean(notesMarkdown);
 
   const body = (
     <div className="space-y-5">
-      {(parseChecklistItems(localDescription).length > 0 || extractNotesMarkdown(localDescription)) && (
+      {(hasChecklist || hasNotes) && (
         <div className="space-y-5">
-          {parseChecklistItems(localDescription).length > 0 && (
+          {hasChecklist && (
             <TaskChecklist
               description={localDescription}
               onToggle={handleToggle}
               disabled={isSavingChecklist || !onDescriptionChange}
             />
           )}
-          {extractNotesMarkdown(localDescription) && (
+          {hasNotes && (
             <div className="space-y-1.5">
               <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Notes
               </h4>
               <div
-                className="prose prose-sm prose-invert max-w-none rounded-lg bg-muted/40 p-3 text-sm leading-relaxed text-foreground [&_a]:text-primary [&_a]:underline"
+                className="prose prose-sm prose-invert max-w-none rounded-lg bg-muted/40 p-3 text-sm leading-relaxed text-foreground [&_a]:text-primary [&_a]:underline [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs"
                 dangerouslySetInnerHTML={{
-                  __html: renderMarkdown(extractNotesMarkdown(localDescription)),
+                  __html: renderMarkdown(notesMarkdown),
                 }}
               />
             </div>

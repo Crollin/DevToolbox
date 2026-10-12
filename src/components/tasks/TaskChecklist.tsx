@@ -26,8 +26,9 @@ const TaskChecklist = ({ description, onToggle, disabled }: TaskChecklistProps) 
           <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             À faire
           </h4>
-          <p className="mt-0.5 text-sm font-medium text-foreground">
-            {done}/{total} terminé{done > 1 ? "s" : ""}
+          <p className="mt-0.5 text-sm font-medium text-foreground tabular-nums">
+            {done}/{total}{" "}
+            <span className="font-normal text-muted-foreground">sous-tâches</span>
           </p>
         </div>
         <span className="text-xs tabular-nums text-muted-foreground">{percent}%</span>

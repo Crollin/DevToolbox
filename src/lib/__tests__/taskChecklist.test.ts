@@ -71,6 +71,11 @@ describe("toggleChecklistItem", () => {
   it("ignore un index invalide", () => {
     expect(toggleChecklistItem("- A", 5, true)).toBe("- A");
   });
+
+  it("préserve les marqueurs *, + et 1. lors de la normalisation GFM", () => {
+    const next = toggleChecklistItem("* A\n+ B\n1. C", 1, true);
+    expect(next).toBe("* [ ] A\n+ [x] B\n1. [ ] C");
+  });
 });
 
 describe("extractNotesMarkdown", () => {
