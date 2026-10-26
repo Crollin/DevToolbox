@@ -12,25 +12,10 @@ import {
   setTaskStatus,
   taskSummary,
   updateTask,
-  type TaskInput,
 } from './api.js';
+import { taskFields, toTaskInput } from './taskInput.js';
 
 const statusSchema = z.enum(['pending', 'in_progress', 'completed']);
-const prioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
-const channelSchema = z.enum(['ntfy', 'email', 'telegram']);
-
-const taskFields = {
-  title: z.string().min(1).describe('Titre de la tâche'),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('Échéance YYYY-MM-DD, null ou omise si inconnue'),
-  description: z.string().optional().describe('Description / contexte'),
-  client: z.string().optional().describe('Nom du client'),
-  link: z.string().optional().describe('URL associée (optionnel)'),
-  tags: z.array(z.string()).max(20).optional().describe('Tags'),
-  priority: prioritySchema.optional().describe('Priorité (défaut: normal)'),
-  notificationChannels: z.array(channelSchema).optional().describe('Canaux de notification'),
-  reminderDays: z.array(z.number().int().min(0).max(30)).optional().describe('Rappels N jours avant'),
-  reminderDatetime: z.string().optional().describe('Rappel précis ISO 8601'),
-};
 
 function ok(text: string) {
   return { content: [{ type: 'text' as const, text }] };
@@ -39,22 +24,6 @@ function ok(text: string) {
 function fail(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return { content: [{ type: 'text' as const, text: `Erreur : ${message}` }], isError: true };
-}
-
-function toTaskInput(args: z.infer<z.ZodObject<typeof taskFields>>): TaskInput {
-  const link = args.link === '' ? undefined : args.link;
-  return {
-    title: args.title,
-    dueDate: args.dueDate ?? null,
-    description: args.description,
-    client: args.client,
-    link,
-    tags: args.tags,
-    priority: args.priority,
-    notificationChannels: args.notificationChannels,
-    reminderDays: args.reminderDays,
-    reminderDatetime: args.reminderDatetime,
-  };
 }
 
 const server = new McpServer({
@@ -114,7 +83,7 @@ server.tool(
 
 server.tool(
   'update_task',
-  'Met à jour une tâche (PUT). title reste obligatoire ; dueDate peut être null.',
+  'Met à jour partiellement une tâche. title reste obligatoire ; dueDate peut être null.',
   {
     id: z.string().uuid().describe('Identifiant UUID de la tâche'),
     ...taskFields,

@@ -110,7 +110,7 @@ export async function createTask(input: TaskInput): Promise<Task> {
 }
 
 export async function updateTask(id: string, input: TaskInput): Promise<Task> {
-  const data = await request<{ task: Task }>('PUT', `/tasks/${encodeURIComponent(id)}`, input);
+  const data = await request<{ task: Task }>('PATCH', `/tasks/${encodeURIComponent(id)}`, input);
   return data.task;
 }
 

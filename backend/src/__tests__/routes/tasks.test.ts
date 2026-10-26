@@ -81,4 +81,86 @@ describe('Tasks API', () => {
     expect(res.body.task).toBeDefined();
     expect(res.body.task.title).toBe('Test task');
   });
+
+  it('PATCH /api/tasks/:id conserve les champs omis', async () => {
+    const created = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        title: 'Titre initial',
+        description: 'Contexte à conserver',
+        dueDate: '2026-11-15',
+        client: 'Client Exemple',
+        link: 'https://example.com/tache',
+        tags: ['urgent'],
+        priority: 'high',
+        notificationChannels: ['email'],
+        reminderDays: [7, 1],
+        reminderDatetime: '2026-11-14T09:00:00.000Z',
+      });
+
+    const res = await request(app)
+      .patch(`/api/tasks/${created.body.task.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ title: 'Nouveau titre' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task).toMatchObject({
+      title: 'Nouveau titre',
+      description: 'Contexte à conserver',
+      dueDate: '2026-11-15',
+      client: 'Client Exemple',
+      link: 'https://example.com/tache',
+      tags: ['urgent'],
+      priority: 'high',
+      notificationChannels: ['email'],
+      reminderDays: [7, 1],
+      reminderDatetime: '2026-11-14T09:00:00.000Z',
+    });
+  });
+
+  it('PATCH /api/tasks/:id applique les suppressions explicites', async () => {
+    const created = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        title: 'Tâche à nettoyer',
+        description: 'Contexte',
+        dueDate: '2026-11-15',
+        client: 'Client Exemple',
+        link: 'https://example.com/tache',
+        tags: ['urgent'],
+        notificationChannels: ['email'],
+        reminderDays: [7, 1],
+        reminderDatetime: '2026-11-14T09:00:00.000Z',
+      });
+
+    const res = await request(app)
+      .patch(`/api/tasks/${created.body.task.id}`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        title: 'Tâche nettoyée',
+        description: '',
+        dueDate: null,
+        client: '',
+        link: '',
+        tags: [],
+        notificationChannels: [],
+        reminderDays: [],
+        reminderDatetime: '',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task).toMatchObject({
+      title: 'Tâche nettoyée',
+      dueDate: null,
+      tags: [],
+      notificationChannels: [],
+    });
+    expect(res.body.task.description).toBeUndefined();
+    expect(res.body.task.client).toBeUndefined();
+    expect(res.body.task.link).toBeUndefined();
+    expect(res.body.task.reminderDays).toBeUndefined();
+    expect(res.body.task.reminderDatetime).toBeUndefined();
+  });
 });
