@@ -44,6 +44,7 @@ export async function checkAndSendDomainReminders(): Promise<void> {
         FROM domains
         WHERE user_id = ? AND (notifications_enabled IS NULL OR notifications_enabled = 1)
       `).all(user.id) as Array<{
+        id: string;
         name: string;
         client_name: string | null;
         client_email: string | null;
