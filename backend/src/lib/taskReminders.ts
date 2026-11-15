@@ -51,13 +51,14 @@ function recordReminderSent(
   taskId: string,
   reminderType: 'days_before' | 'datetime',
   reminderValue: string
-): void {
+): string {
   const id = uuidv4();
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO task_reminders (id, task_id, reminder_type, reminder_value, sent_at, created_at)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(id, taskId, reminderType, reminderValue, now, now);
+  return id;
 }
 
 function toDispatchConfig(
@@ -154,24 +155,32 @@ export async function checkAndSendTaskReminders(): Promise<void> {
         if (task.due_date && task.reminder_days && daysUntilDue !== undefined) {
           const reminderDays = safeJsonParse<number[]>(task.reminder_days, []);
 
-          for (const daysBefore of reminderDays) {
-            if (shouldSendDaysBeforeReminder(daysUntilDue, reminderDays, task.id, daysBefore)) {
-              if (await send()) {
-                recordReminderSent(task.id, 'days_before', daysBefore.toString());
-                reminderSent = true;
-                console.log(
-                  `Rappel "jours avant" envoyé pour la tâche "${task.title}" (${daysBefore} jours avant)`
-                );
-              }
+          // Un seul rappel : celui correspondant exactement au nombre de jours restants
+          const matching = reminderDays.map(Number).find((d) => d === daysUntilDue);
+          if (
+            matching !== undefined &&
+            shouldSendDaysBeforeReminder(daysUntilDue, reminderDays.map(Number), task.id, matching)
+          ) {
+            // On réserve avant l'envoi (évite les doublons si un envoi est lent/chevauché)
+            const recordId = recordReminderSent(task.id, 'days_before', matching.toString());
+            if (await send()) {
+              reminderSent = true;
+              console.log(
+                `Rappel "jours avant" envoyé pour la tâche "${task.title}" (${matching} jours avant)`
+              );
+            } else {
+              db.prepare('DELETE FROM task_reminders WHERE id = ?').run(recordId);
             }
           }
         }
 
         if (task.reminder_datetime && !reminderSent) {
           if (shouldSendDatetimeReminder(task.reminder_datetime, task.id)) {
+            const recordId = recordReminderSent(task.id, 'datetime', task.reminder_datetime);
             if (await send()) {
-              recordReminderSent(task.id, 'datetime', task.reminder_datetime);
               console.log(`Rappel date/heure envoyé pour la tâche "${task.title}"`);
+            } else {
+              db.prepare('DELETE FROM task_reminders WHERE id = ?').run(recordId);
             }
           }
         }

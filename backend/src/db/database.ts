@@ -592,6 +592,17 @@ export function initializeDatabase() {
     )
   `);
 
+  // Anti-doublon des rappels domaines : 1 envoi par (domaine, seuil J-x, date d'expiration)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS domain_reminders_sent (
+      domain_id TEXT NOT NULL,
+      threshold_days INTEGER NOT NULL,
+      expires_at TEXT NOT NULL,
+      sent_at TEXT NOT NULL,
+      PRIMARY KEY (domain_id, threshold_days, expires_at)
+    )
+  `);
+
   // Table pour l'ordre personnalisé des outils par utilisateur
   db.exec(`
     CREATE TABLE IF NOT EXISTS tool_order (
