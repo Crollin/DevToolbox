@@ -5,6 +5,7 @@ import db, { initializeDatabase } from '../../db/database';
 import { migrateOptionalTaskDate } from '../../db/mailIntegration';
 import { cleanMailText, decryptMailSecret, encryptMailSecret, extractMail, getAiConfig, needsReview, policyFromJevSignals, type MailContext, type MailProposal } from '../../lib/mailAi';
 import { applyExtraction, acceptProposal, enqueueMessage, runMailWorker, type MailMessage } from '../../lib/mailWorker';
+import { createTask } from '../../lib/taskService';
 import { finishZohoOAuth, getConnection, startZohoOAuth, type ZohoConnection } from '../../lib/zohoMail';
 
 const proposal: MailProposal = { action: 'create', title: 'Corriger le formulaire', description: 'Vérifier le formulaire de contact.', dueDate: null, priority: 'normal',
@@ -121,6 +122,16 @@ describe('mail integration invariants', () => {
     expect(acceptProposal(userId,row.id,{})).toBe(id);
     expect(db.prepare('SELECT title FROM tasks WHERE id=?').get(id)).toEqual({title:'Titre corrigé'});
     expect(db.prepare('SELECT * FROM tasks WHERE user_id=?').all(userId)).toHaveLength(1);
+  });
+  it('preserves the existing due date when an accepted update has no new date', () => {
+    const taskId = createTask(userId,{title:'Migration WordPress',description:'Migration initiale',dueDate:'2026-11-15',client:'Client Dupont',priority:'high'});
+    const message = mail();
+    const update = {...proposal,action:'update' as const,title:'Migration WordPress et formulaire',description:'Ajouter la correction du formulaire.',existingTaskId:taskId};
+    const existingTasks = [{id:taskId,title:'Migration WordPress',dueDate:'2026-11-15',status:'pending'}];
+    applyExtraction(message,connection,{...context,existingTasks},{decision:'review',reason:'Action update',proposals:[update]},'test-owner');
+    const row = db.prepare('SELECT id FROM mail_proposals WHERE user_id=?').get(userId) as {id:string};
+    acceptProposal(userId,row.id,{title:update.title,description:update.description,dueDate:null,client:'Client Dupont',priority:'high'});
+    expect(db.prepare('SELECT due_date AS dueDate FROM tasks WHERE id=?').get(taskId)).toEqual({dueDate:'2026-11-15'});
   });
   it('deduplicates delivery and updates the folder after a move', () => {
     mail();
