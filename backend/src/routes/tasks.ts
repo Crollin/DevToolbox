@@ -203,8 +203,8 @@ router.post('/', (req, res) => {
   }
 });
 
-// PUT /api/tasks/:id - Modifier une tâche
-router.put('/:id', (req, res) => {
+// PATCH /api/tasks/:id - Modifier partiellement une tâche
+router.patch('/:id', (req, res) => {
   try {
     const userId = req.user!.id;
     const { id } = req.params;
@@ -221,27 +221,42 @@ router.put('/:id', (req, res) => {
     }
 
     const now = new Date().toISOString();
+    const hasField = (field: string) => Object.prototype.hasOwnProperty.call(req.body, field);
+    const assignments = ['title = ?'];
+    const values: Array<string | number | null> = [title];
+    const assign = (column: string, value: string | number | null) => {
+      assignments.push(`${column} = ?`);
+      values.push(value);
+    };
 
+    if (hasField('description')) assign('description', description || null);
+    if (hasField('dueDate')) assign('due_date', dueDate ?? null);
+    if (hasField('client')) assign('client', client || null);
+    if (hasField('link')) assign('link', link || null);
+    if (hasField('tags')) assign('tags', JSON.stringify(normalizeTags(tags)));
+    if (hasField('priority')) {
+      assign('priority', VALID_PRIORITIES.includes(priority) ? priority : 'normal');
+    }
+    if (hasField('notificationChannels')) {
+      const channels = normalizeChannels(notificationChannels);
+      assign('notification_channels', channels ? JSON.stringify(channels) : null);
+    }
+    if (hasField('dueDate') && dueDate === null) {
+      assign('reminder_days', null);
+    } else if (hasField('reminderDays')) {
+      assign('reminder_days', JSON.stringify(reminderDays));
+    }
+    if (hasField('reminderDatetime')) {
+      assign('reminder_datetime', reminderDatetime || null);
+    }
+
+    assignments.push('updated_at = ?');
+    values.push(now);
     db.prepare(`
-      UPDATE tasks 
-      SET title = ?, description = ?, due_date = ?, client = ?, link = ?,
-          tags = ?, priority = ?, notification_channels = ?, reminder_days = ?, reminder_datetime = ?, updated_at = ?
+      UPDATE tasks
+      SET ${assignments.join(', ')}
       WHERE id = ? AND user_id = ?
-    `).run(
-      title,
-      description || null,
-      dueDate ?? null,
-      client || null,
-      link || null,
-      JSON.stringify(normalizeTags(tags)),
-      VALID_PRIORITIES.includes(priority) ? priority : 'normal',
-      normalizeChannels(notificationChannels) ? JSON.stringify(normalizeChannels(notificationChannels)) : null,
-      dueDate && reminderDays ? JSON.stringify(reminderDays) : null,
-      reminderDatetime || null,
-      now,
-      id,
-      userId
-    );
+    `).run(...values, id, userId);
 
     const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as {
       id: string;
@@ -263,6 +278,53 @@ router.put('/:id', (req, res) => {
     res.json({ task: formattedTask });
   } catch (error) {
     console.error('Erreur lors de la modification de la tâche:', error);
+    res.status(500).json({ error: 'Erreur lors de la modification de la tâche' });
+  }
+});
+
+// PUT /api/tasks/:id - Remplacer les champs modifiables d'une tâche
+router.put('/:id', (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    const { title, description, dueDate, client, link, reminderDays, reminderDatetime, tags, priority, notificationChannels } = req.body;
+
+    const existingTask = db.prepare('SELECT id FROM tasks WHERE id = ? AND user_id = ?').get(id, userId);
+    if (!existingTask) {
+      return res.status(404).json({ error: 'Tâche non trouvée' });
+    }
+
+    if (!taskInputSchema.safeParse(req.body).success) {
+      return res.status(400).json({ error: 'Données de tâche invalides' });
+    }
+
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      UPDATE tasks
+      SET title = ?, description = ?, due_date = ?, client = ?, link = ?,
+          tags = ?, priority = ?, notification_channels = ?, reminder_days = ?, reminder_datetime = ?, updated_at = ?
+      WHERE id = ? AND user_id = ?
+    `).run(
+      title,
+      description || null,
+      dueDate ?? null,
+      client || null,
+      link || null,
+      JSON.stringify(normalizeTags(tags)),
+      VALID_PRIORITIES.includes(priority) ? priority : 'normal',
+      normalizeChannels(notificationChannels) ? JSON.stringify(normalizeChannels(notificationChannels)) : null,
+      dueDate && reminderDays ? JSON.stringify(reminderDays) : null,
+      reminderDatetime || null,
+      now,
+      id,
+      userId
+    );
+
+    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as TaskRow;
+    res.json({ task: formatTask(task) });
+  } catch (error) {
+    console.error('Erreur lors du remplacement de la tâche:', error);
     res.status(500).json({ error: 'Erreur lors de la modification de la tâche' });
   }
 });
